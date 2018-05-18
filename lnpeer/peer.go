@@ -3,10 +3,10 @@ package lnpeer
 import (
 	"net"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/lightningnetwork/lnd/channeldb"
-	"github.com/lightningnetwork/lnd/lnwire"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/lnwire"
 )
 
 // Peer is an interface which represents the remote lightning node inside our
@@ -29,7 +29,7 @@ type Peer interface {
 	PubKey() [33]byte
 
 	// IdentityKey returns the public key of the remote peer.
-	IdentityKey() *btcec.PublicKey
+	IdentityKey() *secp256k1.PublicKey
 
 	// Address returns the network address of the remote peer.
 	Address() net.Addr

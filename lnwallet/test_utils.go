@@ -12,16 +12,16 @@ import (
 	"os"
 	"sync"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcd/txscript"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
-	"github.com/lightningnetwork/lnd/channeldb"
-	"github.com/lightningnetwork/lnd/keychain"
-	"github.com/lightningnetwork/lnd/lnwire"
-	"github.com/lightningnetwork/lnd/shachain"
+	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/txscript"
+	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/keychain"
+	"github.com/decred/dcrlnd/lnwire"
+	"github.com/decred/dcrlnd/shachain"
 )
 
 var (
@@ -92,20 +92,20 @@ var (
 
 // CreateTestChannels creates to fully populated channels to be used within
 // testing fixtures. The channels will be returned as if the funding process
-// has just completed.  The channel itself is funded with 10 BTC, with 5 BTC
+// has just completed.  The channel itself is funded with 10 DCR, with 5 DCR
 // allocated to each side. Within the channel, Alice is the initiator. The
 // function also returns a "cleanup" function that is meant to be called once
 // the test has been finalized. The clean up function will remote all temporary
 // files created
 func CreateTestChannels() (*LightningChannel, *LightningChannel, func(), error) {
-	channelCapacity, err := btcutil.NewAmount(10)
+	channelCapacity, err := dcrutil.NewAmount(10)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
 	channelBal := channelCapacity / 2
-	aliceDustLimit := btcutil.Amount(200)
-	bobDustLimit := btcutil.Amount(1300)
+	aliceDustLimit := dcrutil.Amount(200)
+	bobDustLimit := dcrutil.Amount(1300)
 	csvTimeoutAlice := uint32(5)
 	csvTimeoutBob := uint32(4)
 
@@ -118,22 +118,22 @@ func CreateTestChannels() (*LightningChannel, *LightningChannel, func(), error) 
 	// For each party, we'll create a distinct set of keys in order to
 	// emulate the typical set up with live channels.
 	var (
-		aliceKeys []*btcec.PrivateKey
-		bobKeys   []*btcec.PrivateKey
+		aliceKeys []*secp256k1.PrivateKey
+		bobKeys   []*secp256k1.PrivateKey
 	)
 	for i := 0; i < 5; i++ {
 		key := make([]byte, len(testWalletPrivKey))
 		copy(key[:], testWalletPrivKey[:])
 		key[0] ^= byte(i + 1)
 
-		aliceKey, _ := btcec.PrivKeyFromBytes(btcec.S256(), key)
+		aliceKey, _ := secp256k1.PrivKeyFromBytes(key)
 		aliceKeys = append(aliceKeys, aliceKey)
 
 		key = make([]byte, len(bobsPrivKey))
 		copy(key[:], bobsPrivKey)
 		key[0] ^= byte(i + 1)
 
-		bobKey, _ := btcec.PrivKeyFromBytes(btcec.S256(), key)
+		bobKey, _ := secp256k1.PrivKeyFromBytes(key)
 		bobKeys = append(bobKeys, bobKey)
 	}
 
@@ -241,7 +241,7 @@ func CreateTestChannels() (*LightningChannel, *LightningChannel, func(), error) 
 		LocalBalance:  lnwire.NewMSatFromSatoshis(channelBal - commitFee),
 		RemoteBalance: lnwire.NewMSatFromSatoshis(channelBal),
 		CommitFee:     commitFee,
-		FeePerKw:      btcutil.Amount(feePerKw),
+		FeePerKw:      dcrutil.Amount(feePerKw),
 		CommitTx:      aliceCommitTx,
 		CommitSig:     bytes.Repeat([]byte{1}, 71),
 	}
@@ -250,7 +250,7 @@ func CreateTestChannels() (*LightningChannel, *LightningChannel, func(), error) 
 		LocalBalance:  lnwire.NewMSatFromSatoshis(channelBal),
 		RemoteBalance: lnwire.NewMSatFromSatoshis(channelBal - commitFee),
 		CommitFee:     commitFee,
-		FeePerKw:      btcutil.Amount(feePerKw),
+		FeePerKw:      dcrutil.Amount(feePerKw),
 		CommitTx:      bobCommitTx,
 		CommitSig:     bytes.Repeat([]byte{1}, 71),
 	}
@@ -393,7 +393,7 @@ func initRevocationWindows(chanA, chanB *LightningChannel) error {
 // a set of private keys in a slice and can sign messages using the appropriate
 // one.
 type mockSigner struct {
-	privkeys  []*btcec.PrivateKey
+	privkeys  []*secp256k1.PrivateKey
 	netParams *chaincfg.Params
 }
 
@@ -406,7 +406,7 @@ func (m *mockSigner) SignOutputRaw(tx *wire.MsgTx, signDesc *SignDescriptor) ([]
 		pubkey = DeriveRevocationPubkey(pubkey, signDesc.DoubleTweak.PubKey())
 	}
 
-	hash160 := btcutil.Hash160(pubkey.SerializeCompressed())
+	hash160 := dcrutil.Hash160(pubkey.SerializeCompressed())
 	privKey := m.findKey(hash160, signDesc.SingleTweak, signDesc.DoubleTweak)
 	if privKey == nil {
 		return nil, fmt.Errorf("Mock signer does not have key")
@@ -473,11 +473,11 @@ func (m *mockSigner) ComputeInputScript(tx *wire.MsgTx, signDesc *SignDescriptor
 // either correspond directly to the private key or to the private key with a
 // tweak applied.
 func (m *mockSigner) findKey(needleHash160 []byte, singleTweak []byte,
-	doubleTweak *btcec.PrivateKey) *btcec.PrivateKey {
+	doubleTweak *secp256k1.PrivateKey) *secp256k1.PrivateKey {
 
 	for _, privkey := range m.privkeys {
 		// First check whether public key is directly derived from private key.
-		hash160 := btcutil.Hash160(privkey.PubKey().SerializeCompressed())
+		hash160 := dcrutil.Hash160(privkey.PubKey().SerializeCompressed())
 		if bytes.Equal(hash160, needleHash160) {
 			return privkey
 		}
@@ -491,7 +491,7 @@ func (m *mockSigner) findKey(needleHash160 []byte, singleTweak []byte,
 		default:
 			continue
 		}
-		hash160 = btcutil.Hash160(privkey.PubKey().SerializeCompressed())
+		hash160 = dcrutil.Hash160(privkey.PubKey().SerializeCompressed())
 		if bytes.Equal(hash160, needleHash160) {
 			return privkey
 		}
@@ -525,60 +525,60 @@ func (m *mockPreimageCache) AddPreimage(preimage []byte) error {
 }
 
 // pubkeyFromHex parses a Bitcoin public key from a hex encoded string.
-func pubkeyFromHex(keyHex string) (*btcec.PublicKey, error) {
+func pubkeyFromHex(keyHex string) (*secp256k1.PublicKey, error) {
 	bytes, err := hex.DecodeString(keyHex)
 	if err != nil {
 		return nil, err
 	}
-	return btcec.ParsePubKey(bytes, btcec.S256())
+	return secp256k1.ParsePubKey(bytes)
 }
 
 // privkeyFromHex parses a Bitcoin private key from a hex encoded string.
-func privkeyFromHex(keyHex string) (*btcec.PrivateKey, error) {
+func privkeyFromHex(keyHex string) (*secp256k1.PrivateKey, error) {
 	bytes, err := hex.DecodeString(keyHex)
 	if err != nil {
 		return nil, err
 	}
-	key, _ := btcec.PrivKeyFromBytes(btcec.S256(), bytes)
+	key, _ := secp256k1.PrivKeyFromBytes(bytes)
 	return key, nil
 
 }
 
 // pubkeyToHex serializes a Bitcoin public key to a hex encoded string.
-func pubkeyToHex(key *btcec.PublicKey) string {
+func pubkeyToHex(key *secp256k1.PublicKey) string {
 	return hex.EncodeToString(key.SerializeCompressed())
 }
 
 // privkeyFromHex serializes a Bitcoin private key to a hex encoded string.
-func privkeyToHex(key *btcec.PrivateKey) string {
+func privkeyToHex(key *secp256k1.PrivateKey) string {
 	return hex.EncodeToString(key.Serialize())
 }
 
 // signatureFromHex parses a Bitcoin signature from a hex encoded string.
-func signatureFromHex(sigHex string) (*btcec.Signature, error) {
+func signatureFromHex(sigHex string) (*secp256k1.Signature, error) {
 	bytes, err := hex.DecodeString(sigHex)
 	if err != nil {
 		return nil, err
 	}
-	return btcec.ParseSignature(bytes, btcec.S256())
+	return secp256k1.ParseSignature(bytes)
 }
 
 // blockFromHex parses a full Bitcoin block from a hex encoded string.
-func blockFromHex(blockHex string) (*btcutil.Block, error) {
+func blockFromHex(blockHex string) (*dcrutil.Block, error) {
 	bytes, err := hex.DecodeString(blockHex)
 	if err != nil {
 		return nil, err
 	}
-	return btcutil.NewBlockFromBytes(bytes)
+	return dcrutil.NewBlockFromBytes(bytes)
 }
 
 // txFromHex parses a full Bitcoin transaction from a hex encoded string.
-func txFromHex(txHex string) (*btcutil.Tx, error) {
+func txFromHex(txHex string) (*dcrutil.Tx, error) {
 	bytes, err := hex.DecodeString(txHex)
 	if err != nil {
 		return nil, err
 	}
-	return btcutil.NewTxFromBytes(bytes)
+	return dcrutil.NewTxFromBytes(bytes)
 }
 
 // calcStaticFee calculates appropriate fees for commitment transactions.  This
@@ -586,12 +586,12 @@ func txFromHex(txHex string) (*btcutil.Tx, error) {
 // calculations into account.
 //
 // TODO(bvu): Refactor when dynamic fee estimation is added.
-func calcStaticFee(numHTLCs int) btcutil.Amount {
+func calcStaticFee(numHTLCs int) dcrutil.Amount {
 	const (
-		commitWeight = btcutil.Amount(724)
+		commitWeight = dcrutil.Amount(724)
 		htlcWeight   = 172
-		feePerKw     = btcutil.Amount(24/4) * 1000
+		feePerKw     = dcrutil.Amount(24/4) * 1000
 	)
 	return feePerKw * (commitWeight +
-		btcutil.Amount(htlcWeight*numHTLCs)) / 1000
+		dcrutil.Amount(htlcWeight*numHTLCs)) / 1000
 }

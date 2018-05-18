@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/lightningnetwork/lnd/autopilot"
-	"github.com/lightningnetwork/lnd/lnrpc/autopilotrpc"
-	"github.com/lightningnetwork/lnd/lnrpc/signrpc"
-	"github.com/lightningnetwork/lnd/lnrpc/walletrpc"
-	"github.com/lightningnetwork/lnd/macaroons"
+	"github.com/decred/dcrlnd/autopilot"
+	"github.com/decred/dcrlnd/lnrpc/autopilotrpc"
+	"github.com/decred/dcrlnd/lnrpc/signrpc"
+	"github.com/decred/dcrlnd/lnrpc/walletrpc"
+	"github.com/decred/dcrlnd/macaroons"
 )
 
 // subRPCServerConfigs is special sub-config in the main configuration that

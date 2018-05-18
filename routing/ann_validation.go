@@ -3,11 +3,11 @@ package routing
 import (
 	"bytes"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/davecgh/go-spew/spew"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrlnd/lnwire"
 	"github.com/go-errors/errors"
-	"github.com/lightningnetwork/lnd/lnwire"
 )
 
 // ValidateChannelAnn validates the channel announcement message and checks
@@ -30,7 +30,7 @@ func ValidateChannelAnn(a *lnwire.ChannelAnnouncement) error {
 	if err != nil {
 		return err
 	}
-	bitcoinKey1, err := btcec.ParsePubKey(a.BitcoinKey1[:], btcec.S256())
+	bitcoinKey1, err := secp256k1.ParsePubKey(a.BitcoinKey1[:])
 	if err != nil {
 		return err
 	}
@@ -45,7 +45,7 @@ func ValidateChannelAnn(a *lnwire.ChannelAnnouncement) error {
 	if err != nil {
 		return err
 	}
-	bitcoinKey2, err := btcec.ParsePubKey(a.BitcoinKey2[:], btcec.S256())
+	bitcoinKey2, err := secp256k1.ParsePubKey(a.BitcoinKey2[:])
 	if err != nil {
 		return err
 	}
@@ -59,7 +59,7 @@ func ValidateChannelAnn(a *lnwire.ChannelAnnouncement) error {
 	if err != nil {
 		return err
 	}
-	nodeKey1, err := btcec.ParsePubKey(a.NodeID1[:], btcec.S256())
+	nodeKey1, err := secp256k1.ParsePubKey(a.NodeID1[:])
 	if err != nil {
 		return err
 	}
@@ -71,7 +71,7 @@ func ValidateChannelAnn(a *lnwire.ChannelAnnouncement) error {
 	if err != nil {
 		return err
 	}
-	nodeKey2, err := btcec.ParsePubKey(a.NodeID2[:], btcec.S256())
+	nodeKey2, err := secp256k1.ParsePubKey(a.NodeID2[:])
 	if err != nil {
 		return err
 	}
@@ -98,7 +98,7 @@ func ValidateNodeAnn(a *lnwire.NodeAnnouncement) error {
 	if err != nil {
 		return err
 	}
-	nodeKey, err := btcec.ParsePubKey(a.NodeID[:], btcec.S256())
+	nodeKey, err := secp256k1.ParsePubKey(a.NodeID[:])
 	if err != nil {
 		return err
 	}
@@ -123,9 +123,7 @@ func ValidateNodeAnn(a *lnwire.NodeAnnouncement) error {
 // ValidateChannelUpdateAnn validates the channel update announcement by
 // checking that the included signature covers he announcement and has been
 // signed by the node's private key.
-func ValidateChannelUpdateAnn(pubKey *btcec.PublicKey,
-	a *lnwire.ChannelUpdate) error {
-
+func ValidateChannelUpdateAnn(pubKey *secp256k1.PublicKey, a *lnwire.ChannelUpdate) error {
 	data, err := a.DataToSign()
 	if err != nil {
 		return errors.Errorf("unable to reconstruct message: %v", err)

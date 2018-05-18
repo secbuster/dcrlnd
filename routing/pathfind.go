@@ -8,11 +8,13 @@ import (
 
 	"container/heap"
 
-	"github.com/btcsuite/btcd/btcec"
 	"github.com/coreos/bbolt"
-	"github.com/lightningnetwork/lightning-onion"
-	"github.com/lightningnetwork/lnd/channeldb"
-	"github.com/lightningnetwork/lnd/lnwire"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/lnwire"
+	"github.com/lightningnetwork/lightning-onion" // TODO(decred): ok?
 )
 
 const (
@@ -45,7 +47,7 @@ const (
 // publicly advertised to the network for routing.
 type HopHint struct {
 	// NodeID is the public key of the node at the start of the channel.
-	NodeID *btcec.PublicKey
+	NodeID *secp256k1.PublicKey
 
 	// ChannelID is the unique identifier of the channel.
 	ChannelID uint64
@@ -384,7 +386,7 @@ func NewRouteFromHops(amtToSend lnwire.MilliSatoshi, timeLock uint32,
 type Vertex [33]byte
 
 // NewVertex returns a new Vertex given a public key.
-func NewVertex(pub *btcec.PublicKey) Vertex {
+func NewVertex(pub *secp256k1.PublicKey) Vertex {
 	var v Vertex
 	copy(v[:], pub.SerializeCompressed())
 	return v
@@ -466,7 +468,7 @@ type restrictParams struct {
 // that need to be paid along the path and accurately check the amount
 // to forward at every node against the available bandwidth.
 func findPath(g *graphParams, r *restrictParams,
-	sourceNode *channeldb.LightningNode, target *btcec.PublicKey,
+	sourceNode *channeldb.LightningNode, target *secp256k1.PublicKey,
 	amt lnwire.MilliSatoshi) ([]*channeldb.ChannelEdgePolicy, error) {
 
 	var err error
@@ -800,7 +802,7 @@ func findPath(g *graphParams, r *restrictParams,
 // algorithm, rather than attempting to use an unmodified path finding
 // algorithm in a block box manner.
 func findPaths(tx *bbolt.Tx, graph *channeldb.ChannelGraph,
-	source *channeldb.LightningNode, target *btcec.PublicKey,
+	source *channeldb.LightningNode, target *secp256k1.PublicKey,
 	amt lnwire.MilliSatoshi, feeLimit lnwire.MilliSatoshi, numPaths uint32,
 	bandwidthHints map[uint64]lnwire.MilliSatoshi) ([][]*channeldb.ChannelEdgePolicy, error) {
 

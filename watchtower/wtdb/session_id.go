@@ -3,7 +3,7 @@ package wtdb
 import (
 	"encoding/hex"
 
-	"github.com/btcsuite/btcd/btcec"
+	"github.com/decred/dcrd/dcrec/secp256k1"
 )
 
 // SessionIDSize is 33-bytes; it is a serialized, compressed public key.
@@ -14,7 +14,7 @@ const SessionIDSize = 33
 type SessionID [SessionIDSize]byte
 
 // NewSessionIDFromPubKey creates a new SessionID from a public key.
-func NewSessionIDFromPubKey(pubKey *btcec.PublicKey) SessionID {
+func NewSessionIDFromPubKey(pubKey *secp256k1.PublicKey) SessionID {
 	var sid SessionID
 	copy(sid[:], pubKey.SerializeCompressed())
 	return sid

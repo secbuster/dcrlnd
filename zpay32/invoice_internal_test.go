@@ -7,12 +7,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcutil"
 	"github.com/btcsuite/btcutil/bech32"
-	"github.com/lightningnetwork/lnd/lnwire"
-	"github.com/lightningnetwork/lnd/routing"
+	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrlnd/lnwire"
+	"github.com/decred/dcrlnd/routing"
+	"github.com/decred/dcrutil"
 )
 
 // TestDecodeAmount ensures that the amount string in the hrp of the Invoice
@@ -420,7 +420,7 @@ func TestParseDestination(t *testing.T) {
 	tests := []struct {
 		data   []byte
 		valid  bool
-		result *btcec.PublicKey
+		result *secp256k1.PublicKey
 	}{
 		{
 			data:   []byte{},

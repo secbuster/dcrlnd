@@ -6,9 +6,9 @@ import (
 	"net"
 	"time"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcd/wire"
 	"github.com/coreos/bbolt"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/wire"
 )
 
 var (
@@ -33,12 +33,12 @@ var (
 type LinkNode struct {
 	// Network indicates the Bitcoin network that the LinkNode advertises
 	// for incoming channel creation.
-	Network wire.BitcoinNet
+	Network wire.CurrencyNet
 
 	// IdentityPub is the node's current identity public key. Any
 	// channel/topology related information received by this node MUST be
 	// signed by this public key.
-	IdentityPub *btcec.PublicKey
+	IdentityPub *secp256k1.PublicKey
 
 	// LastSeen tracks the last time this node was seen within the network.
 	// A node should be marked as seen if the daemon either is able to
@@ -61,7 +61,7 @@ type LinkNode struct {
 
 // NewLinkNode creates a new LinkNode from the provided parameters, which is
 // backed by an instance of channeldb.
-func (db *DB) NewLinkNode(bitNet wire.BitcoinNet, pub *btcec.PublicKey,
+func (db *DB) NewLinkNode(bitNet wire.CurrencyNet, pub *secp256k1.PublicKey,
 	addr net.Addr) *LinkNode {
 
 	return &LinkNode{
@@ -129,13 +129,13 @@ func putLinkNode(nodeMetaBucket *bbolt.Bucket, l *LinkNode) error {
 
 // DeleteLinkNode removes the link node with the given identity from the
 // database.
-func (db *DB) DeleteLinkNode(identity *btcec.PublicKey) error {
+func (db *DB) DeleteLinkNode(identity *secp256k1.PublicKey) error {
 	return db.Update(func(tx *bbolt.Tx) error {
 		return db.deleteLinkNode(tx, identity)
 	})
 }
 
-func (db *DB) deleteLinkNode(tx *bbolt.Tx, identity *btcec.PublicKey) error {
+func (db *DB) deleteLinkNode(tx *bbolt.Tx, identity *secp256k1.PublicKey) error {
 	nodeMetaBucket := tx.Bucket(nodeInfoBucket)
 	if nodeMetaBucket == nil {
 		return ErrLinkNodesNotFound
@@ -148,7 +148,7 @@ func (db *DB) deleteLinkNode(tx *bbolt.Tx, identity *btcec.PublicKey) error {
 // FetchLinkNode attempts to lookup the data for a LinkNode based on a target
 // identity public key. If a particular LinkNode for the passed identity public
 // key cannot be found, then ErrNodeNotFound if returned.
-func (db *DB) FetchLinkNode(identity *btcec.PublicKey) (*LinkNode, error) {
+func (db *DB) FetchLinkNode(identity *secp256k1.PublicKey) (*LinkNode, error) {
 	var (
 		node *LinkNode
 		err  error
@@ -278,13 +278,13 @@ func deserializeLinkNode(r io.Reader) (*LinkNode, error) {
 	if _, err := io.ReadFull(r, buf[:4]); err != nil {
 		return nil, err
 	}
-	node.Network = wire.BitcoinNet(byteOrder.Uint32(buf[:4]))
+	node.Network = wire.CurrencyNet(byteOrder.Uint32(buf[:4]))
 
 	var pub [33]byte
 	if _, err := io.ReadFull(r, pub[:]); err != nil {
 		return nil, err
 	}
-	node.IdentityPub, err = btcec.ParsePubKey(pub[:], btcec.S256())
+	node.IdentityPub, err = secp256k1.ParsePubKey(pub[:])
 	if err != nil {
 		return nil, err
 	}

@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/btcsuite/btcd/btcjson"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcd/wire"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrjson"
+	"github.com/decred/dcrd/wire"
 )
 
 // TxConfStatus denotes the status of a transaction's lookup.
@@ -60,7 +60,7 @@ func (t TxConfStatus) String() string {
 // ChainNotifier represents a trusted source to receive notifications concerning
 // targeted events on the Bitcoin blockchain. The interface specification is
 // intentionally general in order to support a wide array of chain notification
-// implementations such as: btcd's websockets notifications, Bitcoin Core's
+// implementations such as: dcrd's websockets notifications, Bitcoin Core's
 // ZeroMQ notifications, various Bitcoin API services, Electrum servers, etc.
 //
 // Concrete implementations of ChainNotifier should be able to support multiple
@@ -351,7 +351,7 @@ type ChainConn interface {
 
 	// GetBlockHeaderVerbose returns the verbose block header for a hash.
 	GetBlockHeaderVerbose(blockHash *chainhash.Hash) (
-		*btcjson.GetBlockHeaderVerboseResult, error)
+		*dcrjson.GetBlockHeaderVerboseResult, error)
 
 	// GetBlockHash returns the hash from a block height.
 	GetBlockHash(blockHeight int64) (*chainhash.Hash, error)

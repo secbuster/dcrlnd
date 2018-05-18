@@ -7,12 +7,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/lightningnetwork/lnd/build"
-	"github.com/lightningnetwork/lnd/keychain"
-	"github.com/lightningnetwork/lnd/lnwallet"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/build"
+	"github.com/decred/dcrlnd/keychain"
+	"github.com/decred/dcrlnd/lnwallet"
 )
 
 var (
@@ -40,7 +40,7 @@ var (
 	spendableInputs []*BaseInput
 	testInputCount  int
 
-	testPubKey, _ = btcec.ParsePubKey([]byte{
+	testPubKey, _ = secp256k1.ParsePubKey([]byte{
 		0x04, 0x11, 0xdb, 0x93, 0xe1, 0xdc, 0xdb, 0x8a,
 		0x01, 0x6b, 0x49, 0x84, 0x0f, 0x8c, 0x53, 0xbc, 0x1e,
 		0xb6, 0x8a, 0x38, 0x2e, 0x97, 0xb1, 0x48, 0x2e, 0xca,
@@ -49,7 +49,7 @@ var (
 		0xf8, 0x2e, 0x16, 0x0b, 0xfa, 0x9b, 0x8b, 0x64, 0xf9,
 		0xd4, 0xc0, 0x3f, 0x99, 0x9b, 0x86, 0x43, 0xf6, 0x56,
 		0xb4, 0x12, 0xa3,
-	}, btcec.S256())
+	})
 )
 
 func createTestInput(value int64, witnessType lnwallet.WitnessType) BaseInput {

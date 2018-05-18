@@ -1,5 +1,5 @@
 // Copyright (c) 2013-2017 The btcsuite developers
-// Copyright (c) 2015-2016 The Decred developers
+// Copyright (c) 2015-2019 The Decred developers
 // Copyright (C) 2015-2017 The Lightning Network Developers
 
 package main
@@ -14,11 +14,11 @@ import (
 
 	macaroon "gopkg.in/macaroon.v2"
 
-	"github.com/btcsuite/btcutil"
-	"github.com/lightningnetwork/lnd/build"
-	"github.com/lightningnetwork/lnd/lncfg"
-	"github.com/lightningnetwork/lnd/lnrpc"
-	"github.com/lightningnetwork/lnd/macaroons"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrlnd/build"
+	"github.com/decred/dcrlnd/lncfg"
+	"github.com/decred/dcrlnd/lnrpc"
+	"github.com/decred/dcrlnd/macaroons"
 	"github.com/urfave/cli"
 
 	"google.golang.org/grpc"
@@ -35,7 +35,7 @@ const (
 )
 
 var (
-	defaultLndDir      = btcutil.AppDataDir("lnd", false)
+	defaultLndDir      = dcrutil.AppDataDir("dcrlnd", false)
 	defaultTLSCertPath = filepath.Join(defaultLndDir, defaultTLSCertFilename)
 
 	// maxMsgRecvSize is the largest message our client will receive. We

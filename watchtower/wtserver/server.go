@@ -9,12 +9,12 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcd/connmgr"
-	"github.com/btcsuite/btcutil"
-	"github.com/lightningnetwork/lnd/lnwire"
-	"github.com/lightningnetwork/lnd/watchtower/wtdb"
-	"github.com/lightningnetwork/lnd/watchtower/wtwire"
+	"github.com/decred/dcrd/connmgr"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrlnd/lnwire"
+	"github.com/decred/dcrlnd/watchtower/wtdb"
+	"github.com/decred/dcrlnd/watchtower/wtwire"
 )
 
 var (
@@ -31,7 +31,7 @@ type Config struct {
 
 	// NodePrivKey is private key to be used in accepting new brontide
 	// connections.
-	NodePrivKey *btcec.PrivateKey
+	NodePrivKey *secp256k1.PrivateKey
 
 	// Listeners specifies which address to which clients may connect.
 	Listeners []net.Listener
@@ -47,7 +47,7 @@ type Config struct {
 
 	// NewAddress is used to generate reward addresses, where a cut of
 	// successfully sent funds can be received.
-	NewAddress func() (btcutil.Address, error)
+	NewAddress func() (dcrutil.Address, error)
 }
 
 // Server houses the state required to handle watchtower peers. It's primary job

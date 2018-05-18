@@ -8,8 +8,29 @@ cache:
     - $GOPATH/src/gopkg.in/alecthomas
 
 go:
+<<<<<<< HEAD
   - "1.11.x"
 
+=======
+  - 1.8.5
+  - 1.9.2
+sudo: false
+install:
+  - GLIDE_TAG=v0.12.3
+  - GLIDE_DOWNLOAD="https://github.com/Masterminds/glide/releases/download/$GLIDE_TAG/glide-$GLIDE_TAG-linux-amd64.tar.gz"
+  - curl -L $GLIDE_DOWNLOAD | tar -xvz
+  - export PATH=$PATH:$PWD/linux-amd64/
+  - DCRD_VERSION=$(cat glide.yaml | grep -A1 dcrd | tail -n1 | awk '{ print $2}')
+  - mkdir -p $GOPATH/src/github.com/decred/
+  - pushd $GOPATH/src/github.com/decred/
+  - git clone https://github.com/decred/dcrd
+  - pushd dcrd
+  - git checkout $DCRD_VERSION
+  - glide install
+  - go install . ./cmd/...
+  - popd
+  - popd
+>>>>>>> Initial Decred port.
 env:
   global:
     - GOCACHE=$HOME/.go-build

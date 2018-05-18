@@ -1,17 +1,18 @@
 package macaroons_test
 
 import (
-	"github.com/lightningnetwork/lnd/macaroons"
-	"gopkg.in/macaroon.v2"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/decred/dcrlnd/macaroons"
+	"gopkg.in/macaroon.v2"
 )
 
 var (
 	testRootKey                 = []byte("dummyRootKey")
 	testId                      = []byte("dummyId")
-	testLocation                = "lnd"
+	testLocation                = "dcrlnd"
 	testVersion                 = macaroon.LatestVersion
 	expectedTimeCaveatSubstring = "time-before " + string(time.Now().Year())
 )

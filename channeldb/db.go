@@ -8,11 +8,11 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcd/wire"
 	"github.com/coreos/bbolt"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/lnwire"
 	"github.com/go-errors/errors"
-	"github.com/lightningnetwork/lnd/lnwire"
 )
 
 const (
@@ -300,7 +300,7 @@ func fileExists(path string) bool {
 // currently active/open channels associated with the target nodeID. In the case
 // that no active channels are known to have been created with this node, then a
 // zero-length slice is returned.
-func (d *DB) FetchOpenChannels(nodeID *btcec.PublicKey) ([]*OpenChannel, error) {
+func (d *DB) FetchOpenChannels(nodeID *secp256k1.PublicKey) ([]*OpenChannel, error) {
 	var channels []*OpenChannel
 	err := d.View(func(tx *bbolt.Tx) error {
 		var err error
@@ -316,7 +316,7 @@ func (d *DB) FetchOpenChannels(nodeID *btcec.PublicKey) ([]*OpenChannel, error) 
 // the case that no active channels are known to have been created with this
 // node, then a zero-length slice is returned.
 func (d *DB) fetchOpenChannels(tx *bbolt.Tx,
-	nodeID *btcec.PublicKey) ([]*OpenChannel, error) {
+	nodeID *secp256k1.PublicKey) ([]*OpenChannel, error) {
 
 	// Get the bucket dedicated to storing the metadata for open channels.
 	openChanBucket := tx.Bucket(openChannelBucket)
@@ -735,7 +735,7 @@ func (d *DB) MarkChanFullyClosed(chanPoint *wire.OutPoint) error {
 // pruneLinkNode determines whether we should garbage collect a link node from
 // the database due to no longer having any open channels with it. If there are
 // any left, then this acts as a no-op.
-func (d *DB) pruneLinkNode(tx *bbolt.Tx, remotePub *btcec.PublicKey) error {
+func (d *DB) pruneLinkNode(tx *bbolt.Tx, remotePub *secp256k1.PublicKey) error {
 	openChannels, err := d.fetchOpenChannels(tx, remotePub)
 	if err != nil {
 		return fmt.Errorf("unable to fetch open channels for peer %x: "+

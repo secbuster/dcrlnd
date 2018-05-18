@@ -13,20 +13,22 @@ import (
 	"testing"
 	"time"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcd/txscript"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/fastsha256"
+	"bytes"
+
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/txscript"
+	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/chainntnfs"
+	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/contractcourt"
+	"github.com/decred/dcrlnd/lnpeer"
+	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwire"
+	"github.com/decred/dcrlnd/ticker"
 	"github.com/go-errors/errors"
-	"github.com/lightningnetwork/lightning-onion"
-	"github.com/lightningnetwork/lnd/chainntnfs"
-	"github.com/lightningnetwork/lnd/channeldb"
-	"github.com/lightningnetwork/lnd/contractcourt"
-	"github.com/lightningnetwork/lnd/lnpeer"
-	"github.com/lightningnetwork/lnd/lnwallet"
-	"github.com/lightningnetwork/lnd/lnwire"
-	"github.com/lightningnetwork/lnd/ticker"
+	"github.com/lightningnetwork/lightning-onion" // TODO(decred): ok?
 )
 
 type mockPreimageCache struct {
@@ -538,8 +540,8 @@ func (s *mockServer) PubKey() [33]byte {
 	return s.id
 }
 
-func (s *mockServer) IdentityKey() *btcec.PublicKey {
-	pubkey, _ := btcec.ParsePubKey(s.id[:], btcec.S256())
+func (s *mockServer) IdentityKey() *secp256k1.PublicKey {
+	pubkey, _ := secp256k1.ParsePubKey(s.id[:])
 	return pubkey
 }
 
@@ -735,7 +737,7 @@ func (i *mockInvoiceRegistry) AddInvoice(invoice channeldb.Invoice) error {
 	i.Lock()
 	defer i.Unlock()
 
-	rhash := fastsha256.Sum256(invoice.Terms.PaymentPreimage[:])
+	rhash := sha256.Sum256(invoice.Terms.PaymentPreimage[:])
 	i.invoices[chainhash.Hash(rhash)] = invoice
 
 	return nil
@@ -744,7 +746,7 @@ func (i *mockInvoiceRegistry) AddInvoice(invoice channeldb.Invoice) error {
 var _ InvoiceDatabase = (*mockInvoiceRegistry)(nil)
 
 type mockSigner struct {
-	key *btcec.PrivateKey
+	key *secp256k1.PrivateKey
 }
 
 func (m *mockSigner) SignOutputRaw(tx *wire.MsgTx, signDesc *lnwallet.SignDescriptor) ([]byte, error) {

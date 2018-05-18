@@ -8,25 +8,25 @@ import (
 	"testing"
 	"time"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcutil"
-	"github.com/lightningnetwork/lnd/lnwire"
-	"github.com/lightningnetwork/lnd/watchtower/wtdb"
-	"github.com/lightningnetwork/lnd/watchtower/wtserver"
-	"github.com/lightningnetwork/lnd/watchtower/wtwire"
+	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrlnd/lnwire"
+	"github.com/decred/dcrlnd/watchtower/wtdb"
+	"github.com/decred/dcrlnd/watchtower/wtserver"
+	"github.com/decred/dcrlnd/watchtower/wtwire"
 )
 
 // addr is the server's reward address given to watchtower clients.
-var addr, _ = btcutil.DecodeAddress(
+var addr, _ = dcrutil.DecodeAddress(
 	"mrX9vMRYLfVy1BnZbc5gZjuyaqH3ZW2ZHz", &chaincfg.TestNet3Params,
 )
 
 // randPubKey generates a new secp keypair, and returns the public key.
-func randPubKey(t *testing.T) *btcec.PublicKey {
+func randPubKey(t *testing.T) *secp256k1.PublicKey {
 	t.Helper()
 
-	sk, err := btcec.NewPrivateKey(btcec.S256())
+	sk, err := secp256k1.GeneratePrivateKey()
 	if err != nil {
 		t.Fatalf("unable to generate pubkey: %v", err)
 	}
@@ -49,7 +49,7 @@ func initServer(t *testing.T, db wtserver.DB,
 		DB:           db,
 		ReadTimeout:  timeout,
 		WriteTimeout: timeout,
-		NewAddress: func() (btcutil.Address, error) {
+		NewAddress: func() (dcrutil.Address, error) {
 			return addr, nil
 		},
 	})

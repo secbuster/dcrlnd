@@ -1,5 +1,5 @@
 // Copyright (c) 2013-2017 The btcsuite developers
-// Copyright (c) 2015-2016 The Decred developers
+// Copyright (c) 2015-2019 The Decred developers
 // Copyright (C) 2015-2017 The Lightning Network Developers
 
 package main
@@ -19,15 +19,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/btcsuite/btcutil"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrlnd/build"
+	"github.com/decred/dcrlnd/htlcswitch/hodl"
+	"github.com/decred/dcrlnd/lncfg"
+	"github.com/decred/dcrlnd/lnrpc/signrpc"
+	"github.com/decred/dcrlnd/lnwire"
+	"github.com/decred/dcrlnd/routing"
+	"github.com/decred/dcrlnd/tor"
 	flags "github.com/jessevdk/go-flags"
-	"github.com/lightningnetwork/lnd/build"
-	"github.com/lightningnetwork/lnd/htlcswitch/hodl"
-	"github.com/lightningnetwork/lnd/lncfg"
-	"github.com/lightningnetwork/lnd/lnrpc/signrpc"
-	"github.com/lightningnetwork/lnd/lnwire"
-	"github.com/lightningnetwork/lnd/routing"
-	"github.com/lightningnetwork/lnd/tor"
 )
 
 const (
@@ -74,7 +74,7 @@ const (
 )
 
 var (
-	defaultLndDir     = btcutil.AppDataDir("lnd", false)
+	defaultLndDir     = dcrutil.AppDataDir("dcrlnd", false)
 	defaultConfigFile = filepath.Join(defaultLndDir, defaultConfigFilename)
 	defaultDataDir    = filepath.Join(defaultLndDir, defaultDataDirname)
 	defaultLogDir     = filepath.Join(defaultLndDir, defaultLogDirname)
@@ -82,14 +82,8 @@ var (
 	defaultTLSCertPath = filepath.Join(defaultLndDir, defaultTLSCertFilename)
 	defaultTLSKeyPath  = filepath.Join(defaultLndDir, defaultTLSKeyFilename)
 
-	defaultBtcdDir         = btcutil.AppDataDir("btcd", false)
-	defaultBtcdRPCCertFile = filepath.Join(defaultBtcdDir, "rpc.cert")
-
-	defaultLtcdDir         = btcutil.AppDataDir("ltcd", false)
-	defaultLtcdRPCCertFile = filepath.Join(defaultLtcdDir, "rpc.cert")
-
-	defaultBitcoindDir  = btcutil.AppDataDir("bitcoin", false)
-	defaultLitecoindDir = btcutil.AppDataDir("litecoin", false)
+	defaultDcrdDir         = dcrutil.AppDataDir("dcrd", false)
+	defaultDcrdRPCCertFile = filepath.Join(defaultDcrdDir, "rpc.cert")
 
 	defaultTorSOCKS   = net.JoinHostPort("localhost", strconv.Itoa(defaultTorSOCKSPort))
 	defaultTorDNS     = net.JoinHostPort(defaultTorDNSHost, strconv.Itoa(defaultTorDNSPort))
@@ -100,7 +94,7 @@ type chainConfig struct {
 	Active   bool   `long:"active" description:"If the chain should be active or not."`
 	ChainDir string `long:"chaindir" description:"The directory to store the chain's data within."`
 
-	Node string `long:"node" description:"The blockchain interface to use." choice:"btcd" choice:"bitcoind" choice:"neutrino" choice:"ltcd" choice:"litecoind"`
+	Node string `long:"node" description:"The blockchain interface to use." choice:"dcrd"`
 
 	MainNet  bool `long:"mainnet" description:"Use the main network"`
 	TestNet3 bool `long:"testnet" description:"Use the test network"`
@@ -123,22 +117,13 @@ type neutrinoConfig struct {
 	BanThreshold uint32        `long:"banthreshold" description:"Maximum allowed ban score before disconnecting and banning misbehaving peers."`
 }
 
-type btcdConfig struct {
+type dcrdConfig struct {
 	Dir        string `long:"dir" description:"The base directory that contains the node's data, logs, configuration file, etc."`
 	RPCHost    string `long:"rpchost" description:"The daemon's rpc listening address. If a port is omitted, then the default port for the selected chain parameters will be used."`
 	RPCUser    string `long:"rpcuser" description:"Username for RPC connections"`
 	RPCPass    string `long:"rpcpass" default-mask:"-" description:"Password for RPC connections"`
 	RPCCert    string `long:"rpccert" description:"File containing the daemon's certificate file"`
 	RawRPCCert string `long:"rawrpccert" description:"The raw bytes of the daemon's PEM-encoded certificate chain which will be used to authenticate the RPC connection."`
-}
-
-type bitcoindConfig struct {
-	Dir            string `long:"dir" description:"The base directory that contains the node's data, logs, configuration file, etc."`
-	RPCHost        string `long:"rpchost" description:"The daemon's rpc listening address. If a port is omitted, then the default port for the selected chain parameters will be used."`
-	RPCUser        string `long:"rpcuser" description:"Username for RPC connections"`
-	RPCPass        string `long:"rpcpass" default-mask:"-" description:"Password for RPC connections"`
-	ZMQPubRawBlock string `long:"zmqpubrawblock" description:"The address listening for ZMQ connections to deliver raw block notifications"`
-	ZMQPubRawTx    string `long:"zmqpubrawtx" description:"The address listening for ZMQ connections to deliver raw transaction notifications"`
 }
 
 type autoPilotConfig struct {
@@ -212,14 +197,8 @@ type config struct {
 	UnsafeReplay       bool `long:"unsafe-replay" description:"Causes a link to replay the adds on its commitment txn after starting up, this enables testing of the sphinx replay logic."`
 	MaxPendingChannels int  `long:"maxpendingchannels" description:"The maximum number of incoming pending channels permitted per peer."`
 
-	Bitcoin      *chainConfig    `group:"Bitcoin" namespace:"bitcoin"`
-	BtcdMode     *btcdConfig     `group:"btcd" namespace:"btcd"`
-	BitcoindMode *bitcoindConfig `group:"bitcoind" namespace:"bitcoind"`
-	NeutrinoMode *neutrinoConfig `group:"neutrino" namespace:"neutrino"`
-
-	Litecoin      *chainConfig    `group:"Litecoin" namespace:"litecoin"`
-	LtcdMode      *btcdConfig     `group:"ltcd" namespace:"ltcd"`
-	LitecoindMode *bitcoindConfig `group:"litecoind" namespace:"litecoind"`
+	Bitcoin  *chainConfig `group:"Bitcoin" namespace:"bitcoin"`
+	DcrdMode *dcrdConfig  `group:"dcrd" namespace:"dcrd"`
 
 	Autopilot *autoPilotConfig `group:"Autopilot" namespace:"autopilot"`
 
@@ -273,32 +252,12 @@ func loadConfig() (*config, error) {
 			BaseFee:       defaultBitcoinBaseFeeMSat,
 			FeeRate:       defaultBitcoinFeeRate,
 			TimeLockDelta: defaultBitcoinTimeLockDelta,
-			Node:          "btcd",
+			Node:          "dcrd",
 		},
-		BtcdMode: &btcdConfig{
-			Dir:     defaultBtcdDir,
+		DcrdMode: &dcrdConfig{
+			Dir:     defaultDcrdDir,
 			RPCHost: defaultRPCHost,
-			RPCCert: defaultBtcdRPCCertFile,
-		},
-		BitcoindMode: &bitcoindConfig{
-			Dir:     defaultBitcoindDir,
-			RPCHost: defaultRPCHost,
-		},
-		Litecoin: &chainConfig{
-			MinHTLC:       defaultLitecoinMinHTLCMSat,
-			BaseFee:       defaultLitecoinBaseFeeMSat,
-			FeeRate:       defaultLitecoinFeeRate,
-			TimeLockDelta: defaultLitecoinTimeLockDelta,
-			Node:          "ltcd",
-		},
-		LtcdMode: &btcdConfig{
-			Dir:     defaultLtcdDir,
-			RPCHost: defaultRPCHost,
-			RPCCert: defaultLtcdRPCCertFile,
-		},
-		LitecoindMode: &bitcoindConfig{
-			Dir:     defaultLitecoindDir,
-			RPCHost: defaultRPCHost,
+			RPCCert: defaultDcrdRPCCertFile,
 		},
 		MaxPendingChannels: defaultMaxPendingChannels,
 		NoSeedBackup:       defaultNoSeedBackup,
@@ -415,7 +374,7 @@ func loadConfig() (*config, error) {
 	cfg.ReadMacPath = cleanAndExpandPath(cfg.ReadMacPath)
 	cfg.InvoiceMacPath = cleanAndExpandPath(cfg.InvoiceMacPath)
 	cfg.LogDir = cleanAndExpandPath(cfg.LogDir)
-	cfg.BtcdMode.Dir = cleanAndExpandPath(cfg.BtcdMode.Dir)
+	cfg.DcrdMode.Dir = cleanAndExpandPath(cfg.DcrdMode.Dir)
 	cfg.LtcdMode.Dir = cleanAndExpandPath(cfg.LtcdMode.Dir)
 	cfg.BitcoindMode.Dir = cleanAndExpandPath(cfg.BitcoindMode.Dir)
 	cfg.LitecoindMode.Dir = cleanAndExpandPath(cfg.LitecoindMode.Dir)
@@ -709,35 +668,19 @@ func loadConfig() (*config, error) {
 		}
 
 		switch cfg.Bitcoin.Node {
-		case "btcd":
+		case "dcrd":
 			err := parseRPCParams(
-				cfg.Bitcoin, cfg.BtcdMode, bitcoinChain, funcName,
+				cfg.Bitcoin, cfg.DcrdMode, bitcoinChain, funcName,
 			)
 			if err != nil {
 				err := fmt.Errorf("unable to load RPC "+
-					"credentials for btcd: %v", err)
+					"credentials for dcrd: %v", err)
 				return nil, err
 			}
-		case "bitcoind":
-			if cfg.Bitcoin.SimNet {
-				return nil, fmt.Errorf("%s: bitcoind does not "+
-					"support simnet", funcName)
-			}
-
-			err := parseRPCParams(
-				cfg.Bitcoin, cfg.BitcoindMode, bitcoinChain, funcName,
-			)
-			if err != nil {
-				err := fmt.Errorf("unable to load RPC "+
-					"credentials for bitcoind: %v", err)
-				return nil, err
-			}
-		case "neutrino":
-			// No need to get RPC parameters.
 
 		default:
-			str := "%s: only btcd, bitcoind, and neutrino mode " +
-				"supported for bitcoin at this time"
+			str := "%s: only dcrd mode supported for Decred at " +
+				"this time"
 			return nil, fmt.Errorf(str, funcName)
 		}
 
@@ -1107,7 +1050,7 @@ func parseRPCParams(cConfig *chainConfig, nodeConfig interface{}, net chainCode,
 	// depending on the backend node.
 	var daemonName, confDir, confFile string
 	switch conf := nodeConfig.(type) {
-	case *btcdConfig:
+	case *dcrdConfig:
 		// If both RPCUser and RPCPass are set, we assume those
 		// credentials are good to use.
 		if conf.RPCUser != "" && conf.RPCPass != "" {
@@ -1117,13 +1060,9 @@ func parseRPCParams(cConfig *chainConfig, nodeConfig interface{}, net chainCode,
 		// Get the daemon name for displaying proper errors.
 		switch net {
 		case bitcoinChain:
-			daemonName = "btcd"
+			daemonName = "dcrd"
 			confDir = conf.Dir
-			confFile = "btcd"
-		case litecoinChain:
-			daemonName = "ltcd"
-			confDir = conf.Dir
-			confFile = "ltcd"
+			confFile = "dcrd"
 		}
 
 		// If only ONE of RPCUser or RPCPass is set, we assume the
@@ -1176,11 +1115,11 @@ func parseRPCParams(cConfig *chainConfig, nodeConfig interface{}, net chainCode,
 		}
 	}
 
-	// If we're in simnet mode, then the running btcd instance won't read
+	// If we're in simnet mode, then the running dcrd instance won't read
 	// the RPC credentials from the configuration. So if lnd wasn't
 	// specified the parameters, then we won't be able to start.
 	if cConfig.SimNet {
-		str := "%v: rpcuser and rpcpass must be set to your btcd " +
+		str := "%v: rpcuser and rpcpass must be set to your dcrd " +
 			"node's RPC parameters for simnet mode"
 		return fmt.Errorf(str, funcName)
 	}
@@ -1189,47 +1128,36 @@ func parseRPCParams(cConfig *chainConfig, nodeConfig interface{}, net chainCode,
 
 	confFile = filepath.Join(confDir, fmt.Sprintf("%v.conf", confFile))
 	switch cConfig.Node {
-	case "btcd", "ltcd":
+	case "dcrd":
 		nConf := nodeConfig.(*btcdConfig)
-		rpcUser, rpcPass, err := extractBtcdRPCParams(confFile)
+		rpcUser, rpcPass, err := extractDcrdRPCParams(confFile)
 		if err != nil {
 			return fmt.Errorf("unable to extract RPC credentials:"+
 				" %v, cannot start w/o RPC connection",
 				err)
 		}
 		nConf.RPCUser, nConf.RPCPass = rpcUser, rpcPass
-	case "bitcoind", "litecoind":
-		nConf := nodeConfig.(*bitcoindConfig)
-		rpcUser, rpcPass, zmqBlockHost, zmqTxHost, err :=
-			extractBitcoindRPCParams(confFile)
-		if err != nil {
-			return fmt.Errorf("unable to extract RPC credentials:"+
-				" %v, cannot start w/o RPC connection",
-				err)
-		}
-		nConf.RPCUser, nConf.RPCPass = rpcUser, rpcPass
-		nConf.ZMQPubRawBlock, nConf.ZMQPubRawTx = zmqBlockHost, zmqTxHost
 	}
 
 	fmt.Printf("Automatically obtained %v's RPC credentials\n", daemonName)
 	return nil
 }
 
-// extractBtcdRPCParams attempts to extract the RPC credentials for an existing
-// btcd instance. The passed path is expected to be the location of btcd's
+// extractDcrdRPCParams attempts to extract the RPC credentials for an existing
+// dcrd instance. The passed path is expected to be the location of dcrd's
 // application data directory on the target system.
-func extractBtcdRPCParams(btcdConfigPath string) (string, string, error) {
-	// First, we'll open up the btcd configuration file found at the target
+func extractDcrdRPCParams(dcrdConfigPath string) (string, string, error) {
+	// First, we'll open up the dcrd configuration file found at the target
 	// destination.
-	btcdConfigFile, err := os.Open(btcdConfigPath)
+	dcrdConfigFile, err := os.Open(dcrdConfigPath)
 	if err != nil {
 		return "", "", err
 	}
-	defer btcdConfigFile.Close()
+	defer dcrdConfigFile.Close()
 
 	// With the file open extract the contents of the configuration file so
 	// we can attempt to locate the RPC credentials.
-	configContents, err := ioutil.ReadAll(btcdConfigFile)
+	configContents, err := ioutil.ReadAll(dcrdConfigFile)
 	if err != nil {
 		return "", "", err
 	}

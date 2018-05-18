@@ -1,15 +1,14 @@
 ## Lightning Network Daemon
 
-[![Build Status](https://img.shields.io/travis/lightningnetwork/lnd.svg)](https://travis-ci.org/lightningnetwork/lnd)
-[![MIT licensed](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/lightningnetwork/lnd/blob/master/LICENSE)
-[![Irc](https://img.shields.io/badge/chat-on%20freenode-brightgreen.svg)](https://webchat.freenode.net/?channels=lnd)
-[![Godoc](https://godoc.org/github.com/lightningnetwork/lnd?status.svg)](https://godoc.org/github.com/lightningnetwork/lnd)
+[![Build Status](https://img.shields.io/travis/decred/dcrlnd.svg)](https://travis-ci.org/decred/dcrlnd)
+[![MIT licensed](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/decred/dcrlnd/blob/master/LICENSE)
+[![Godoc](https://godoc.org/github.com/decred/dcrlnd?status.svg)](https://godoc.org/github.com/decred/dcrlnd)
 
 <img src="logo.png">
 
-The Lightning Network Daemon (`lnd`) - is a complete implementation of a
-[Lightning Network](https://lightning.network) node and currently deployed on
-`testnet3` - the Bitcoin Test Network.  `lnd` has several pluggable back-end
+The Decred Lightning Network Daemon (`dcrlnd`) - is a complete implementation of
+a [Lightning Network](https://lightning.network) node and currently deployed on
+`testnet3` - the Decred Test Network.  `lnd` has several pluggable back-end
 chain services including [`btcd`](https://github.com/btcsuite/btcd) (a
 full-node), [`bitcoind`](https://github.com/bitcoin/bitcoin), and
 [`neutrino`](https://github.com/lightninglabs/neutrino) (a new experimental light client). The project's codebase uses the

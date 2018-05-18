@@ -5,10 +5,10 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcd/txscript"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/lightningnetwork/lnd/keychain"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/txscript"
+	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/keychain"
 )
 
 func TestSignDescriptorSerialization(t *testing.T) {
@@ -96,7 +96,7 @@ func TestSignDescriptorSerialization(t *testing.T) {
 	for i := 0; i < len(signDescriptors); i++ {
 		// Parse pubkeys for each sign descriptor.
 		sd := &signDescriptors[i]
-		pubkey, err := btcec.ParsePubKey(keys[i], btcec.S256())
+		pubkey, err := secp256k1.ParsePubKey(keys[i])
 		if err != nil {
 			t.Fatalf("unable to parse pubkey: %v", err)
 		}

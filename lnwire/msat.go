@@ -3,7 +3,7 @@ package lnwire
 import (
 	"fmt"
 
-	"github.com/btcsuite/btcutil"
+	"github.com/decred/dcrd/dcrutil"
 )
 
 // mSatScale is a value that's used to scale satoshis to milli-satoshis, and
@@ -20,21 +20,22 @@ type MilliSatoshi uint64
 
 // NewMSatFromSatoshis creates a new MilliSatoshi instance from a target amount
 // of satoshis.
-func NewMSatFromSatoshis(sat btcutil.Amount) MilliSatoshi {
+func NewMSatFromSatoshis(sat dcrutil.Amount) MilliSatoshi {
 	return MilliSatoshi(uint64(sat) * mSatScale)
 }
 
+// TODO(decred): ToCoin...
 // ToBTC converts the target MilliSatoshi amount to its corresponding value
 // when expressed in BTC.
 func (m MilliSatoshi) ToBTC() float64 {
 	sat := m.ToSatoshis()
-	return sat.ToBTC()
+	return sat.ToCoin()
 }
 
 // ToSatoshis converts the target MilliSatoshi amount to satoshis. Simply, this
 // sheds a factor of 1000 from the mSAT amount in order to convert it to SAT.
-func (m MilliSatoshi) ToSatoshis() btcutil.Amount {
-	return btcutil.Amount(uint64(m) / mSatScale)
+func (m MilliSatoshi) ToSatoshis() dcrutil.Amount {
+	return dcrutil.Amount(uint64(m) / mSatScale)
 }
 
 // String returns the string representation of the mSAT amount.

@@ -11,15 +11,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
-	"github.com/lightningnetwork/lnd/lnwire"
-	"github.com/lightningnetwork/lnd/routing"
-
-	litecoinCfg "github.com/ltcsuite/ltcd/chaincfg"
+	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrlnd/lnwire"
+	"github.com/decred/dcrlnd/zpay32"
+	"github.com/decred/dcrlnd/routing"
 )
 
 var (
@@ -35,23 +33,23 @@ var (
 	testPleaseConsider = "Please consider supporting this project"
 
 	testPrivKeyBytes, _     = hex.DecodeString("e126f68f7eafcc8b74f54d269fe206be715000f94dac067d1c04a8ca3b2db734")
-	testPrivKey, testPubKey = btcec.PrivKeyFromBytes(btcec.S256(), testPrivKeyBytes)
+	testPrivKey, testPubKey = secp256k1.PrivKeyFromBytes(testPrivKeyBytes)
 
 	testDescriptionHashSlice = chainhash.HashB([]byte("One piece of chocolate cake, one icecream cone, one pickle, one slice of swiss cheese, one slice of salami, one lollypop, one piece of cherry pie, one sausage, one cupcake, and one slice of watermelon"))
 
 	testExpiry0  = time.Duration(0) * time.Second
 	testExpiry60 = time.Duration(60) * time.Second
 
-	testAddrTestnet, _       = btcutil.DecodeAddress("mk2QpYatsKicvFVuTAQLBryyccRXMUaGHP", &chaincfg.TestNet3Params)
-	testRustyAddr, _         = btcutil.DecodeAddress("1RustyRX2oai4EYYDpQGWvEL62BBGqN9T", &chaincfg.MainNetParams)
-	testAddrMainnetP2SH, _   = btcutil.DecodeAddress("3EktnHQD7RiAE6uzMj2ZifT9YgRrkSgzQX", &chaincfg.MainNetParams)
-	testAddrMainnetP2WPKH, _ = btcutil.DecodeAddress("bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4", &chaincfg.MainNetParams)
-	testAddrMainnetP2WSH, _  = btcutil.DecodeAddress("bc1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3qccfmv3", &chaincfg.MainNetParams)
+	testAddrTestnet, _       = dcrutil.DecodeAddress("mk2QpYatsKicvFVuTAQLBryyccRXMUaGHP", &chaincfg.TestNet3Params)                              // TODO(decred): Fix address...
+	testRustyAddr, _         = dcrutil.DecodeAddress("1RustyRX2oai4EYYDpQGWvEL62BBGqN9T", &chaincfg.MainNetParams)                              // TODO(decred): Fix address...
+	testAddrMainnetP2SH, _   = dcrutil.DecodeAddress("3EktnHQD7RiAE6uzMj2ZifT9YgRrkSgzQX", &chaincfg.MainNetParams                              // TODO(decred): Fix address...)
+	testAddrMainnetP2WPKH, _ = dcrutil.DecodeAddress("bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4", &chaincfg.MainNetParams)                              // TODO(decred): Fix address...
+	testAddrMainnetP2WSH, _  = dcrutil.DecodeAddress("bc1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3qccfmv3", &chaincfg.MainNetParams)// TODO(decred): Fix address...
 
 	testHopHintPubkeyBytes1, _ = hex.DecodeString("029e03a901b85534ff1e92c43c74431f7ce72046060fcf7a95c37e148f78c77255")
-	testHopHintPubkey1, _      = btcec.ParsePubKey(testHopHintPubkeyBytes1, btcec.S256())
+	testHopHintPubkey1, _      = secp256k1.ParsePubKey(testHopHintPubkeyBytes1)
 	testHopHintPubkeyBytes2, _ = hex.DecodeString("039e03a901b85534ff1e92c43c74431f7ce72046060fcf7a95c37e148f78c77255")
-	testHopHintPubkey2, _      = btcec.ParsePubKey(testHopHintPubkeyBytes2, btcec.S256())
+	testHopHintPubkey2, _      = secp256k1.ParsePubKey(testHopHintPubkeyBytes2)
 
 	testSingleHop = []routing.HopHint{
 		{
@@ -81,8 +79,7 @@ var (
 
 	testMessageSigner = MessageSigner{
 		SignCompact: func(hash []byte) ([]byte, error) {
-			sig, err := btcec.SignCompact(btcec.S256(),
-				testPrivKey, hash, true)
+			sig, err := secp256k1.SignCompact(testPrivKey, hash, true)
 			if err != nil {
 				return nil, fmt.Errorf("can't sign the "+
 					"message: %v", err)
@@ -818,7 +815,7 @@ func compareInvoices(expected, actual *Invoice) error {
 	return nil
 }
 
-func comparePubkeys(a, b *btcec.PublicKey) bool {
+func comparePubkeys(a, b *secp256k1.PublicKey) bool {
 	if a == b {
 		return true
 	}

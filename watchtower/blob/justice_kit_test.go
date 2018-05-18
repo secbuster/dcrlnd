@@ -7,8 +7,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/lightningnetwork/lnd/lnwire"
-	"github.com/lightningnetwork/lnd/watchtower/blob"
+	"github.com/decred/dcrlnd/lnwire"
+	"github.com/decred/dcrlnd/watchtower/blob"
 )
 
 func makePubKey(i uint64) blob.PubKey {

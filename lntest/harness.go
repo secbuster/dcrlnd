@@ -13,15 +13,16 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/grpclog"
 
-	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcd/integration/rpctest"
-	"github.com/btcsuite/btcd/rpcclient"
-	"github.com/btcsuite/btcd/txscript"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
-	"github.com/lightningnetwork/lnd/lnrpc"
-	"github.com/lightningnetwork/lnd/lnwire"
+	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/rpcclient"
+	"github.com/decred/dcrd/rpctest"
+	"github.com/decred/dcrd/txscript"
+	"github.com/decred/dcrd/wire"
+
+	"github.com/decred/dcrlnd/lnrpc"
+	"github.com/decred/dcrlnd/lnwire"
 )
 
 const (
@@ -66,8 +67,8 @@ type NetworkHarness struct {
 	Alice *HarnessNode
 	Bob   *HarnessNode
 
-	seenTxns             chan *chainhash.Hash
-	bitcoinWatchRequests chan *txWatchRequest
+	seenTxns            chan *chainhash.Hash
+	decredWatchRequests chan *txWatchRequest
 
 	// Channel for transmitting stderr output from failed lightning node
 	// to main process.
@@ -84,15 +85,15 @@ type NetworkHarness struct {
 // within the repo each time before changes
 func NewNetworkHarness(r *rpctest.Harness) (*NetworkHarness, error) {
 	n := NetworkHarness{
-		activeNodes:          make(map[int]*HarnessNode),
-		nodesByPub:           make(map[string]*HarnessNode),
-		seenTxns:             make(chan *chainhash.Hash),
-		bitcoinWatchRequests: make(chan *txWatchRequest),
-		lndErrorChan:         make(chan error),
-		netParams:            r.ActiveNet,
-		Miner:                r,
-		rpcConfig:            r.RPCConfig(),
-		quit:                 make(chan struct{}),
+		activeNodes:         make(map[int]*HarnessNode),
+		nodesByPub:          make(map[string]*HarnessNode),
+		seenTxns:            make(chan *chainhash.Hash),
+		decredWatchRequests: make(chan *txWatchRequest),
+		lndErrorChan:        make(chan error),
+		netParams:           r.ActiveNet,
+		Miner:               r,
+		rpcConfig:           r.RPCConfig(),
+		quit:                make(chan struct{}),
 	}
 	go n.networkWatcher()
 	return &n, nil
@@ -132,7 +133,7 @@ func (f *fakeLogger) Printf(format string, args ...interface{}) {}
 func (f *fakeLogger) Println(args ...interface{})               {}
 
 // SetUp starts the initial seeder nodes within the test harness. The initial
-// node's wallets will be funded wallets with ten 1 BTC outputs each. Finally
+// node's wallets will be funded wallets with ten 1 DCR outputs each. Finally
 // rpc clients capable of communicating with the initial seeder nodes are
 // created. Nodes are initialized with the given extra command line flags, which
 // should be formatted properly - "--arg=value".
@@ -171,7 +172,7 @@ func (n *NetworkHarness) SetUp(lndArgs []string) error {
 	default:
 	}
 
-	// Load up the wallets of the seeder nodes with 10 outputs of 1 BTC
+	// Load up the wallets of the seeder nodes with 10 outputs of 1 DCR
 	// each.
 	ctxb := context.Background()
 	addrReq := &lnrpc.NewAddressRequest{
@@ -184,7 +185,7 @@ func (n *NetworkHarness) SetUp(lndArgs []string) error {
 			if err != nil {
 				return err
 			}
-			addr, err := btcutil.DecodeAddress(resp.Address, n.netParams)
+			addr, err := dcrutil.DecodeAddress(resp.Address)
 			if err != nil {
 				return err
 			}
@@ -195,7 +196,7 @@ func (n *NetworkHarness) SetUp(lndArgs []string) error {
 
 			output := &wire.TxOut{
 				PkScript: addrScript,
-				Value:    btcutil.SatoshiPerBitcoin,
+				Value:    dcrutil.AtomsPerCoin,
 			}
 			_, err = n.Miner.SendOutputs([]*wire.TxOut{output}, 7500)
 			if err != nil {
@@ -216,7 +217,7 @@ func (n *NetworkHarness) SetUp(lndArgs []string) error {
 	}
 
 	// Now block until both wallets have fully synced up.
-	expectedBalance := int64(btcutil.SatoshiPerBitcoin * 10)
+	expectedBalance := int64(dcrutil.AtomsPerCoin * 10)
 	balReq := &lnrpc.WalletBalanceRequest{}
 	balanceTicker := time.Tick(time.Millisecond * 50)
 	balanceTimeout := time.After(time.Second * 30)
@@ -641,7 +642,7 @@ func (n *NetworkHarness) StopNode(node *HarnessNode) error {
 //  * possibly  adds more funds to the target wallet if the funds are not
 //    enough
 
-// txWatchRequest encapsulates a request to the harness' Bitcoin network
+// txWatchRequest encapsulates a request to the harness' Decred network
 // watcher to dispatch a notification once a transaction with the target txid
 // is seen within the test network.
 type txWatchRequest struct {
@@ -651,7 +652,7 @@ type txWatchRequest struct {
 
 // networkWatcher is a goroutine which accepts async notification
 // requests for the broadcast of a target transaction, and then dispatches the
-// transaction once its seen on the Bitcoin network.
+// transaction once its seen on the Decred network.
 func (n *NetworkHarness) networkWatcher() {
 	seenTxns := make(map[chainhash.Hash]struct{})
 	clients := make(map[chainhash.Hash][]chan struct{})
@@ -662,7 +663,7 @@ func (n *NetworkHarness) networkWatcher() {
 		case <-n.quit:
 			return
 
-		case req := <-n.bitcoinWatchRequests:
+		case req := <-n.decredWatchRequests:
 			// If we've already seen this transaction, then
 			// immediately dispatch the request. Otherwise, append
 			// to the list of clients who are watching for the
@@ -720,7 +721,7 @@ func (n *NetworkHarness) WaitForTxBroadcast(ctx context.Context, txid chainhash.
 
 	eventChan := make(chan struct{})
 
-	n.bitcoinWatchRequests <- &txWatchRequest{
+	n.decredWatchRequests <- &txWatchRequest{
 		txid:      txid,
 		eventChan: eventChan,
 	}
@@ -738,11 +739,11 @@ func (n *NetworkHarness) WaitForTxBroadcast(ctx context.Context, txid chainhash.
 // OpenChannelParams houses the params to specify when opening a new channel.
 type OpenChannelParams struct {
 	// Amt is the local amount being put into the channel.
-	Amt btcutil.Amount
+	Amt dcrutil.Amount
 
 	// PushAmt is the amount that should be pushed to the remote when the
 	// channel is opened.
-	PushAmt btcutil.Amount
+	PushAmt dcrutil.Amount
 
 	// Private is a boolan indicating whether the opened channel should be
 	// private.
@@ -833,8 +834,8 @@ func (n *NetworkHarness) OpenChannel(ctx context.Context,
 // if the timeout is reached before the channel pending notification is
 // received, an error is returned.
 func (n *NetworkHarness) OpenPendingChannel(ctx context.Context,
-	srcNode, destNode *HarnessNode, amt btcutil.Amount,
-	pushAmt btcutil.Amount) (*lnrpc.PendingUpdate, error) {
+	srcNode, destNode *HarnessNode, amt dcrutil.Amount,
+	pushAmt dcrutil.Amount) (*lnrpc.PendingUpdate, error) {
 
 	// Wait until srcNode and destNode have blockchain synced
 	if err := srcNode.WaitForBlockchainSync(ctx); err != nil {
@@ -1198,7 +1199,7 @@ func (n *NetworkHarness) DumpLogs(node *HarnessNode) (string, error) {
 // SendCoins attempts to send amt satoshis from the internal mining node to the
 // targeted lightning node using a P2WKH address. 6 blocks are mined after in
 // order to confirm the transaction.
-func (n *NetworkHarness) SendCoins(ctx context.Context, amt btcutil.Amount,
+func (n *NetworkHarness) SendCoins(ctx context.Context, amt dcrutil.Amount,
 	target *HarnessNode) error {
 
 	return n.sendCoins(
@@ -1211,7 +1212,7 @@ func (n *NetworkHarness) SendCoins(ctx context.Context, amt btcutil.Amount,
 // lightning node using a P2WPKH address. No blocks are mined after, so the
 // transaction remains unconfirmed.
 func (n *NetworkHarness) SendCoinsUnconfirmed(ctx context.Context,
-	amt btcutil.Amount, target *HarnessNode) error {
+	amt dcrutil.Amount, target *HarnessNode) error {
 
 	return n.sendCoins(
 		ctx, amt, target, lnrpc.AddressType_WITNESS_PUBKEY_HASH,
@@ -1222,7 +1223,7 @@ func (n *NetworkHarness) SendCoinsUnconfirmed(ctx context.Context,
 // SendCoinsNP2WKH attempts to send amt satoshis from the internal mining node
 // to the targeted lightning node using a NP2WKH address.
 func (n *NetworkHarness) SendCoinsNP2WKH(ctx context.Context,
-	amt btcutil.Amount, target *HarnessNode) error {
+	amt dcrutil.Amount, target *HarnessNode) error {
 
 	return n.sendCoins(
 		ctx, amt, target, lnrpc.AddressType_NESTED_PUBKEY_HASH,
@@ -1233,7 +1234,7 @@ func (n *NetworkHarness) SendCoinsNP2WKH(ctx context.Context,
 // sendCoins attempts to send amt satoshis from the internal mining node to the
 // targeted lightning node. The confirmed boolean indicates whether the
 // transaction that pays to the target should confirm.
-func (n *NetworkHarness) sendCoins(ctx context.Context, amt btcutil.Amount,
+func (n *NetworkHarness) sendCoins(ctx context.Context, amt dcrutil.Amount,
 	target *HarnessNode, addrType lnrpc.AddressType,
 	confirmed bool) error {
 
@@ -1253,7 +1254,7 @@ func (n *NetworkHarness) sendCoins(ctx context.Context, amt btcutil.Amount,
 	if err != nil {
 		return err
 	}
-	addr, err := btcutil.DecodeAddress(resp.Address, n.netParams)
+	addr, err := dcrutil.DecodeAddress(resp.Address)
 	if err != nil {
 		return err
 	}

@@ -9,8 +9,8 @@ import (
 	"sync/atomic"
 
 	"github.com/coreos/bbolt"
-	"github.com/lightningnetwork/lightning-onion"
-	"github.com/lightningnetwork/lnd/chainntnfs"
+	"github.com/decred/dcrlnd/chainntnfs"
+	"github.com/lightningnetwork/lightning-onion" // TODO(decred): ok?
 )
 
 const (

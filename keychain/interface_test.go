@@ -8,15 +8,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcwallet/waddrmgr"
-	"github.com/btcsuite/btcwallet/wallet"
-	"github.com/btcsuite/btcwallet/walletdb"
 	"github.com/davecgh/go-spew/spew"
+	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrwallet/wallet"
+	"github.com/decred/dcrwallet/wallet/udb"
+	"github.com/decred/dcrwallet/walletdb"
 
-	_ "github.com/btcsuite/btcwallet/walletdb/bdb" // Required in order to create the default database.
+	_ "github.com/decred/dcrwallet/walletdb/bdb" // Required in order to create the default database.
 )
 
 // versionZeroKeyFamilies is a slice of all the known key families for first
@@ -62,7 +62,7 @@ func createTestBtcWallet(coinType uint32) (func(), *wallet.Wallet, error) {
 
 	// Construct the key scope required to derive keys for the chose
 	// coinType.
-	chainKeyScope := waddrmgr.KeyScope{
+	chainKeyScope := udb.KeyScope{
 		Purpose: BIP0043Purpose,
 		Coin:    coinType,
 	}
@@ -123,7 +123,7 @@ func TestKeyRingDerivation(t *testing.T) {
 
 			keyRing := NewBtcWalletKeyRing(wallet, CoinTypeBitcoin)
 
-			return "btcwallet", cleanUp, keyRing, nil
+			return "dcrwallet", cleanUp, keyRing, nil
 		},
 		func() (string, func(), KeyRing, error) {
 			cleanUp, wallet, err := createTestBtcWallet(
@@ -277,7 +277,7 @@ func TestSecretKeyRingDerivation(t *testing.T) {
 
 			keyRing := NewBtcWalletKeyRing(wallet, CoinTypeBitcoin)
 
-			return "btcwallet", cleanUp, keyRing, nil
+			return "dcrwallet", cleanUp, keyRing, nil
 		},
 		func() (string, func(), SecretKeyRing, error) {
 			cleanUp, wallet, err := createTestBtcWallet(
@@ -393,9 +393,7 @@ func TestSecretKeyRingDerivation(t *testing.T) {
 
 				// We'll try again, but this time with an
 				// unknown public key.
-				_, pub := btcec.PrivKeyFromBytes(
-					btcec.S256(), testHDSeed[:],
-				)
+				_, pub := secp256k1.PrivKeyFromBytes(testHDSeed[:])
 				keyDesc.PubKey = pub
 
 				// If we attempt to query for this key, then we

@@ -4,10 +4,10 @@ import (
 	"crypto/sha256"
 	"fmt"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcwallet/waddrmgr"
-	"github.com/btcsuite/btcwallet/wallet"
-	"github.com/btcsuite/btcwallet/walletdb"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrwallet/wallet"
+	"github.com/decred/dcrwallet/wallet/udb"
+	"github.com/decred/dcrwallet/walletdb"
 )
 
 const (
@@ -28,47 +28,47 @@ var (
 	// lightningAddrSchema is the scope addr schema for all keys that we
 	// derive. We'll treat them all as p2wkh addresses, as atm we must
 	// specify a particular type.
-	lightningAddrSchema = waddrmgr.ScopeAddrSchema{
-		ExternalAddrType: waddrmgr.WitnessPubKey,
-		InternalAddrType: waddrmgr.WitnessPubKey,
+	lightningAddrSchema = udb.ScopeAddrSchema{
+		ExternalAddrType: udb.WitnessPubKey,
+		InternalAddrType: udb.WitnessPubKey,
 	}
 
 	// waddrmgrNamespaceKey is the namespace key that the waddrmgr state is
-	// stored within the top-level waleltdb buckets of btcwallet.
+	// stored within the top-level waleltdb buckets of dcrwallet.
 	waddrmgrNamespaceKey = []byte("waddrmgr")
 )
 
-// BtcWalletKeyRing is an implementation of both the KeyRing and SecretKeyRing
-// interfaces backed by btcwallet's internal root waddrmgr. Internally, we'll
+// Yep I BtcWalletKeyRing is an implementation of both the KeyRing and SecretKeyRing
+// interfaces backed by dcrwallet's internal root udb.  Internally, we'll
 // be using a ScopedKeyManager to do all of our derivations, using the key
 // scope and scope addr scehma defined above. Re-using the existing key scope
 // construction means that all key derivation will be protected under the root
 // seed of the wallet, making each derived key fully deterministic.
 type BtcWalletKeyRing struct {
-	// wallet is a pointer to the active instance of the btcwallet core.
+	// wallet is a pointer to the active instance of the dcrwallet core.
 	// This is required as we'll need to manually open database
 	// transactions in order to derive addresses and lookup relevant keys
 	wallet *wallet.Wallet
 
 	// chainKeyScope defines the purpose and coin type to be used when generating
 	// keys for this keyring.
-	chainKeyScope waddrmgr.KeyScope
+	chainKeyScope udb.KeyScope
 
 	// lightningScope is a pointer to the scope that we'll be using as a
 	// sub key manager to derive all the keys that we require.
-	lightningScope *waddrmgr.ScopedKeyManager
+	lightningScope *udb.ScopedKeyManager
 }
 
 // NewBtcWalletKeyRing creates a new implementation of the
-// keychain.SecretKeyRing interface backed by btcwallet.
+// keychain.SecretKeyRing interface backed by dcrwallet.
 //
-// NOTE: The passed waddrmgr.Manager MUST be unlocked in order for the keychain
+// NOTE: The passed udb.Manager MUST be unlocked in order for the keychain
 // to function.
 func NewBtcWalletKeyRing(w *wallet.Wallet, coinType uint32) SecretKeyRing {
 	// Construct the key scope that will be used within the waddrmgr to
 	// create an HD chain for deriving all of our required keys. A different
 	// scope is used for each specific coin type.
-	chainKeyScope := waddrmgr.KeyScope{
+	chainKeyScope := udb.KeyScope{
 		Purpose: BIP0043Purpose,
 		Coin:    coinType,
 	}
@@ -83,7 +83,7 @@ func NewBtcWalletKeyRing(w *wallet.Wallet, coinType uint32) SecretKeyRing {
 // our keys. If the scope has already been fetched from the database, then a
 // cached version will be returned. Otherwise, we'll fetch it from the database
 // and cache it for subsequent accesses.
-func (b *BtcWalletKeyRing) keyScope() (*waddrmgr.ScopedKeyManager, error) {
+func (b *BtcWalletKeyRing) keyScope() (*udb.ScopedKeyManager, error) {
 	// If the scope has already been populated, then we'll return it
 	// directly.
 	if b.lightningScope != nil {
@@ -94,7 +94,7 @@ func (b *BtcWalletKeyRing) keyScope() (*waddrmgr.ScopedKeyManager, error) {
 	// isn't locked, as otherwise we won't be able to *use* the scope.
 	if b.wallet.Manager.IsLocked() {
 		return nil, fmt.Errorf("cannot create BtcWalletKeyRing with " +
-			"locked waddrmgr.Manager")
+			"locked udb.Manager")
 	}
 
 	// If the manager is indeed unlocked, then we'll fetch the scope, cache
@@ -113,7 +113,7 @@ func (b *BtcWalletKeyRing) keyScope() (*waddrmgr.ScopedKeyManager, error) {
 // family if it doesn't already exist in the database.
 func (b *BtcWalletKeyRing) createAccountIfNotExists(
 	addrmgrNs walletdb.ReadWriteBucket, keyFam KeyFamily,
-	scope *waddrmgr.ScopedKeyManager) error {
+	scope *udb.ScopedKeyManager) error {
 
 	// If this is the multi-sig key family, then we can return early as
 	// this is the default account that's created.
@@ -140,7 +140,7 @@ func (b *BtcWalletKeyRing) createAccountIfNotExists(
 // NOTE: This is part of the keychain.KeyRing interface.
 func (b *BtcWalletKeyRing) DeriveNextKey(keyFam KeyFamily) (KeyDescriptor, error) {
 	var (
-		pubKey *btcec.PublicKey
+		pubKey *secp256k1.PublicKey
 		keyLoc KeyLocator
 	)
 
@@ -170,7 +170,7 @@ func (b *BtcWalletKeyRing) DeriveNextKey(keyFam KeyFamily) (KeyDescriptor, error
 
 		// Extract the first address, ensuring that it is of the proper
 		// interface type, otherwise we can't manipulate it below.
-		addr, ok := addrs[0].(waddrmgr.ManagedPubKeyAddress)
+		addr, ok := addrs[0].(udb.ManagedPubKeyAddress)
 		if !ok {
 			return fmt.Errorf("address is not a managed pubkey " +
 				"addr")
@@ -221,7 +221,7 @@ func (b *BtcWalletKeyRing) DeriveKey(keyLoc KeyLocator) (KeyDescriptor, error) {
 			return err
 		}
 
-		path := waddrmgr.DerivationPath{
+		path := udb.DerivationPath{
 			Account: uint32(keyLoc.Family),
 			Branch:  0,
 			Index:   uint32(keyLoc.Index),
@@ -232,7 +232,7 @@ func (b *BtcWalletKeyRing) DeriveKey(keyLoc KeyLocator) (KeyDescriptor, error) {
 		}
 
 		keyDesc.KeyLocator = keyLoc
-		keyDesc.PubKey = addr.(waddrmgr.ManagedPubKeyAddress).PubKey()
+		keyDesc.PubKey = addr.(udb.ManagedPubKeyAddress).PubKey()
 
 		return nil
 	})
@@ -247,8 +247,8 @@ func (b *BtcWalletKeyRing) DeriveKey(keyLoc KeyLocator) (KeyDescriptor, error) {
 // passed key descriptor.
 //
 // NOTE: This is part of the keychain.SecretKeyRing interface.
-func (b *BtcWalletKeyRing) DerivePrivKey(keyDesc KeyDescriptor) (*btcec.PrivateKey, error) {
-	var key *btcec.PrivateKey
+func (b *BtcWalletKeyRing) DerivePrivKey(keyDesc KeyDescriptor) (*secp256k1.PrivateKey, error) {
+	var key *secp256k1.PrivateKey
 
 	db := b.wallet.Database()
 	err := walletdb.Update(db, func(tx walletdb.ReadWriteTx) error {
@@ -275,7 +275,7 @@ func (b *BtcWalletKeyRing) DerivePrivKey(keyDesc KeyDescriptor) (*btcec.PrivateK
 		if keyDesc.PubKey == nil || keyDesc.Index > 0 {
 			// Now that we know the account exists, we can safely
 			// derive the full private key from the given path.
-			path := waddrmgr.DerivationPath{
+			path := udb.DerivationPath{
 				Account: uint32(keyDesc.Family),
 				Branch:  0,
 				Index:   uint32(keyDesc.Index),
@@ -285,7 +285,7 @@ func (b *BtcWalletKeyRing) DerivePrivKey(keyDesc KeyDescriptor) (*btcec.PrivateK
 				return err
 			}
 
-			key, err = addr.(waddrmgr.ManagedPubKeyAddress).PrivKey()
+			key, err = addr.(udb.ManagedPubKeyAddress).PrivKey()
 			if err != nil {
 				return err
 			}
@@ -296,7 +296,7 @@ func (b *BtcWalletKeyRing) DerivePrivKey(keyDesc KeyDescriptor) (*btcec.PrivateK
 		// If the public key isn't nil, then this indicates that we
 		// need to scan for the private key, assuming that we know the
 		// valid key family.
-		nextPath := waddrmgr.DerivationPath{
+		nextPath := udb.DerivationPath{
 			Account: uint32(keyDesc.Family),
 			Branch:  0,
 			Index:   0,
@@ -316,7 +316,7 @@ func (b *BtcWalletKeyRing) DerivePrivKey(keyDesc KeyDescriptor) (*btcec.PrivateK
 			if err != nil {
 				return err
 			}
-			managedAddr := addr.(waddrmgr.ManagedPubKeyAddress)
+			managedAddr := addr.(udb.ManagedPubKeyAddress)
 
 			// If this is the target public key, then we'll return
 			// it directly back to the caller.
@@ -355,15 +355,15 @@ func (b *BtcWalletKeyRing) DerivePrivKey(keyDesc KeyDescriptor) (*btcec.PrivateK
 //
 // NOTE: This is part of the keychain.SecretKeyRing interface.
 func (b *BtcWalletKeyRing) ScalarMult(keyDesc KeyDescriptor,
-	pub *btcec.PublicKey) ([]byte, error) {
+	pub *secp256k1.PublicKey) ([]byte, error) {
 
 	privKey, err := b.DerivePrivKey(keyDesc)
 	if err != nil {
 		return nil, err
 	}
 
-	s := &btcec.PublicKey{}
-	x, y := btcec.S256().ScalarMult(pub.X, pub.Y, privKey.D.Bytes())
+	s := &secp256k1.PublicKey{}
+	x, y := secp256k1.S256().ScalarMult(pub.X, pub.Y, privKey.D.Bytes())
 	s.X = x
 	s.Y = y
 

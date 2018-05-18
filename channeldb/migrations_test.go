@@ -8,9 +8,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/btcsuite/btcutil"
 	"github.com/coreos/bbolt"
 	"github.com/davecgh/go-spew/spew"
+	"github.com/decred/dcrutil"
 	"github.com/go-errors/errors"
 )
 
@@ -230,7 +230,7 @@ func TestMigrateOptionalChannelCloseSummaryFields(t *testing.T) {
 				CloseHeight:    100,
 				RemotePub:      chanState.IdentityPub,
 				Capacity:       chanState.Capacity,
-				SettledBalance: btcutil.Amount(50000),
+				SettledBalance: dcrutil.Amount(50000),
 				CloseType:      RemoteForceClose,
 				IsPending:      true,
 
@@ -274,7 +274,7 @@ func TestMigrateOptionalChannelCloseSummaryFields(t *testing.T) {
 				CloseHeight:             100,
 				RemotePub:               chanState.IdentityPub,
 				Capacity:                chanState.Capacity,
-				SettledBalance:          btcutil.Amount(50000),
+				SettledBalance:          dcrutil.Amount(50000),
 				CloseType:               RemoteForceClose,
 				IsPending:               true,
 				RemoteCurrentRevocation: chanState.RemoteCurrentRevocation,
@@ -327,7 +327,7 @@ func TestMigrateOptionalChannelCloseSummaryFields(t *testing.T) {
 				CloseHeight:             100,
 				RemotePub:               chanState.IdentityPub,
 				Capacity:                chanState.Capacity,
-				SettledBalance:          btcutil.Amount(50000),
+				SettledBalance:          dcrutil.Amount(50000),
 				CloseType:               RemoteForceClose,
 				IsPending:               true,
 				RemoteCurrentRevocation: chanState.RemoteCurrentRevocation,

@@ -1,10 +1,10 @@
 package lookout
 
 import (
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/lightningnetwork/lnd/chainntnfs"
-	"github.com/lightningnetwork/lnd/watchtower/wtdb"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/chainntnfs"
+	"github.com/decred/dcrlnd/watchtower/wtdb"
 )
 
 // Service abstracts the lookout functionality, supporting the ability to start

@@ -1288,10 +1288,12 @@
       "type": "object",
       "properties": {
         "chain": {
-          "type": "string"
+          "type": "string",
+          "title": "/ The blockchain the node is on (eg decred)"
         },
         "network": {
-          "type": "string"
+          "type": "string",
+          "title": "/ The network the node is on (eg regtest, testnet, mainnet)"
         }
       }
     },

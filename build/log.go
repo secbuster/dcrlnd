@@ -3,7 +3,7 @@ package build
 import (
 	"io"
 
-	"github.com/btcsuite/btclog"
+	"github.com/decred/slog"
 )
 
 // LogType is an indicating the type of logging specified by the build flag.
@@ -49,7 +49,7 @@ type LogWriter struct {
 // implementation. This is primarily intended for use with stdlog, as the actual
 // writer is shared amongst all instantiations.
 func NewSubLogger(subsystem string,
-	genSubLogger func(string) btclog.Logger) btclog.Logger {
+	genSubLogger func(string) slog.Logger) slog.Logger {
 
 	switch Deployment {
 
@@ -78,12 +78,12 @@ func NewSubLogger(subsystem string,
 		// that they share the same backend, since all output is written
 		// to std out.
 		case LogTypeStdOut:
-			backend := btclog.NewBackend(&LogWriter{})
+			backend := slog.NewBackend(&LogWriter{})
 			logger := backend.Logger(subsystem)
 
 			// Set the logging level of the stdout logger to use the
 			// configured logging level specified by build flags.
-			level, _ := btclog.LevelFromString(LogLevel)
+			level, _ := slog.LevelFromString(LogLevel)
 			logger.SetLevel(level)
 
 			return logger
@@ -91,5 +91,5 @@ func NewSubLogger(subsystem string,
 	}
 
 	// For any other configurations, we'll disable logging.
-	return btclog.Disabled
+	return slog.Disabled
 }

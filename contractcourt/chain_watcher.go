@@ -6,15 +6,15 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcd/txscript"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
 	"github.com/davecgh/go-spew/spew"
-	"github.com/lightningnetwork/lnd/chainntnfs"
-	"github.com/lightningnetwork/lnd/channeldb"
-	"github.com/lightningnetwork/lnd/lnwallet"
+	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/txscript"
+	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/chainntnfs"
+	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/lnwallet"
 )
 
 const (
@@ -103,7 +103,7 @@ type chainWatcherConfig struct {
 
 	// isOurAddr is a function that returns true if the passed address is
 	// known to us.
-	isOurAddr func(btcutil.Address) bool
+	isOurAddr func(dcrutil.Address) bool
 }
 
 // chainWatcher is a system that's assigned to every active channel. The duty
@@ -419,7 +419,7 @@ func (c *chainWatcher) closeObserver(spendNtfn *chainntnfs.SpendEvent) {
 			// it from the peer each time we connect to it.
 			// TODO(halseth): actively initiate re-connection to
 			// the peer?
-			var commitPoint *btcec.PublicKey
+			var commitPoint *secp256k1.PublicKey
 			backoff := minCommitPointPollTimeout
 			for {
 				commitPoint, err = c.cfg.chanState.DataLossCommitPoint()
@@ -500,8 +500,8 @@ func (c *chainWatcher) closeObserver(spendNtfn *chainntnfs.SpendEvent) {
 // to a script that the wallet controls. If no outputs pay to us, then we
 // return zero. This is possible as our output may have been trimmed due to
 // being dust.
-func (c *chainWatcher) toSelfAmount(tx *wire.MsgTx) btcutil.Amount {
-	var selfAmt btcutil.Amount
+func (c *chainWatcher) toSelfAmount(tx *wire.MsgTx) dcrutil.Amount {
+	var selfAmt dcrutil.Amount
 	for _, txOut := range tx.TxOut {
 		_, addrs, _, err := txscript.ExtractPkScriptAddrs(
 			// Doesn't matter what net we actually pass in.
@@ -513,7 +513,7 @@ func (c *chainWatcher) toSelfAmount(tx *wire.MsgTx) btcutil.Amount {
 
 		for _, addr := range addrs {
 			if c.cfg.isOurAddr(addr) {
-				selfAmt += btcutil.Amount(txOut.Value)
+				selfAmt += dcrutil.Amount(txOut.Value)
 			}
 		}
 	}
@@ -628,7 +628,7 @@ func (c *chainWatcher) dispatchLocalForceClose(
 		closeSummary.TimeLockedBalance = chanSnapshot.LocalBalance.ToSatoshis()
 	}
 	for _, htlc := range forceClose.HtlcResolutions.OutgoingHTLCs {
-		htlcValue := btcutil.Amount(htlc.SweepSignDesc.Output.Value)
+		htlcValue := dcrutil.Amount(htlc.SweepSignDesc.Output.Value)
 		closeSummary.TimeLockedBalance += htlcValue
 	}
 
@@ -676,7 +676,7 @@ func (c *chainWatcher) dispatchLocalForceClose(
 func (c *chainWatcher) dispatchRemoteForceClose(
 	commitSpend *chainntnfs.SpendDetail,
 	remoteCommit channeldb.ChannelCommitment,
-	commitPoint *btcec.PublicKey) error {
+	commitPoint *secp256k1.PublicKey) error {
 
 	log.Infof("Unilateral close of ChannelPoint(%v) "+
 		"detected", c.cfg.chanState.FundingOutpoint)

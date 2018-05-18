@@ -4,10 +4,10 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/lightningnetwork/lnd/lnwallet"
-	"github.com/lightningnetwork/lnd/lnwire"
-	"github.com/lightningnetwork/lnd/routing"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwire"
+	"github.com/decred/dcrlnd/routing"
 )
 
 // ManagerCfg houses a set of values and methods that is passed to the Manager
@@ -15,7 +15,7 @@ import (
 type ManagerCfg struct {
 	// Self is the public key of the lnd instance. It is used to making
 	// sure the autopilot is not opening channels to itself.
-	Self *btcec.PublicKey
+	Self *secp256k1.PublicKey
 
 	// PilotCfg is the config of the autopilot agent managed by the
 	// Manager.

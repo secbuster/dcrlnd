@@ -18,19 +18,19 @@ import (
 	"testing"
 	"time"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcd/txscript"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/txscript"
+	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/chainntnfs"
+	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/htlcswitch"
+	"github.com/decred/dcrlnd/keychain"
+	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwire"
+	"github.com/decred/dcrlnd/shachain"
 	"github.com/go-errors/errors"
-	"github.com/lightningnetwork/lnd/chainntnfs"
-	"github.com/lightningnetwork/lnd/channeldb"
-	"github.com/lightningnetwork/lnd/htlcswitch"
-	"github.com/lightningnetwork/lnd/keychain"
-	"github.com/lightningnetwork/lnd/lnwallet"
-	"github.com/lightningnetwork/lnd/lnwire"
-	"github.com/lightningnetwork/lnd/shachain"
 )
 
 var (
@@ -92,7 +92,7 @@ var (
 
 	breachedOutputs = []breachedOutput{
 		{
-			amt:         btcutil.Amount(1e7),
+			amt:         dcrutil.Amount(1e7),
 			outpoint:    breachOutPoints[0],
 			witnessType: lnwallet.CommitmentNoDelay,
 			signDesc: lnwallet.SignDescriptor{
@@ -136,7 +136,7 @@ var (
 			secondLevelWitnessScript: breachKeys[0],
 		},
 		{
-			amt:         btcutil.Amount(2e9),
+			amt:         dcrutil.Amount(2e9),
 			outpoint:    breachOutPoints[1],
 			witnessType: lnwallet.CommitmentRevoke,
 			signDesc: lnwallet.SignDescriptor{
@@ -180,7 +180,7 @@ var (
 			secondLevelWitnessScript: breachKeys[0],
 		},
 		{
-			amt:         btcutil.Amount(3e4),
+			amt:         dcrutil.Amount(3e4),
 			outpoint:    breachOutPoints[2],
 			witnessType: lnwallet.CommitmentDelayOutput,
 			signDesc: lnwallet.SignDescriptor{
@@ -399,7 +399,7 @@ func initBreachedOutputs() error {
 		bo := &breachedOutputs[i]
 
 		// Parse the sign descriptor's pubkey.
-		pubkey, err := btcec.ParsePubKey(breachKeys[i], btcec.S256())
+		pubkey, err := secp256k1.ParsePubKey(breachKeys[i])
 		if err != nil {
 			return fmt.Errorf("unable to parse pubkey: %v",
 				breachKeys[i])
@@ -1327,8 +1327,7 @@ func createTestArbiter(t *testing.T, contractBreaches chan *ContractBreachEvent,
 		return newRetributionStore(db)
 	})
 
-	aliceKeyPriv, _ := btcec.PrivKeyFromBytes(btcec.S256(),
-		alicesPrivKey)
+	aliceKeyPriv, _ := secp256k1.PrivKeyFromBytes(alicesPrivKey)
 	signer := &mockSigner{key: aliceKeyPriv}
 
 	// Assemble our test arbiter.
@@ -1357,24 +1356,22 @@ func createTestArbiter(t *testing.T, contractBreaches chan *ContractBreachEvent,
 	return ba, cleanUp, nil
 }
 
-// createInitChannels creates two initialized test channels funded with 10 BTC,
-// with 5 BTC allocated to each side. Within the channel, Alice is the
+// createInitChannels creates two initialized test channels funded with 10 DCR,
+// with 5 DCR allocated to each side. Within the channel, Alice is the
 // initiator.
 func createInitChannels(revocationWindow int) (*lnwallet.LightningChannel, *lnwallet.LightningChannel, func(), error) {
 
-	aliceKeyPriv, aliceKeyPub := btcec.PrivKeyFromBytes(btcec.S256(),
-		alicesPrivKey)
-	bobKeyPriv, bobKeyPub := btcec.PrivKeyFromBytes(btcec.S256(),
-		bobsPrivKey)
+	aliceKeyPriv, aliceKeyPub := secp256k1.PrivKeyFromBytes(alicesPrivKey)
+	bobKeyPriv, bobKeyPub := secp256k1.PrivKeyFromBytes(bobsPrivKey)
 
-	channelCapacity, err := btcutil.NewAmount(10)
+	channelCapacity, err := dcrutil.NewAmount(10)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
 	channelBal := channelCapacity / 2
-	aliceDustLimit := btcutil.Amount(200)
-	bobDustLimit := btcutil.Amount(1300)
+	aliceDustLimit := dcrutil.Amount(200)
+	bobDustLimit := dcrutil.Amount(1300)
 	csvTimeoutAlice := uint32(5)
 	csvTimeoutBob := uint32(4)
 
@@ -1487,7 +1484,7 @@ func createInitChannels(revocationWindow int) (*lnwallet.LightningChannel, *lnwa
 		CommitHeight:  0,
 		LocalBalance:  lnwire.NewMSatFromSatoshis(channelBal),
 		RemoteBalance: lnwire.NewMSatFromSatoshis(channelBal),
-		FeePerKw:      btcutil.Amount(feePerKw),
+		FeePerKw:      dcrutil.Amount(feePerKw),
 		CommitFee:     8688,
 		CommitTx:      aliceCommitTx,
 		CommitSig:     bytes.Repeat([]byte{1}, 71),
@@ -1496,7 +1493,7 @@ func createInitChannels(revocationWindow int) (*lnwallet.LightningChannel, *lnwa
 		CommitHeight:  0,
 		LocalBalance:  lnwire.NewMSatFromSatoshis(channelBal),
 		RemoteBalance: lnwire.NewMSatFromSatoshis(channelBal),
-		FeePerKw:      btcutil.Amount(feePerKw),
+		FeePerKw:      dcrutil.Amount(feePerKw),
 		CommitFee:     8688,
 		CommitTx:      bobCommitTx,
 		CommitSig:     bytes.Repeat([]byte{1}, 71),
@@ -1701,12 +1698,12 @@ func forceStateTransition(chanA, chanB *lnwallet.LightningChannel) error {
 //
 // TODO(bvu): Refactor when dynamic fee estimation is added.
 // TODO(conner) remove code duplication
-func calcStaticFee(numHTLCs int) btcutil.Amount {
+func calcStaticFee(numHTLCs int) dcrutil.Amount {
 	const (
-		commitWeight = btcutil.Amount(724)
+		commitWeight = dcrutil.Amount(724)
 		htlcWeight   = 172
-		feePerKw     = btcutil.Amount(24/4) * 1000
+		feePerKw     = dcrutil.Amount(24/4) * 1000
 	)
 	return feePerKw * (commitWeight +
-		btcutil.Amount(htlcWeight*numHTLCs)) / 1000
+		dcrutil.Amount(htlcWeight*numHTLCs)) / 1000
 }

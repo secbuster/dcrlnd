@@ -4,18 +4,18 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"fmt"
-	"github.com/btcsuite/btcd/chaincfg"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcutil"
 	"github.com/davecgh/go-spew/spew"
-	"github.com/lightningnetwork/lnd/channeldb"
-	"github.com/lightningnetwork/lnd/lnwire"
-	"github.com/lightningnetwork/lnd/queue"
-	"github.com/lightningnetwork/lnd/zpay32"
+	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/lnwire"
+	"github.com/decred/dcrlnd/queue"
+	"github.com/decred/dcrlnd/zpay32"
 )
 
 var (
@@ -264,7 +264,7 @@ func (i *InvoiceRegistry) deliverBacklogEvents(client *InvoiceSubscription) erro
 // by the passed preimage. Once this invoice is added, subsystems within the
 // daemon add/forward HTLCs that are able to obtain the proper preimage
 // required for redemption in the case that we're the final destination.
-func (i *InvoiceRegistry) AddDebugInvoice(amt btcutil.Amount, preimage chainhash.Hash) {
+func (i *InvoiceRegistry) AddDebugInvoice(amt dcrutil.Amount, preimage chainhash.Hash) {
 	paymentHash := chainhash.Hash(sha256.Sum256(preimage[:]))
 
 	invoice := &channeldb.Invoice{

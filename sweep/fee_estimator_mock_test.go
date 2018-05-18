@@ -1,8 +1,9 @@
 package sweep
 
 import (
-	"github.com/lightningnetwork/lnd/lnwallet"
 	"sync"
+
+	"github.com/decred/dcrlnd/lnwallet"
 )
 
 // mockFeeEstimator implements a mock fee estimator. It closely resembles

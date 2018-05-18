@@ -3,7 +3,7 @@ package keychain
 import (
 	"fmt"
 
-	"github.com/btcsuite/btcd/btcec"
+	"github.com/decred/dcrd/dcrec/secp256k1"
 )
 
 const (
@@ -126,7 +126,7 @@ type KeyDescriptor struct {
 
 	// PubKey is an optional public key that fully describes a target key.
 	// If this is nil, the KeyLocator MUST NOT be empty.
-	PubKey *btcec.PublicKey
+	PubKey *secp256k1.PublicKey
 }
 
 // KeyRing is the primary interface that will be used to perform public
@@ -161,7 +161,7 @@ type SecretKeyRing interface {
 	// method will perform an in-order scan over the key set, with a max of
 	// MaxKeyRangeScan keys. In order for this to work, the caller MUST set
 	// the KeyFamily within the partially populated KeyLocator.
-	DerivePrivKey(keyDesc KeyDescriptor) (*btcec.PrivateKey, error)
+	DerivePrivKey(keyDesc KeyDescriptor) (*secp256k1.PrivateKey, error)
 
 	// ScalarMult performs a scalar multiplication (ECDH-like operation)
 	// between the target key descriptor and remote public key. The output
@@ -171,7 +171,7 @@ type SecretKeyRing interface {
 	//
 	//  sx := k*P
 	//  s := sha256(sx.SerializeCompressed())
-	ScalarMult(keyDesc KeyDescriptor, pubKey *btcec.PublicKey) ([]byte, error)
+	ScalarMult(keyDesc KeyDescriptor, pubKey *secp256k1.PublicKey) ([]byte, error)
 }
 
 // TODO(roasbeef): extend to actually support scalar mult of key?

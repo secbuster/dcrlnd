@@ -10,12 +10,12 @@ import (
 
 	"net"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/tor"
 	"github.com/go-errors/errors"
-	"github.com/lightningnetwork/lnd/tor"
 )
 
 // MaxSliceLength is the maximum allowed length for any opaque byte slices in
@@ -123,7 +123,7 @@ func WriteElement(w io.Writer, element interface{}) error {
 		if _, err := w.Write(b[:]); err != nil {
 			return err
 		}
-	case btcutil.Amount:
+	case dcrutil.Amount:
 		var b [8]byte
 		binary.BigEndian.PutUint64(b[:], uint64(e))
 		if _, err := w.Write(b[:]); err != nil {
@@ -141,7 +141,7 @@ func WriteElement(w io.Writer, element interface{}) error {
 		if _, err := w.Write(b[:]); err != nil {
 			return err
 		}
-	case *btcec.PublicKey:
+	case *secp256k1.PublicKey:
 		if e == nil {
 			return fmt.Errorf("cannot write nil pubkey")
 		}
@@ -500,19 +500,19 @@ func ReadElement(r io.Reader, element interface{}) error {
 			return err
 		}
 		*e = MilliSatoshi(int64(binary.BigEndian.Uint64(b[:])))
-	case *btcutil.Amount:
+	case *dcrutil.Amount:
 		var b [8]byte
 		if _, err := io.ReadFull(r, b[:]); err != nil {
 			return err
 		}
-		*e = btcutil.Amount(int64(binary.BigEndian.Uint64(b[:])))
-	case **btcec.PublicKey:
-		var b [btcec.PubKeyBytesLenCompressed]byte
+		*e = dcrutil.Amount(int64(binary.BigEndian.Uint64(b[:])))
+	case **secp256k1.PublicKey:
+		var b [secp256k1.PubKeyBytesLenCompressed]byte
 		if _, err = io.ReadFull(r, b[:]); err != nil {
 			return err
 		}
 
-		pubKey, err := btcec.ParsePubKey(b[:], btcec.S256())
+		pubKey, err := secp256k1.ParsePubKey(b[:])
 		if err != nil {
 			return err
 		}

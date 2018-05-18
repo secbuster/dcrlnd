@@ -5,10 +5,10 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcd/wire"
 	"github.com/coreos/bbolt"
-	"github.com/lightningnetwork/lnd/channeldb"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/channeldb"
 )
 
 //	              Overview of Nursery Store Storage Hierarchy
@@ -36,14 +36,14 @@ import (
 //   |   particular channel, which is useful in constructing nursery reports.
 //   |
 //   ├── channel-index-key/
-//   │   ├── <chan-point-1>/                      <- CHANNEL BUCKET
-//   |   |   ├── <state-prefix><outpoint-1>: <spendable-output-1>
-//   |   |   └── <state-prefix><outpoint-2>: <spendable-output-2>
-//   │   ├── <chan-point-2>/
-//   |   |   └── <state-prefix><outpoint-3>: <spendable-output-3>
-//   │   └── <chan-point-3>/
-//   |       ├── <state-prefix><outpoint-4>: <spendable-output-4>
-//   |       └── <state-prefix><outpoint-5>: <spendable-output-5>
+//   │   ├── <chan-point-1>/                      <- CHANNEL BUCKET
+//   |   |   ├── <state-prefix><outpoint-1>: <spendable-output-1>
+//   |   |   └── <state-prefix><outpoint-2>: <spendable-output-2>
+//   │   ├── <chan-point-2>/
+//   |   |   └── <state-prefix><outpoint-3>: <spendable-output-3>
+//   │   └── <chan-point-3>/
+//   |       ├── <state-prefix><outpoint-4>: <spendable-output-4>
+//   |       └── <state-prefix><outpoint-5>: <spendable-output-5>
 //   |
 //   |   HEIGHT INDEX
 //   |
@@ -60,16 +60,16 @@ import (
 //   |   output.
 //   |
 //   └── height-index-key/
-//       ├── <height-1>/                             <- HEIGHT BUCKET
-//       |   ├── <chan-point-3>/                     <- HEIGHT-CHANNEL BUCKET
-//       |   |    ├── <state-prefix><outpoint-4>: "" <- PREFIXED OUTPOINT
-//       |   |    └── <state-prefix><outpoint-5>: ""
-//       |   ├── <chan-point-2>/
-//       |   |    └── <state-prefix><outpoint-3>: ""
-//       └── <height-2>/
-//           └── <chan-point-1>/
-//                └── <state-prefix><outpoint-1>: ""
-//                └── <state-prefix><outpoint-2>: ""
+//       ├── <height-1>/                             <- HEIGHT BUCKET
+//       |   ├── <chan-point-3>/                     <- HEIGHT-CHANNEL BUCKET
+//       |   |    ├── <state-prefix><outpoint-4>: "" <- PREFIXED OUTPOINT
+//       |   |    └── <state-prefix><outpoint-5>: ""
+//       |   ├── <chan-point-2>/
+//       |   |    └── <state-prefix><outpoint-3>: ""
+//       └── <height-2>/
+//           └── <chan-point-1>/
+//                └── <state-prefix><outpoint-1>: ""
+//                └── <state-prefix><outpoint-2>: ""
 
 // TODO(joostjager): Add database migration to clean up now unused last
 // graduated height and finalized txes. This also prevents people downgrading

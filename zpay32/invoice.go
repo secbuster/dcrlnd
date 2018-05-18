@@ -7,13 +7,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcutil"
-	"github.com/btcsuite/btcutil/bech32"
-	"github.com/lightningnetwork/lnd/lnwire"
-	"github.com/lightningnetwork/lnd/routing"
+	"github.com/btcsuite/btcutil/bech32" // TODO(decred): dcrutil...
+	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrlnd/lnwire"
+	"github.com/decred/dcrlnd/routing"
 )
 
 const (
@@ -76,7 +76,7 @@ type MessageSigner struct {
 	// SignCompact signs the passed hash with the node's privkey. The
 	// returned signature should be 65 bytes, where the last 64 are the
 	// compact signature, and the first one is a header byte. This is the
-	// format returned by btcec.SignCompact.
+	// format returned by secp256k1.SignCompact.
 	SignCompact func(hash []byte) ([]byte, error)
 }
 
@@ -105,7 +105,7 @@ type Invoice struct {
 	// include the pubkey as an 'n' field. If this is not set before
 	// encoding then the destination pubkey won't be added as an 'n' field,
 	// and the pubkey will be extracted from the signature during decoding.
-	Destination *btcec.PublicKey
+	Destination *secp256k1.PublicKey
 
 	// minFinalCLTVExpiry is the value that the creator of the invoice
 	// expects to be used for the
@@ -139,14 +139,14 @@ type Invoice struct {
 	// FallbackAddr is an on-chain address that can be used for payment in
 	// case the Lightning payment fails.
 	// Optional.
-	FallbackAddr btcutil.Address
+	FallbackAddr dcrutil.Address
 
 	// RouteHints represents one or more different route hints. Each route
 	// hint can be individually used to reach the destination. These usually
 	// represent private routes.
 	//
 	// NOTE: This is optional.
-	RouteHints [][]routing.HopHint
+	//RouteHints [][]routing.HopHint // TODO(decred): Uncomment
 }
 
 // Amount is a functional option that allows callers of NewInvoice to set the
@@ -159,7 +159,7 @@ func Amount(milliSat lnwire.MilliSatoshi) func(*Invoice) {
 
 // Destination is a functional option that allows callers of NewInvoice to
 // explicitly set the pubkey of the Invoice's destination node.
-func Destination(destination *btcec.PublicKey) func(*Invoice) {
+func Destination(destination *secp256k1.PublicKey) func(*Invoice) {
 	return func(i *Invoice) {
 		i.Destination = destination
 	}
@@ -206,7 +206,7 @@ func Expiry(expiry time.Duration) func(*Invoice) {
 // FallbackAddr is a functional option that allows callers of NewInvoice to set
 // the Invoice's fallback on-chain address that can be used for payment in case
 // the Lightning payment fails
-func FallbackAddr(fallbackAddr btcutil.Address) func(*Invoice) {
+func FallbackAddr(fallbackAddr dcrutil.Address) func(*Invoice) {
 	return func(i *Invoice) {
 		i.FallbackAddr = fallbackAddr
 	}
@@ -214,11 +214,11 @@ func FallbackAddr(fallbackAddr btcutil.Address) func(*Invoice) {
 
 // RouteHint is a functional option that allows callers of NewInvoice to add
 // one or more hop hints that represent a private route to the destination.
-func RouteHint(routeHint []routing.HopHint) func(*Invoice) {
-	return func(i *Invoice) {
-		i.RouteHints = append(i.RouteHints, routeHint)
-	}
-}
+//func RouteHint(routeHint []routing.HopHint) func(*Invoice) {
+//	return func(i *Invoice) {
+//		i.RouteHints = append(i.RouteHints, routeHint)
+//	}
+//}
 
 // NewInvoice creates a new Invoice object. The last parameter is a set of
 // variadic arguments for setting optional fields of the invoice.
@@ -332,8 +332,7 @@ func Decode(invoice string, net *chaincfg.Params) (*Invoice, error) {
 	} else {
 		headerByte := recoveryID + 27 + 4
 		compactSign := append([]byte{headerByte}, sig[:]...)
-		pubkey, _, err := btcec.RecoverCompact(btcec.S256(),
-			compactSign, hash)
+		pubkey, _, err := secp256k1.RecoverCompact(compactSign, hash)
 		if err != nil {
 			return nil, err
 		}
@@ -724,7 +723,7 @@ func parseDescription(data []byte) (*string, error) {
 
 // parseDestination converts the data (encoded in base32) into a 33-byte public
 // key of the payee node.
-func parseDestination(data []byte) (*btcec.PublicKey, error) {
+func parseDestination(data []byte) (*secp256k1.PublicKey, error) {
 	// As BOLT-11 states, a reader must skip over the destination field
 	// if it does not have a length of 53, so avoid returning an error.
 	if len(data) != pubKeyBase32Len {
@@ -736,7 +735,7 @@ func parseDestination(data []byte) (*btcec.PublicKey, error) {
 		return nil, err
 	}
 
-	return btcec.ParsePubKey(base256Data, btcec.S256())
+	return secp256k1.ParsePubKey(base256Data)
 }
 
 // parseDescriptionHash converts a 256-bit description hash (encoded in base32)
@@ -785,13 +784,13 @@ func parseMinFinalCLTVExpiry(data []byte) (*uint64, error) {
 
 // parseFallbackAddr converts the data (encoded in base32) into a fallback
 // on-chain address.
-func parseFallbackAddr(data []byte, net *chaincfg.Params) (btcutil.Address, error) {
+func parseFallbackAddr(data []byte, net *chaincfg.Params) (dcrutil.Address, error) {
 	// Checks if the data is empty or contains a version without an address.
 	if len(data) < 2 {
 		return nil, fmt.Errorf("empty fallback address field")
 	}
 
-	var addr btcutil.Address
+	var addr dcrutil.Address
 
 	version := data[0]
 	switch version {
@@ -803,9 +802,9 @@ func parseFallbackAddr(data []byte, net *chaincfg.Params) (btcutil.Address, erro
 
 		switch len(witness) {
 		case 20:
-			addr, err = btcutil.NewAddressWitnessPubKeyHash(witness, net)
+			addr, err = dcrutil.NewAddressWitnessPubKeyHash(witness, net)
 		case 32:
-			addr, err = btcutil.NewAddressWitnessScriptHash(witness, net)
+			addr, err = dcrutil.NewAddressWitnessScriptHash(witness, net)
 		default:
 			return nil, fmt.Errorf("unknown witness program length %d",
 				len(witness))
@@ -820,7 +819,7 @@ func parseFallbackAddr(data []byte, net *chaincfg.Params) (btcutil.Address, erro
 			return nil, err
 		}
 
-		addr, err = btcutil.NewAddressPubKeyHash(pubKeyHash, net)
+		addr, err = dcrutil.NewAddressPubKeyHash(pubKeyHash, net)
 		if err != nil {
 			return nil, err
 		}
@@ -830,7 +829,7 @@ func parseFallbackAddr(data []byte, net *chaincfg.Params) (btcutil.Address, erro
 			return nil, err
 		}
 
-		addr, err = btcutil.NewAddressScriptHashFromHash(scriptHash, net)
+		addr, err = dcrutil.NewAddressScriptHashFromHash(scriptHash, net)
 		if err != nil {
 			return nil, err
 		}
@@ -858,7 +857,7 @@ func parseRouteHint(data []byte) ([]routing.HopHint, error) {
 
 	for len(base256Data) > 0 {
 		hopHint := routing.HopHint{}
-		hopHint.NodeID, err = btcec.ParsePubKey(base256Data[:33], btcec.S256())
+		hopHint.NodeID, err = secp256k1.ParsePubKey(base256Data[:33])
 		if err != nil {
 			return nil, err
 		}
@@ -947,13 +946,13 @@ func writeTaggedFields(bufferBase32 *bytes.Buffer, invoice *Invoice) error {
 	if invoice.FallbackAddr != nil {
 		var version byte
 		switch addr := invoice.FallbackAddr.(type) {
-		case *btcutil.AddressPubKeyHash:
+		case *dcrutil.AddressPubKeyHash:
 			version = 17
-		case *btcutil.AddressScriptHash:
+		case *dcrutil.AddressScriptHash:
 			version = 18
-		case *btcutil.AddressWitnessPubKeyHash:
+		case *dcrutil.AddressWitnessPubKeyHash:
 			version = addr.WitnessVersion()
-		case *btcutil.AddressWitnessScriptHash:
+		case *dcrutil.AddressWitnessScriptHash:
 			version = addr.WitnessVersion()
 		default:
 			return fmt.Errorf("unknown fallback address type")

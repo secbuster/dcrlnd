@@ -2,31 +2,29 @@ package main
 
 import (
 	"fmt"
-	"github.com/lightningnetwork/lnd/invoices"
 	"io"
 	"os"
 	"path/filepath"
 
-	"github.com/btcsuite/btcd/connmgr"
-	"github.com/btcsuite/btclog"
+	"github.com/decred/dcrd/connmgr"
+	"github.com/decred/dcrlnd/autopilot"
+	"github.com/decred/dcrlnd/build"
+	"github.com/decred/dcrlnd/chainntnfs"
+	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/contractcourt"
+	"github.com/decred/dcrlnd/discovery"
+	"github.com/decred/dcrlnd/htlcswitch"
+	"github.com/decred/dcrlnd/invoices"
+	"github.com/decred/dcrlnd/lnrpc/autopilotrpc"
+	"github.com/decred/dcrlnd/lnrpc/signrpc"
+	"github.com/decred/dcrlnd/lnrpc/walletrpc"
+	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/routing"
+	"github.com/decred/dcrlnd/signal"
+	"github.com/decred/dcrlnd/sweep"
+	"github.com/decred/slog"
 	"github.com/jrick/logrotate/rotator"
-	"github.com/lightninglabs/neutrino"
-
-	"github.com/lightningnetwork/lightning-onion"
-	"github.com/lightningnetwork/lnd/autopilot"
-	"github.com/lightningnetwork/lnd/build"
-	"github.com/lightningnetwork/lnd/chainntnfs"
-	"github.com/lightningnetwork/lnd/channeldb"
-	"github.com/lightningnetwork/lnd/contractcourt"
-	"github.com/lightningnetwork/lnd/discovery"
-	"github.com/lightningnetwork/lnd/htlcswitch"
-	"github.com/lightningnetwork/lnd/lnrpc/autopilotrpc"
-	"github.com/lightningnetwork/lnd/lnrpc/signrpc"
-	"github.com/lightningnetwork/lnd/lnrpc/walletrpc"
-	"github.com/lightningnetwork/lnd/lnwallet"
-	"github.com/lightningnetwork/lnd/routing"
-	"github.com/lightningnetwork/lnd/signal"
-	"github.com/lightningnetwork/lnd/sweep"
+	"github.com/lightningnetwork/lightning-onion" // TOOD(decred): ok?
 )
 
 // Loggers per subsystem.  A single backend logger is created and all subsystem
@@ -44,7 +42,7 @@ var (
 	// loggers.  The backend must not be used before the log rotator has
 	// been initialized, or data races and/or nil pointer dereferences will
 	// occur.
-	backendLog = btclog.NewBackend(logWriter)
+	backendLog = slog.NewBackend(logWriter)
 
 	// logRotator is one of the logging outputs.  It should be closed on
 	// application shutdown.
@@ -64,7 +62,6 @@ var (
 	brarLog = build.NewSubLogger("BRAR", backendLog.Logger)
 	cmgrLog = build.NewSubLogger("CMGR", backendLog.Logger)
 	crtrLog = build.NewSubLogger("CRTR", backendLog.Logger)
-	btcnLog = build.NewSubLogger("BTCN", backendLog.Logger)
 	atplLog = build.NewSubLogger("ATPL", backendLog.Logger)
 	cnctLog = build.NewSubLogger("CNCT", backendLog.Logger)
 	sphxLog = build.NewSubLogger("SPHX", backendLog.Logger)
@@ -84,7 +81,6 @@ func init() {
 	htlcswitch.UseLogger(hswcLog)
 	connmgr.UseLogger(cmgrLog)
 	routing.UseLogger(crtrLog)
-	neutrino.UseLogger(btcnLog)
 	autopilot.UseLogger(atplLog)
 	contractcourt.UseLogger(cnctLog)
 	sphinx.UseLogger(sphxLog)
@@ -97,7 +93,7 @@ func init() {
 }
 
 // subsystemLoggers maps each subsystem identifier to its associated logger.
-var subsystemLoggers = map[string]btclog.Logger{
+var subsystemLoggers = map[string]slog.Logger{
 	"LTND": ltndLog,
 	"LNWL": lnwlLog,
 	"PEER": peerLog,
@@ -112,7 +108,6 @@ var subsystemLoggers = map[string]btclog.Logger{
 	"BRAR": brarLog,
 	"CMGR": cmgrLog,
 	"CRTR": crtrLog,
-	"BTCN": btcnLog,
 	"ATPL": atplLog,
 	"CNCT": cnctLog,
 	"SPHX": sphxLog,
@@ -157,7 +152,7 @@ func setLogLevel(subsystemID string, logLevel string) {
 	}
 
 	// Defaults to info if the log level is invalid.
-	level, _ := btclog.LevelFromString(logLevel)
+	level, _ := slog.LevelFromString(logLevel)
 	logger.SetLevel(level)
 }
 

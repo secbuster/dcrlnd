@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcd/wire"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/wire"
 )
 
 // NetAddress represents information pertaining to the identity and network
@@ -20,15 +20,15 @@ type NetAddress struct {
 	// authenticate any data sent to the network on behalf of the node, and
 	// additionally to establish a confidential+authenticated connection with
 	// the node.
-	IdentityKey *btcec.PublicKey
+	IdentityKey *secp256k1.PublicKey
 
 	// Address is the IP address and port of the node. This is left
 	// general so that multiple implementations can be used.
 	Address net.Addr
 
-	// ChainNet is the Bitcoin network this node is associated with.
+	// ChainNet is the network this node is associated with.
 	// TODO(roasbeef): make a slice in the future for multi-chain
-	ChainNet wire.BitcoinNet
+	ChainNet wire.CurrencyNet
 }
 
 // A compile time assertion to ensure that NetAddress meets the net.Addr

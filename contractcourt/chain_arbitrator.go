@@ -6,15 +6,14 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/lightningnetwork/lnd/sweep"
-
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
-	"github.com/lightningnetwork/lnd/chainntnfs"
-	"github.com/lightningnetwork/lnd/channeldb"
-	"github.com/lightningnetwork/lnd/lnwallet"
-	"github.com/lightningnetwork/lnd/lnwire"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/chainntnfs"
+	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwire"
+	"github.com/decred/dcrlnd/sweep"
 )
 
 // ErrChainArbExiting signals that the chain arbitrator is shutting down.
@@ -97,7 +96,7 @@ type ChainArbitratorConfig struct {
 	// IsOurAddress is a function that returns true if the passed address
 	// is known to the underlying wallet. Otherwise, false should be
 	// returned.
-	IsOurAddress func(btcutil.Address) bool
+	IsOurAddress func(dcrutil.Address) bool
 
 	// IncubateOutput sends either an incoming HTLC, an outgoing HTLC, or
 	// both to the utxo nursery. Once this function returns, the nursery

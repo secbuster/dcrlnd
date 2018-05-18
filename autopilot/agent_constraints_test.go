@@ -6,8 +6,8 @@ import (
 
 	prand "math/rand"
 
-	"github.com/btcsuite/btcutil"
-	"github.com/lightningnetwork/lnd/lnwire"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrlnd/lnwire"
 )
 
 func TestConstraintsChannelBudget(t *testing.T) {
@@ -17,7 +17,7 @@ func TestConstraintsChannelBudget(t *testing.T) {
 
 	const (
 		minChanSize = 0
-		maxChanSize = btcutil.Amount(btcutil.SatoshiPerBitcoin)
+		maxChanSize = dcrutil.Amount(dcrutil.AtomsPerCoin)
 
 		chanLimit = 3
 
@@ -38,10 +38,10 @@ func TestConstraintsChannelBudget(t *testing.T) {
 
 	testCases := []struct {
 		channels  []Channel
-		walletAmt btcutil.Amount
+		walletAmt dcrutil.Amount
 
 		needMore     bool
-		amtAvailable btcutil.Amount
+		amtAvailable dcrutil.Amount
 		numMore      uint32
 	}{
 		// Many available funds, but already have too many active open
@@ -50,18 +50,18 @@ func TestConstraintsChannelBudget(t *testing.T) {
 			[]Channel{
 				{
 					ChanID:   randChanID(),
-					Capacity: btcutil.Amount(prand.Int31()),
+					Capacity: dcrutil.Amount(prand.Int31()),
 				},
 				{
 					ChanID:   randChanID(),
-					Capacity: btcutil.Amount(prand.Int31()),
+					Capacity: dcrutil.Amount(prand.Int31()),
 				},
 				{
 					ChanID:   randChanID(),
-					Capacity: btcutil.Amount(prand.Int31()),
+					Capacity: dcrutil.Amount(prand.Int31()),
 				},
 			},
-			btcutil.Amount(btcutil.SatoshiPerBitcoin * 10),
+			dcrutil.Amount(dcrutil.AtomsPerCoin * 10),
 			false,
 			0,
 			0,
@@ -73,59 +73,59 @@ func TestConstraintsChannelBudget(t *testing.T) {
 			[]Channel{
 				{
 					ChanID:   randChanID(),
-					Capacity: btcutil.Amount(btcutil.SatoshiPerBitcoin),
+					Capacity: dcrutil.Amount(dcrutil.AtomsPerCoin),
 				},
 				{
 					ChanID:   randChanID(),
-					Capacity: btcutil.Amount(btcutil.SatoshiPerBitcoin),
+					Capacity: dcrutil.Amount(dcrutil.AtomsPerCoin),
 				},
 			},
-			btcutil.Amount(btcutil.SatoshiPerBitcoin * 2),
+			dcrutil.Amount(dcrutil.AtomsPerCoin * 2),
 			false,
 			0,
 			0,
 		},
 
 		// Ratio of funds in channels and total funds is below the
-		// threshold. We have 10 BTC allocated amongst channels and
-		// funds, atm. We're targeting 50%, so 5 BTC should be
-		// allocated. Only 1 BTC is atm, so 4 BTC should be
+		// threshold. We have 10 DCR allocated amongst channels and
+		// funds, atm. We're targeting 50%, so 5 DCR should be
+		// allocated. Only 1 DCR is atm, so 4 DCR should be
 		// recommended. We should also request 2 more channels as the
 		// limit is 3.
 		{
 			[]Channel{
 				{
 					ChanID:   randChanID(),
-					Capacity: btcutil.Amount(btcutil.SatoshiPerBitcoin),
+					Capacity: dcrutil.Amount(dcrutil.AtomsPerCoin),
 				},
 			},
-			btcutil.Amount(btcutil.SatoshiPerBitcoin * 9),
+			dcrutil.Amount(dcrutil.AtomsPerCoin * 9),
 			true,
-			btcutil.Amount(btcutil.SatoshiPerBitcoin * 4),
+			dcrutil.Amount(dcrutil.AtomsPerCoin * 4),
 			2,
 		},
 
 		// Ratio of funds in channels and total funds is below the
-		// threshold. We have 14 BTC total amongst the wallet's
+		// threshold. We have 14 DCR total amongst the wallet's
 		// balance, and our currently opened channels. Since we're
-		// targeting a 50% allocation, we should commit 7 BTC. The
-		// current channels commit 4 BTC, so we should expected 3 BTC
+		// targeting a 50% allocation, we should commit 7 DCR. The
+		// current channels commit 4 DCR, so we should expected 3 DCR
 		// to be committed. We should only request a single additional
 		// channel as the limit is 3.
 		{
 			[]Channel{
 				{
 					ChanID:   randChanID(),
-					Capacity: btcutil.Amount(btcutil.SatoshiPerBitcoin),
+					Capacity: dcrutil.Amount(dcrutil.AtomsPerCoin),
 				},
 				{
 					ChanID:   randChanID(),
-					Capacity: btcutil.Amount(btcutil.SatoshiPerBitcoin * 3),
+					Capacity: dcrutil.Amount(dcrutil.AtomsPerCoin * 3),
 				},
 			},
-			btcutil.Amount(btcutil.SatoshiPerBitcoin * 10),
+			dcrutil.Amount(dcrutil.AtomsPerCoin * 10),
 			true,
-			btcutil.Amount(btcutil.SatoshiPerBitcoin * 3),
+			dcrutil.Amount(dcrutil.AtomsPerCoin * 3),
 			1,
 		},
 
@@ -135,14 +135,14 @@ func TestConstraintsChannelBudget(t *testing.T) {
 			[]Channel{
 				{
 					ChanID:   randChanID(),
-					Capacity: btcutil.Amount(btcutil.SatoshiPerBitcoin),
+					Capacity: dcrutil.Amount(dcrutil.AtomsPerCoin),
 				},
 				{
 					ChanID:   randChanID(),
-					Capacity: btcutil.Amount(btcutil.SatoshiPerBitcoin),
+					Capacity: dcrutil.Amount(dcrutil.AtomsPerCoin),
 				},
 			},
-			btcutil.Amount(btcutil.SatoshiPerBitcoin),
+			dcrutil.Amount(dcrutil.AtomsPerCoin),
 			false,
 			0,
 			0,

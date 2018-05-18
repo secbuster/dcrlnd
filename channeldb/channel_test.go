@@ -10,20 +10,21 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
-	_ "github.com/btcsuite/btcwallet/walletdb/bdb"
 	"github.com/davecgh/go-spew/spew"
-	"github.com/lightningnetwork/lnd/keychain"
-	"github.com/lightningnetwork/lnd/lnwire"
-	"github.com/lightningnetwork/lnd/shachain"
+	"github.com/decred/dcrlnd/keychain"
+
+	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/lnwire"
+	"github.com/decred/dcrlnd/shachain"
+	_ "github.com/decred/dcrwallet/walletdb/bdb"
 )
 
 var (
-	netParams = &chaincfg.TestNet3Params
+	netParams = &chaincfg.TestNet2Params
 
 	key = [chainhash.HashSize]byte{
 		0x81, 0xb6, 0x37, 0xd8, 0xfc, 0xd2, 0xc6, 0xda,
@@ -81,7 +82,8 @@ var (
 		Hash:  key,
 		Index: 0,
 	}
-	privKey, pubKey = btcec.PrivKeyFromBytes(btcec.S256(), key[:])
+
+	privKey, pubKey = secp256k1.PrivKeyFromBytes(key[:])
 
 	wireSig, _ = lnwire.NewSigFromSignature(testSig)
 )
@@ -131,68 +133,68 @@ func createTestChannelState(cdb *DB) (*OpenChannel, error) {
 
 	localCfg := ChannelConfig{
 		ChannelConstraints: ChannelConstraints{
-			DustLimit:        btcutil.Amount(rand.Int63()),
+			DustLimit:        dcrutil.Amount(rand.Int63()),
 			MaxPendingAmount: lnwire.MilliSatoshi(rand.Int63()),
-			ChanReserve:      btcutil.Amount(rand.Int63()),
+			ChanReserve:      dcrutil.Amount(rand.Int63()),
 			MinHTLC:          lnwire.MilliSatoshi(rand.Int63()),
 			MaxAcceptedHtlcs: uint16(rand.Int31()),
 		},
 		CsvDelay: uint16(rand.Int31()),
 		MultiSigKey: keychain.KeyDescriptor{
-			PubKey: privKey.PubKey(),
+			PubKey: (*secp256k1.PublicKey)(&privKey.PublicKey),
 		},
 		RevocationBasePoint: keychain.KeyDescriptor{
-			PubKey: privKey.PubKey(),
+			PubKey: (*secp256k1.PublicKey)(&privKey.PublicKey),
 		},
 		PaymentBasePoint: keychain.KeyDescriptor{
-			PubKey: privKey.PubKey(),
+			PubKey: (*secp256k1.PublicKey)(&privKey.PublicKey),
 		},
 		DelayBasePoint: keychain.KeyDescriptor{
-			PubKey: privKey.PubKey(),
+			PubKey: (*secp256k1.PublicKey)(&privKey.PublicKey),
 		},
 		HtlcBasePoint: keychain.KeyDescriptor{
-			PubKey: privKey.PubKey(),
+			PubKey: (*secp256k1.PublicKey)(&privKey.PublicKey),
 		},
 	}
 	remoteCfg := ChannelConfig{
 		ChannelConstraints: ChannelConstraints{
-			DustLimit:        btcutil.Amount(rand.Int63()),
+			DustLimit:        dcrutil.Amount(rand.Int63()),
 			MaxPendingAmount: lnwire.MilliSatoshi(rand.Int63()),
-			ChanReserve:      btcutil.Amount(rand.Int63()),
+			ChanReserve:      dcrutil.Amount(rand.Int63()),
 			MinHTLC:          lnwire.MilliSatoshi(rand.Int63()),
 			MaxAcceptedHtlcs: uint16(rand.Int31()),
 		},
 		CsvDelay: uint16(rand.Int31()),
 		MultiSigKey: keychain.KeyDescriptor{
-			PubKey: privKey.PubKey(),
+			PubKey: (*secp256k1.PublicKey)(&privKey.PublicKey),
 			KeyLocator: keychain.KeyLocator{
 				Family: keychain.KeyFamilyMultiSig,
 				Index:  9,
 			},
 		},
 		RevocationBasePoint: keychain.KeyDescriptor{
-			PubKey: privKey.PubKey(),
+			PubKey: (*secp256k1.PublicKey)(&privKey.PublicKey),
 			KeyLocator: keychain.KeyLocator{
 				Family: keychain.KeyFamilyRevocationBase,
 				Index:  8,
 			},
 		},
 		PaymentBasePoint: keychain.KeyDescriptor{
-			PubKey: privKey.PubKey(),
+			PubKey: (*secp256k1.PublicKey)(&privKey.PublicKey),
 			KeyLocator: keychain.KeyLocator{
 				Family: keychain.KeyFamilyPaymentBase,
 				Index:  7,
 			},
 		},
 		DelayBasePoint: keychain.KeyDescriptor{
-			PubKey: privKey.PubKey(),
+			PubKey: (*secp256k1.PublicKey)(&privKey.PublicKey),
 			KeyLocator: keychain.KeyLocator{
 				Family: keychain.KeyFamilyDelayBase,
 				Index:  6,
 			},
 		},
 		HtlcBasePoint: keychain.KeyDescriptor{
-			PubKey: privKey.PubKey(),
+			PubKey: (*secp256k1.PublicKey)(&privKey.PublicKey),
 			KeyLocator: keychain.KeyLocator{
 				Family: keychain.KeyFamilyHtlcBase,
 				Index:  5,
@@ -210,7 +212,7 @@ func createTestChannelState(cdb *DB) (*OpenChannel, error) {
 		IsInitiator:       true,
 		IsPending:         true,
 		IdentityPub:       pubKey,
-		Capacity:          btcutil.Amount(10000),
+		Capacity:          dcrutil.Amount(10000),
 		LocalChanCfg:      localCfg,
 		RemoteChanCfg:     remoteCfg,
 		TotalMSatSent:     8,
@@ -219,8 +221,8 @@ func createTestChannelState(cdb *DB) (*OpenChannel, error) {
 			CommitHeight:  0,
 			LocalBalance:  lnwire.MilliSatoshi(9000),
 			RemoteBalance: lnwire.MilliSatoshi(3000),
-			CommitFee:     btcutil.Amount(rand.Int63()),
-			FeePerKw:      btcutil.Amount(5000),
+			CommitFee:     dcrutil.Amount(rand.Int63()),
+			FeePerKw:      dcrutil.Amount(5000),
 			CommitTx:      testTx,
 			CommitSig:     bytes.Repeat([]byte{1}, 71),
 		},
@@ -228,14 +230,14 @@ func createTestChannelState(cdb *DB) (*OpenChannel, error) {
 			CommitHeight:  0,
 			LocalBalance:  lnwire.MilliSatoshi(3000),
 			RemoteBalance: lnwire.MilliSatoshi(9000),
-			CommitFee:     btcutil.Amount(rand.Int63()),
-			FeePerKw:      btcutil.Amount(5000),
+			CommitFee:     dcrutil.Amount(rand.Int63()),
+			FeePerKw:      dcrutil.Amount(5000),
 			CommitTx:      testTx,
 			CommitSig:     bytes.Repeat([]byte{1}, 71),
 		},
 		NumConfsRequired:        4,
-		RemoteCurrentRevocation: privKey.PubKey(),
-		RemoteNextRevocation:    privKey.PubKey(),
+		RemoteCurrentRevocation: (*secp256k1.PublicKey)(&privKey.PublicKey),
+		RemoteNextRevocation:    (*secp256k1.PublicKey)(&privKey.PublicKey),
 		RevocationProducer:      producer,
 		RevocationStore:         store,
 		Db:                      cdb,
@@ -300,11 +302,12 @@ func TestOpenChannelPutGetDelete(t *testing.T) {
 	// We'll also test that the channel is properly able to hot swap the
 	// next revocation for the state machine. This tests the initial
 	// post-funding revocation exchange.
-	nextRevKey, err := btcec.NewPrivateKey(btcec.S256())
+	nextRevKey, err := secp256k1.GeneratePrivateKey()
 	if err != nil {
 		t.Fatalf("unable to create new private key: %v", err)
 	}
-	if err := state.InsertNextRevocation(nextRevKey.PubKey()); err != nil {
+	nextRevKeyPub := (*secp256k1.PublicKey)(&nextRevKey.PublicKey)
+	if err := state.InsertNextRevocation(nextRevKeyPub); err != nil {
 		t.Fatalf("unable to update revocation: %v", err)
 	}
 
@@ -315,7 +318,7 @@ func TestOpenChannelPutGetDelete(t *testing.T) {
 	updatedChan := openChannels[0]
 
 	// Ensure that the revocation was set properly.
-	if !nextRevKey.PubKey().IsEqual(updatedChan.RemoteNextRevocation) {
+	if !nextRevKeyPub.IsEqual(updatedChan.RemoteNextRevocation) {
 		t.Fatalf("next revocation wasn't updated")
 	}
 
@@ -326,8 +329,8 @@ func TestOpenChannelPutGetDelete(t *testing.T) {
 	closeSummary := &ChannelCloseSummary{
 		ChanPoint:         state.FundingOutpoint,
 		RemotePub:         state.IdentityPub,
-		SettledBalance:    btcutil.Amount(500),
-		TimeLockedBalance: btcutil.Amount(10000),
+		SettledBalance:    dcrutil.Amount(500),
+		TimeLockedBalance: dcrutil.Amount(10000),
 		IsPending:         false,
 		CloseType:         CooperativeClose,
 	}
@@ -528,11 +531,11 @@ func TestChannelStateTransition(t *testing.T) {
 	// current uncollapsed revocation state to simulate a state transition
 	// by the remote party.
 	channel.RemoteCurrentRevocation = channel.RemoteNextRevocation
-	newPriv, err := btcec.NewPrivateKey(btcec.S256())
+	newPriv, err := secp256k1.GeneratePrivateKey()
 	if err != nil {
 		t.Fatalf("unable to generate key: %v", err)
 	}
-	channel.RemoteNextRevocation = newPriv.PubKey()
+	channel.RemoteNextRevocation = (*secp256k1.PublicKey)(&newPriv.PublicKey)
 
 	fwdPkg := NewFwdPkg(channel.ShortChanID(), oldRemoteCommit.CommitHeight,
 		diskCommitDiff.LogUpdates, nil)
@@ -623,8 +626,8 @@ func TestChannelStateTransition(t *testing.T) {
 	closeSummary := &ChannelCloseSummary{
 		ChanPoint:         channel.FundingOutpoint,
 		RemotePub:         channel.IdentityPub,
-		SettledBalance:    btcutil.Amount(500),
-		TimeLockedBalance: btcutil.Amount(10000),
+		SettledBalance:    dcrutil.Amount(500),
+		TimeLockedBalance: dcrutil.Amount(10000),
 		IsPending:         false,
 		CloseType:         RemoteForceClose,
 	}

@@ -1,7 +1,7 @@
 # macaroons
 
 This is a more detailed, technical description of how macaroons work and how
-authentication and authorization is implemented in `lnd`.
+authentication and authorization is implemented in `dcrlnd`.
 
 For a more high-level overview see
 [macaroons.md in the docs](../docs/macaroons.md).
@@ -31,7 +31,7 @@ In this DB the following two key/value pairs are stored:
 
 ## Generated macaroons
 
-With the root key set up, `lnd` continues with creating three macaroon files:
+With the root key set up, `dcrlnd` continues with creating three macaroon files:
 
 * `invoice.macaroon`: Grants read and write access to all invoice related gRPC
   commands (like generating an address or adding an invoice). Can be used for a
@@ -43,7 +43,7 @@ With the root key set up, `lnd` continues with creating three macaroon files:
 * `admin.macaroon`: Grants full read and write access to all gRPC commands.
   This is used by the `lncli` client.
 
-These three macaroons all have the location field set to `lnd` and have no
+These three macaroons all have the location field set to `dcrlnd` and have no
 conditions/first party caveats or third party caveats set.
 
 The access restrictions are implemented with a list of entity/action pairs that

@@ -3,10 +3,10 @@ package discovery
 import (
 	"time"
 
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/lightningnetwork/lnd/channeldb"
-	"github.com/lightningnetwork/lnd/lnwire"
-	"github.com/lightningnetwork/lnd/routing"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/lnwire"
+	"github.com/decred/dcrlnd/routing"
 )
 
 // ChannelGraphTimeSeries is an interface that provides time and block based

@@ -6,22 +6,22 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcd/txscript"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
-	"github.com/lightningnetwork/lnd/chainntnfs"
-	"github.com/lightningnetwork/lnd/keychain"
-	"github.com/lightningnetwork/lnd/lnwallet"
+	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/txscript"
+	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/chainntnfs"
+	"github.com/decred/dcrlnd/keychain"
+	"github.com/decred/dcrlnd/lnwallet"
 )
 
 // The block height returned by the mock BlockChainIO's GetBestBlock.
 const fundingBroadcastHeight = 123
 
 type mockSigner struct {
-	key *btcec.PrivateKey
+	key *secp256k1.PrivateKey
 }
 
 func (m *mockSigner) SignOutputRaw(tx *wire.MsgTx,
@@ -192,8 +192,8 @@ func (*mockChainIO) GetBlock(blockHash *chainhash.Hash) (*wire.MsgBlock, error) 
 // mockWalletController is used by the LightningWallet, and let us mock the
 // interaction with the bitcoin network.
 type mockWalletController struct {
-	rootKey               *btcec.PrivateKey
-	prevAddres            btcutil.Address
+	rootKey               *secp256k1.PrivateKey
+	prevAddres            dcrutil.Address
 	publishedTransactions chan *wire.MsgTx
 	index                 uint32
 }
@@ -208,23 +208,24 @@ func (*mockWalletController) BackEnd() string {
 func (*mockWalletController) FetchInputInfo(
 	prevOut *wire.OutPoint) (*wire.TxOut, error) {
 	txOut := &wire.TxOut{
-		Value:    int64(10 * btcutil.SatoshiPerBitcoin),
+		Value:    int64(10 * dcrutil.AtomsPerCoin),
 		PkScript: []byte("dummy"),
 	}
 	return txOut, nil
 }
-func (*mockWalletController) ConfirmedBalance(confs int32) (btcutil.Amount, error) {
+func (*mockWalletController) ConfirmedBalance(confs int32) (dcrutil.Amount, error) {
 	return 0, nil
 }
 
 // NewAddress is called to get new addresses for delivery, change etc.
 func (m *mockWalletController) NewAddress(addrType lnwallet.AddressType,
-	change bool) (btcutil.Address, error) {
-	addr, _ := btcutil.NewAddressPubKey(
+	change bool) (dcrutil.Address, error) {
+	addr, _ := dcrutil.NewAddressPubKey(
 		m.rootKey.PubKey().SerializeCompressed(), &chaincfg.MainNetParams)
 	return addr, nil
 }
-func (*mockWalletController) IsOurAddress(a btcutil.Address) bool {
+
+func (*mockWalletController) IsOurAddress(a dcrutil.Address) bool {
 	return false
 }
 
@@ -240,7 +241,7 @@ func (m *mockWalletController) ListUnspentWitness(minconfirms,
 	maxconfirms int32) ([]*lnwallet.Utxo, error) {
 	utxo := &lnwallet.Utxo{
 		AddressType: lnwallet.WitnessPubKey,
-		Value:       btcutil.Amount(10 * btcutil.SatoshiPerBitcoin),
+		Value:       dcrutil.Amount(10 * dcrutil.AtomsPerCoin),
 		PkScript:    make([]byte, 22),
 		OutPoint: wire.OutPoint{
 			Hash:  chainhash.Hash{},
@@ -275,7 +276,7 @@ func (*mockWalletController) Stop() error {
 }
 
 type mockSecretKeyRing struct {
-	rootKey *btcec.PrivateKey
+	rootKey *secp256k1.PrivateKey
 }
 
 func (m *mockSecretKeyRing) DeriveNextKey(keyFam keychain.KeyFamily) (keychain.KeyDescriptor, error) {
@@ -290,12 +291,12 @@ func (m *mockSecretKeyRing) DeriveKey(keyLoc keychain.KeyLocator) (keychain.KeyD
 	}, nil
 }
 
-func (m *mockSecretKeyRing) DerivePrivKey(keyDesc keychain.KeyDescriptor) (*btcec.PrivateKey, error) {
+func (m *mockSecretKeyRing) DerivePrivKey(keyDesc keychain.KeyDescriptor) (*secp256k1.PrivateKey, error) {
 	return m.rootKey, nil
 }
 
 func (m *mockSecretKeyRing) ScalarMult(keyDesc keychain.KeyDescriptor,
-	pubKey *btcec.PublicKey) ([]byte, error) {
+	pubKey *secp256k1.PublicKey) ([]byte, error) {
 	return nil, nil
 }
 

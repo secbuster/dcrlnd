@@ -13,7 +13,7 @@ import (
 	"golang.org/x/crypto/chacha20poly1305"
 	"golang.org/x/crypto/hkdf"
 
-	"github.com/btcsuite/btcd/btcec"
+	"github.com/decred/dcrd/dcrec/secp256k1"
 )
 
 const (
@@ -53,9 +53,9 @@ var (
 
 // ecdh performs an ECDH operation between pub and priv. The returned value is
 // the sha256 of the compressed shared point.
-func ecdh(pub *btcec.PublicKey, priv *btcec.PrivateKey) []byte {
-	s := &btcec.PublicKey{}
-	x, y := btcec.S256().ScalarMult(pub.X, pub.Y, priv.D.Bytes())
+func ecdh(pub *secp256k1.PublicKey, priv *secp256k1.PrivateKey) []byte {
+	s := &secp256k1.PublicKey{}
+	x, y := secp256k1.S256().ScalarMult(pub.X, pub.Y, priv.D.Bytes())
 	s.X = x
 	s.Y = y
 
@@ -271,18 +271,19 @@ type handshakeState struct {
 
 	initiator bool
 
-	localStatic    *btcec.PrivateKey
-	localEphemeral *btcec.PrivateKey
+	localStatic    *secp256k1.PrivateKey
+	localEphemeral *secp256k1.PrivateKey
 
-	remoteStatic    *btcec.PublicKey
-	remoteEphemeral *btcec.PublicKey
+	remoteStatic    *secp256k1.PublicKey
+	remoteEphemeral *secp256k1.PublicKey
 }
 
 // newHandshakeState returns a new instance of the handshake state initialized
 // with the prologue and protocol name. If this is the responder's handshake
 // state, then the remotePub can be nil.
 func newHandshakeState(initiator bool, prologue []byte,
-	localPub *btcec.PrivateKey, remotePub *btcec.PublicKey) handshakeState {
+	localPub *secp256k1.PrivateKey,
+	remotePub *secp256k1.PublicKey) handshakeState {
 
 	h := handshakeState{
 		initiator:    initiator,
@@ -304,7 +305,7 @@ func newHandshakeState(initiator bool, prologue []byte,
 	if initiator {
 		h.mixHash(remotePub.SerializeCompressed())
 	} else {
-		h.mixHash(localPub.PubKey().SerializeCompressed())
+		h.mixHash((*secp256k1.PublicKey)(&localPub.PublicKey).SerializeCompressed())
 	}
 
 	return h
@@ -314,7 +315,7 @@ func newHandshakeState(initiator bool, prologue []byte,
 // a custom function for use when generating ephemeral keys for ActOne or
 // ActTwo.  The function closure return by this function can be passed into
 // NewBrontideMachine as a function option parameter.
-func EphemeralGenerator(gen func() (*btcec.PrivateKey, error)) func(*Machine) {
+func EphemeralGenerator(gen func() (*secp256k1.PrivateKey, error)) func(*Machine) {
 	return func(m *Machine) {
 		m.ephemeralGen = gen
 	}
@@ -349,7 +350,7 @@ type Machine struct {
 	sendCipher cipherState
 	recvCipher cipherState
 
-	ephemeralGen func() (*btcec.PrivateKey, error)
+	ephemeralGen func() (*secp256k1.PrivateKey, error)
 
 	handshakeState
 
@@ -374,8 +375,8 @@ type Machine struct {
 // string "lightning" as the prologue. The last parameter is a set of variadic
 // arguments for adding additional options to the brontide Machine
 // initialization.
-func NewBrontideMachine(initiator bool, localPub *btcec.PrivateKey,
-	remotePub *btcec.PublicKey, options ...func(*Machine)) *Machine {
+func NewBrontideMachine(initiator bool, localPub *secp256k1.PrivateKey,
+	remotePub *secp256k1.PublicKey, options ...func(*Machine)) *Machine {
 
 	handshake := newHandshakeState(initiator, []byte("lightning"), localPub,
 		remotePub)
@@ -384,8 +385,8 @@ func NewBrontideMachine(initiator bool, localPub *btcec.PrivateKey,
 
 	// With the initial base machine created, we'll assign our default
 	// version of the ephemeral key generator.
-	m.ephemeralGen = func() (*btcec.PrivateKey, error) {
-		return btcec.NewPrivateKey(btcec.S256())
+	m.ephemeralGen = func() (*secp256k1.PrivateKey, error) {
+		return secp256k1.GeneratePrivateKey()
 	}
 
 	// With the default options established, we'll now process all the
@@ -446,7 +447,7 @@ func (b *Machine) GenActOne() ([ActOneSize]byte, error) {
 		return actOne, err
 	}
 
-	ephemeral := b.localEphemeral.PubKey().SerializeCompressed()
+	ephemeral := (*secp256k1.PublicKey)(&b.localEphemeral.PublicKey).SerializeCompressed()
 	b.mixHash(ephemeral)
 
 	// es
@@ -485,7 +486,7 @@ func (b *Machine) RecvActOne(actOne [ActOneSize]byte) error {
 	copy(p[:], actOne[34:])
 
 	// e
-	b.remoteEphemeral, err = btcec.ParsePubKey(e[:], btcec.S256())
+	b.remoteEphemeral, err = secp256k1.ParsePubKey(e[:])
 	if err != nil {
 		return err
 	}
@@ -519,8 +520,8 @@ func (b *Machine) GenActTwo() ([ActTwoSize]byte, error) {
 		return actTwo, err
 	}
 
-	ephemeral := b.localEphemeral.PubKey().SerializeCompressed()
-	b.mixHash(b.localEphemeral.PubKey().SerializeCompressed())
+	ephemeral := (*secp256k1.PublicKey)(&b.localEphemeral.PublicKey).SerializeCompressed()
+	b.mixHash((*secp256k1.PublicKey)(&b.localEphemeral.PublicKey).SerializeCompressed())
 
 	// ee
 	s := ecdh(b.remoteEphemeral, b.localEphemeral)
@@ -557,7 +558,7 @@ func (b *Machine) RecvActTwo(actTwo [ActTwoSize]byte) error {
 	copy(p[:], actTwo[34:])
 
 	// e
-	b.remoteEphemeral, err = btcec.ParsePubKey(e[:], btcec.S256())
+	b.remoteEphemeral, err = secp256k1.ParsePubKey(e[:])
 	if err != nil {
 		return err
 	}
@@ -581,7 +582,7 @@ func (b *Machine) RecvActTwo(actTwo [ActTwoSize]byte) error {
 func (b *Machine) GenActThree() ([ActThreeSize]byte, error) {
 	var actThree [ActThreeSize]byte
 
-	ourPubkey := b.localStatic.PubKey().SerializeCompressed()
+	ourPubkey := (*secp256k1.PublicKey)(&b.localStatic.PublicKey).SerializeCompressed()
 	ciphertext := b.EncryptAndHash(ourPubkey)
 
 	s := ecdh(b.remoteEphemeral, b.localStatic)
@@ -627,7 +628,7 @@ func (b *Machine) RecvActThree(actThree [ActThreeSize]byte) error {
 	if err != nil {
 		return err
 	}
-	b.remoteStatic, err = btcec.ParsePubKey(remotePub, btcec.S256())
+	b.remoteStatic, err = secp256k1.ParsePubKey(remotePub)
 	if err != nil {
 		return err
 	}

@@ -5,9 +5,9 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/lightningnetwork/lnd/lnwire"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/lnwire"
 )
 
 const (
@@ -31,11 +31,11 @@ type VerifyJob struct {
 	// valid signature. Note that with the current channel construction,
 	// this public key will likely have been tweaked using the current per
 	// commitment point for a particular commitment transactions.
-	PubKey *btcec.PublicKey
+	PubKey *secp256k1.PublicKey
 
 	// Sig is the raw signature generated using the above public key.  This
 	// is the signature to be verified.
-	Sig *btcec.Signature
+	Sig *secp256k1.Signature
 
 	// SigHash is a function closure generates the sighashes that the
 	// passed signature is known to have signed.

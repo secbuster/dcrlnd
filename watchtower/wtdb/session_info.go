@@ -3,8 +3,8 @@ package wtdb
 import (
 	"errors"
 
-	"github.com/btcsuite/btcutil"
-	"github.com/lightningnetwork/lnd/lnwallet"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrlnd/lnwallet"
 )
 
 var (
@@ -114,8 +114,8 @@ func (s *SessionInfo) AcceptUpdateSequence(seqNum, lastApplied uint16) error {
 // transaction between the victim and the tower, according to the sweep fee rate
 // and reward rate. The fees are first subtracted from the overall total, before
 // splitting the remaining balance amongst the victim and tower.
-func (s *SessionInfo) ComputeSweepOutputs(totalAmt btcutil.Amount,
-	txVSize int64) (btcutil.Amount, btcutil.Amount, error) {
+func (s *SessionInfo) ComputeSweepOutputs(totalAmt dcrutil.Amount,
+	txVSize int64) (dcrutil.Amount, dcrutil.Amount, error) {
 
 	txFee := s.SweepFeeRate.FeeForWeight(txVSize)
 	if txFee > totalAmt {
@@ -126,7 +126,7 @@ func (s *SessionInfo) ComputeSweepOutputs(totalAmt btcutil.Amount,
 
 	// Apply the reward rate to the remaining total, specified in millionths
 	// of the available balance.
-	rewardAmt := (totalAmt*btcutil.Amount(s.RewardRate) + 999999) / 1000000
+	rewardAmt := (totalAmt*dcrutil.Amount(s.RewardRate) + 999999) / 1000000
 	sweepAmt := totalAmt - rewardAmt
 
 	// TODO(conner): check dustiness

@@ -7,8 +7,8 @@ import (
 	"os"
 	"sync/atomic"
 
-	"github.com/lightningnetwork/lnd/autopilot"
-	"github.com/lightningnetwork/lnd/lnrpc"
+	"github.com/decred/dcrlnd/autopilot"
+	"github.com/decred/dcrlnd/lnrpc"
 	"google.golang.org/grpc"
 	"gopkg.in/macaroon-bakery.v2/bakery"
 )

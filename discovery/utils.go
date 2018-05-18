@@ -1,11 +1,12 @@
 package discovery
 
 import (
-	"github.com/btcsuite/btcd/btcec"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrlnd/channeldb"
+
+	//"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwire"
 	"github.com/go-errors/errors"
-	"github.com/lightningnetwork/lnd/channeldb"
-	"github.com/lightningnetwork/lnd/lnwallet"
-	"github.com/lightningnetwork/lnd/lnwire"
 )
 
 // CreateChanAnnouncement is a helper function which creates all channel
@@ -107,9 +108,9 @@ func CreateChanAnnouncement(chanProof *channeldb.ChannelAuthProof,
 
 // copyPubKey performs a copy of the target public key, setting a fresh curve
 // parameter during the process.
-func copyPubKey(pub *btcec.PublicKey) *btcec.PublicKey {
-	return &btcec.PublicKey{
-		Curve: btcec.S256(),
+func copyPubKey(pub *secp256k1.PublicKey) *secp256k1.PublicKey {
+	return &secp256k1.PublicKey{
+		Curve: secp256k1.S256(),
 		X:     pub.X,
 		Y:     pub.Y,
 	}
@@ -117,8 +118,8 @@ func copyPubKey(pub *btcec.PublicKey) *btcec.PublicKey {
 
 // SignAnnouncement is a helper function which is used to sign any outgoing
 // channel node node announcement messages.
-func SignAnnouncement(signer lnwallet.MessageSigner, pubKey *btcec.PublicKey,
-	msg lnwire.Message) (*btcec.Signature, error) {
+func SignAnnouncement(signer lnwallet.MessageSigner, pubKey *secp256k1.PublicKey,
+	msg lnwire.Message) (*secp256k1.Signature, error) {
 
 	var (
 		data []byte

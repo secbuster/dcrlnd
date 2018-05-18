@@ -10,11 +10,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/btcsuite/btcd/wire"
-	"github.com/lightningnetwork/lnd/chainntnfs"
-	"github.com/lightningnetwork/lnd/watchtower/blob"
-	"github.com/lightningnetwork/lnd/watchtower/lookout"
-	"github.com/lightningnetwork/lnd/watchtower/wtdb"
+	"github.com/decred/dcrd/wire"
+	"github.com/decred/lnd/chainntnfs"
+	"github.com/decred/lnd/watchtower/blob"
+	"github.com/decred/lnd/watchtower/lookout"
+	"github.com/decred/lnd/watchtower/wtdb"
 )
 
 type mockPunisher struct {

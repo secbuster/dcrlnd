@@ -10,18 +10,20 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcd/wire"
 	"github.com/coreos/bbolt"
 	"github.com/davecgh/go-spew/spew"
-	"github.com/lightningnetwork/lnd/chainntnfs"
-	"github.com/lightningnetwork/lnd/channeldb"
-	"github.com/lightningnetwork/lnd/lnpeer"
-	"github.com/lightningnetwork/lnd/lnwallet"
-	"github.com/lightningnetwork/lnd/lnwire"
-	"github.com/lightningnetwork/lnd/multimutex"
-	"github.com/lightningnetwork/lnd/routing"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/chainntnfs"
+	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/lnpeer"
+	"github.com/decred/dcrlnd/multimutex"
+
+	//"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwire"
+	"github.com/decred/dcrlnd/routing"
+	"github.com/go-errors/errors"
 )
 
 var (
@@ -46,7 +48,7 @@ var (
 // originally sent it.
 type networkMsg struct {
 	peer   lnpeer.Peer
-	source *btcec.PublicKey
+	source *secp256k1.PublicKey
 	msg    lnwire.Message
 
 	isRemote bool
@@ -101,24 +103,23 @@ type Config struct {
 	// that the daemon is connected to. If supplied, the exclude parameter
 	// indicates that the target peer should be excluded from the
 	// broadcast.
-	Broadcast func(skips map[routing.Vertex]struct{},
-		msg ...lnwire.Message) error
+	Broadcast func(skips map[routing.Vertex]struct{}, msg ...lnwire.Message) error
 
 	// SendToPeer is a function which allows the service to send a set of
 	// messages to a particular peer identified by the target public key.
-	SendToPeer func(target *btcec.PublicKey, msg ...lnwire.Message) error
+	SendToPeer func(target *secp256k1.PublicKey, msg ...lnwire.Message) error
 
 	// FindPeer returns the actively registered peer for a given remote
 	// public key. An error is returned if the peer was not found or a
 	// shutdown has been requested.
-	FindPeer func(identityKey *btcec.PublicKey) (lnpeer.Peer, error)
+	FindPeer func(identityKey *secp256k1.PublicKey) (lnpeer.Peer, error)
 
 	// NotifyWhenOnline is a function that allows the gossiper to be
 	// notified when a certain peer comes online, allowing it to
 	// retry sending a peer message.
 	//
 	// NOTE: The peerChan channel must be buffered.
-	NotifyWhenOnline func(peer *btcec.PublicKey, peerChan chan<- lnpeer.Peer)
+	NotifyWhenOnline func(peer *secp256k1.PublicKey, peerChan chan<- lnpeer.Peer)
 
 	// ProofMatureDelta the number of confirmations which is needed before
 	// exchange the channel announcement proofs.
@@ -210,7 +211,7 @@ type AuthenticatedGossiper struct {
 	chanPolicyUpdates chan *chanPolicyUpdateRequest
 
 	// selfKey is the identity public key of the backing Lightning node.
-	selfKey *btcec.PublicKey
+	selfKey *secp256k1.PublicKey
 
 	// channelMtx is used to restrict the database access to one
 	// goroutine per channel ID. This is done to ensure that when
@@ -234,7 +235,7 @@ type AuthenticatedGossiper struct {
 
 // New creates a new AuthenticatedGossiper instance, initialized with the
 // passed configuration parameters.
-func New(cfg Config, selfKey *btcec.PublicKey) (*AuthenticatedGossiper, error) {
+func New(cfg Config, selfKey *secp256k1.PublicKey) (*AuthenticatedGossiper, error) {
 	storage, err := channeldb.NewWaitingProofStore(cfg.DB)
 	if err != nil {
 		return nil, err
@@ -541,7 +542,7 @@ func (d *AuthenticatedGossiper) ProcessRemoteAnnouncement(msg lnwire.Message,
 // entire channel announcement and update messages will be re-constructed and
 // broadcast to the rest of the network.
 func (d *AuthenticatedGossiper) ProcessLocalAnnouncement(msg lnwire.Message,
-	source *btcec.PublicKey) chan error {
+	source *secp256k1.PublicKey) chan error {
 
 	nMsg := &networkMsg{
 		msg:      msg,
@@ -815,7 +816,7 @@ func (d *deDupedAnnouncements) Emit() []msgWithSenders {
 // message from the messageStore.
 func (d *AuthenticatedGossiper) resendAnnounceSignatures() error {
 	type msgTuple struct {
-		peer  *btcec.PublicKey
+		peer  *secp256k1.PublicKey
 		msg   *lnwire.AnnounceSignatures
 		dbKey []byte
 	}
@@ -843,7 +844,7 @@ func (d *AuthenticatedGossiper) resendAnnounceSignatures() error {
 
 			// The first 33 bytes of the database key is the peer's
 			// public key.
-			peer, err := btcec.ParsePubKey(k[:33], btcec.S256())
+			peer, err := secp256k1.ParsePubKey(k[:33])
 			if err != nil {
 				return err
 			}
@@ -944,7 +945,7 @@ func (d *AuthenticatedGossiper) resendAnnounceSignatures() error {
 // gossip syncer for an inbound message so we can properly dispatch the
 // incoming message. If a gossip syncer isn't found, then one will be created
 // for the target peer.
-func (d *AuthenticatedGossiper) findGossipSyncer(pub *btcec.PublicKey) (
+func (d *AuthenticatedGossiper) findGossipSyncer(pub *secp256k1.PublicKey) (
 	*gossipSyncer, error) {
 
 	target := routing.NewVertex(pub)
@@ -1254,7 +1255,7 @@ func (d *AuthenticatedGossiper) InitSyncState(syncPeer lnpeer.Peer,
 // PruneSyncState is called by outside sub-systems once a peer that we were
 // previously connected to has been disconnected. In this case we can stop the
 // existing gossipSyncer assigned to the peer and free up resources.
-func (d *AuthenticatedGossiper) PruneSyncState(peer *btcec.PublicKey) {
+func (d *AuthenticatedGossiper) PruneSyncState(peer *secp256k1.PublicKey) {
 	d.syncerMtx.Lock()
 	defer d.syncerMtx.Unlock()
 
@@ -1984,7 +1985,7 @@ func (d *AuthenticatedGossiper) processNetworkAnnouncement(
 		// The least-significant bit in the flag on the channel update
 		// announcement tells us "which" side of the channels directed
 		// edge is being updated.
-		var pubKey *btcec.PublicKey
+		var pubKey *secp256k1.PublicKey
 		switch {
 		case msg.Flags&lnwire.ChanUpdateDirection == 0:
 			pubKey, _ = chanInfo.NodeKey1()
@@ -2039,7 +2040,7 @@ func (d *AuthenticatedGossiper) processNetworkAnnouncement(
 		// so we'll try sending the update directly to the remote peer.
 		if !nMsg.isRemote && chanInfo.AuthProof == nil {
 			// Get our peer's public key.
-			var remotePub *btcec.PublicKey
+			var remotePub *secp256k1.PublicKey
 			switch {
 			case msg.Flags&lnwire.ChanUpdateDirection == 0:
 				remotePub, _ = chanInfo.NodeKey2()
@@ -2168,7 +2169,7 @@ func (d *AuthenticatedGossiper) processNetworkAnnouncement(
 		// so they can also reconstruct the full channel
 		// announcement.
 		if !nMsg.isRemote {
-			var remotePeer *btcec.PublicKey
+			var remotePeer *secp256k1.PublicKey
 			if isFirstNode {
 				remotePeer, _ = chanInfo.NodeKey2()
 			} else {
@@ -2416,7 +2417,7 @@ func (d *AuthenticatedGossiper) fetchNodeAnn(
 // method returns after adding the message to persistent storage, such
 // that the caller knows that the message will be delivered at one point.
 func (d *AuthenticatedGossiper) sendAnnSigReliably(
-	msg *lnwire.AnnounceSignatures, remotePeer *btcec.PublicKey) error {
+	msg *lnwire.AnnounceSignatures, remotePeer *secp256k1.PublicKey) error {
 
 	// We first add this message to the database, such that in case
 	// we do not succeed in sending it to the peer, we'll fetch it

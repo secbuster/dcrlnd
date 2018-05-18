@@ -7,18 +7,18 @@ import (
 	"testing"
 	"time"
 
-	"github.com/btcsuite/btcd/blockchain"
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcd/txscript"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
 	"github.com/davecgh/go-spew/spew"
-	"github.com/lightningnetwork/lnd/keychain"
-	"github.com/lightningnetwork/lnd/lnwallet"
-	"github.com/lightningnetwork/lnd/lnwire"
-	"github.com/lightningnetwork/lnd/watchtower/blob"
-	"github.com/lightningnetwork/lnd/watchtower/lookout"
-	"github.com/lightningnetwork/lnd/watchtower/wtdb"
+	"github.com/decred/dcrd/blockchain"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/txscript"
+	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/keychain"
+	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwire"
+	"github.com/decred/dcrlnd/watchtower/blob"
+	"github.com/decred/dcrlnd/watchtower/lookout"
+	"github.com/decred/dcrlnd/watchtower/wtdb"
+	"github.com/decred/dcrutil"
 )
 
 const csvDelay uint32 = 144
@@ -48,12 +48,12 @@ var (
 
 type mockSigner struct {
 	index uint32
-	keys  map[keychain.KeyLocator]*btcec.PrivateKey
+	keys  map[keychain.KeyLocator]*secp256k1.PrivateKey
 }
 
 func newMockSigner() *mockSigner {
 	return &mockSigner{
-		keys: make(map[keychain.KeyLocator]*btcec.PrivateKey),
+		keys: make(map[keychain.KeyLocator]*secp256k1.PrivateKey),
 	}
 }
 
@@ -84,7 +84,7 @@ func (s *mockSigner) ComputeInputScript(tx *wire.MsgTx,
 	return nil, nil
 }
 
-func (s *mockSigner) addPrivKey(privKey *btcec.PrivateKey) keychain.KeyLocator {
+func (s *mockSigner) addPrivKey(privKey *secp256k1.PrivateKey) keychain.KeyLocator {
 	keyLoc := keychain.KeyLocator{
 		Index: s.index,
 	}
@@ -97,21 +97,15 @@ func (s *mockSigner) addPrivKey(privKey *btcec.PrivateKey) keychain.KeyLocator {
 
 func TestJusticeDescriptor(t *testing.T) {
 	const (
-		localAmount  = btcutil.Amount(100000)
-		remoteAmount = btcutil.Amount(200000)
+		localAmount  = dcrutil.Amount(100000)
+		remoteAmount = dcrutil.Amount(200000)
 		totalAmount  = localAmount + remoteAmount
 	)
 
 	// Parse the key pairs for all keys used in the test.
-	revSK, revPK := btcec.PrivKeyFromBytes(
-		btcec.S256(), revPrivBytes,
-	)
-	_, toLocalPK := btcec.PrivKeyFromBytes(
-		btcec.S256(), toLocalPrivBytes,
-	)
-	toRemoteSK, toRemotePK := btcec.PrivKeyFromBytes(
-		btcec.S256(), toRemotePrivBytes,
-	)
+	revSK, revPK := secp256k1.PrivKeyFromBytes(revPrivBytes)
+	_, toLocalPK := secp256k1.PrivKeyFromBytes(toLocalPrivBytes)
+	toRemoteSK, toRemotePK := secp256k1.PrivKeyFromBytes(toRemotePrivBytes)
 
 	// Create the signer, and add the revocation and to-remote privkeys.
 	signer := newMockSigner()
@@ -257,7 +251,7 @@ func TestJusticeDescriptor(t *testing.T) {
 	}
 
 	// Verify that our test justice transaction is sane.
-	btx := btcutil.NewTx(justiceTxn)
+	btx := dcrutil.NewTx(justiceTxn)
 	if err := blockchain.CheckTransactionSanity(btx); err != nil {
 		t.Fatalf("justice txn is not sane: %v", err)
 	}

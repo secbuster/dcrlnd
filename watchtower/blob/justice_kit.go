@@ -10,10 +10,10 @@ import (
 
 	"golang.org/x/crypto/chacha20poly1305"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcd/txscript"
-	"github.com/lightningnetwork/lnd/lnwallet"
-	"github.com/lightningnetwork/lnd/lnwire"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/txscript"
+	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwire"
 )
 
 const (
@@ -155,16 +155,12 @@ type JusticeKit struct {
 // CommitToLocalWitnessScript returns the serialized witness script for the
 // commitment to-local output.
 func (b *JusticeKit) CommitToLocalWitnessScript() ([]byte, error) {
-	revocationPubKey, err := btcec.ParsePubKey(
-		b.RevocationPubKey[:], btcec.S256(),
-	)
+	revocationPubKey, err := secp256k1.ParsePubKey(b.RevocationPubKey[:])
 	if err != nil {
 		return nil, err
 	}
 
-	localDelayedPubKey, err := btcec.ParsePubKey(
-		b.LocalDelayPubKey[:], btcec.S256(),
-	)
+	localDelayedPubKey, err := secp256k1.ParsePubKey(b.LocalDelayPubKey[:])
 	if err != nil {
 		return nil, err
 	}
@@ -194,13 +190,13 @@ func (b *JusticeKit) CommitToLocalRevokeWitnessStack() ([][]byte, error) {
 // HasCommitToRemoteOutput returns true if the blob contains a to-remote p2wkh
 // pubkey.
 func (b *JusticeKit) HasCommitToRemoteOutput() bool {
-	return btcec.IsCompressedPubKey(b.CommitToRemotePubKey[:])
+	return secp256k1.IsCompressedPubKey(b.CommitToRemotePubKey[:])
 }
 
 // CommitToRemoteWitnessScript returns the witness script for the commitment
 // to-remote p2wkh output, which is the pubkey itself.
 func (b *JusticeKit) CommitToRemoteWitnessScript() ([]byte, error) {
-	if !btcec.IsCompressedPubKey(b.CommitToRemotePubKey[:]) {
+	if !secp256k1.IsCompressedPubKey(b.CommitToRemotePubKey[:]) {
 		return nil, ErrNoCommitToRemoteOutput
 	}
 
@@ -487,7 +483,7 @@ func (b *JusticeKit) decodeV0(r io.Reader) error {
 
 	// Only populate the commit to-remote fields in the decoded blob if a
 	// valid compressed public key was read from the reader.
-	if btcec.IsCompressedPubKey(commitToRemotePubkey[:]) {
+	if secp256k1.IsCompressedPubKey(commitToRemotePubkey[:]) {
 		b.CommitToRemotePubKey = commitToRemotePubkey
 		b.CommitToRemoteSig = commitToRemoteSig
 	}

@@ -9,9 +9,10 @@ import (
 
 	prand "math/rand"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcutil"
-	"github.com/lightningnetwork/lnd/channeldb"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/lnwire"
 )
 
 type genGraphFunc func() (testGraph, func(), error)
@@ -19,10 +20,10 @@ type genGraphFunc func() (testGraph, func(), error)
 type testGraph interface {
 	ChannelGraph
 
-	addRandChannel(*btcec.PublicKey, *btcec.PublicKey,
-		btcutil.Amount) (*ChannelEdge, *ChannelEdge, error)
+	addRandChannel(*secp256k1.PublicKey, *secp256k1.PublicKey,
+		dcrutil.Amount) (*ChannelEdge, *ChannelEdge, error)
 
-	addRandNode() (*btcec.PublicKey, error)
+	addRandNode() (*secp256k1.PublicKey, error)
 }
 
 func newDiskChanGraph() (testGraph, func(), error) {
@@ -75,7 +76,7 @@ var chanGraphs = []struct {
 // empty graph, the NodeSores function always returns a score of 0.
 func TestPrefAttachmentSelectEmptyGraph(t *testing.T) {
 	const (
-		maxChanSize = btcutil.Amount(btcutil.SatoshiPerBitcoin)
+		maxChanSize = dcrutil.Amount(dcrutil.AtomsPerCoin)
 	)
 
 	prefAttach := NewPrefAttachment()
@@ -102,7 +103,7 @@ func TestPrefAttachmentSelectEmptyGraph(t *testing.T) {
 
 			// With the necessary state initialized, we'll now
 			// attempt to get the score for this one node.
-			const walletFunds = btcutil.SatoshiPerBitcoin
+			const walletFunds = dcrutil.AtomsPerCoin
 			scores, err := prefAttach.NodeScores(graph, nil,
 				walletFunds, nodes)
 			if err != nil {
@@ -126,8 +127,8 @@ func TestPrefAttachmentSelectEmptyGraph(t *testing.T) {
 // completeGraph is a helper method that adds numNodes fully connected nodes to
 // the graph.
 func completeGraph(t *testing.T, g testGraph, numNodes int) {
-	const chanCapacity = btcutil.SatoshiPerBitcoin
-	nodes := make(map[int]*btcec.PublicKey)
+	const chanCapacity = dcrutil.AtomsPerCoin
+	nodes := make(map[int]*secp256k1.PublicKey)
 	for i := 0; i < numNodes; i++ {
 		for j := i + 1; j < numNodes; j++ {
 
@@ -141,9 +142,7 @@ func completeGraph(t *testing.T, g testGraph, numNodes int) {
 
 			if node1 == nil {
 				pubKeyBytes := edge1.Peer.PubKey()
-				nodes[i], err = btcec.ParsePubKey(
-					pubKeyBytes[:], btcec.S256(),
-				)
+				nodes[i], err = secp256k1.ParsePubKey(pubKeyBytes[:])
 				if err != nil {
 					t.Fatalf("unable to parse pubkey: %v",
 						err)
@@ -152,9 +151,7 @@ func completeGraph(t *testing.T, g testGraph, numNodes int) {
 
 			if node2 == nil {
 				pubKeyBytes := edge2.Peer.PubKey()
-				nodes[j], err = btcec.ParsePubKey(
-					pubKeyBytes[:], btcec.S256(),
-				)
+				nodes[j], err = secp256k1.ParsePubKey(pubKeyBytes[:])
 				if err != nil {
 					t.Fatalf("unable to parse pubkey: %v",
 						err)
@@ -173,7 +170,7 @@ func TestPrefAttachmentSelectTwoVertexes(t *testing.T) {
 	prand.Seed(time.Now().Unix())
 
 	const (
-		maxChanSize = btcutil.Amount(btcutil.SatoshiPerBitcoin)
+		maxChanSize = dcrutil.Amount(dcrutil.AtomsPerCoin)
 	)
 
 	for _, graph := range chanGraphs {
@@ -190,7 +187,7 @@ func TestPrefAttachmentSelectTwoVertexes(t *testing.T) {
 
 			// For this set, we'll load the memory graph with two
 			// nodes, and a random channel connecting them.
-			const chanCapacity = btcutil.SatoshiPerBitcoin
+			const chanCapacity = dcrutil.AtomsPerCoin
 			edge1, edge2, err := graph.addRandChannel(nil, nil, chanCapacity)
 			if err != nil {
 				t1.Fatalf("unable to generate channel: %v", err)
@@ -273,7 +270,7 @@ func TestPrefAttachmentSelectGreedyAllocation(t *testing.T) {
 	prand.Seed(time.Now().Unix())
 
 	const (
-		maxChanSize = btcutil.Amount(btcutil.SatoshiPerBitcoin)
+		maxChanSize = dcrutil.Amount(dcrutil.AtomsPerCoin)
 	)
 
 	for _, graph := range chanGraphs {
@@ -288,7 +285,7 @@ func TestPrefAttachmentSelectGreedyAllocation(t *testing.T) {
 
 			prefAttach := NewPrefAttachment()
 
-			const chanCapacity = btcutil.SatoshiPerBitcoin
+			const chanCapacity = dcrutil.AtomsPerCoin
 
 			// Next, we'll add 3 nodes to the graph, creating an
 			// "open triangle topology".
@@ -298,9 +295,7 @@ func TestPrefAttachmentSelectGreedyAllocation(t *testing.T) {
 				t1.Fatalf("unable to create channel: %v", err)
 			}
 			peerPubBytes := edge1.Peer.PubKey()
-			peerPub, err := btcec.ParsePubKey(
-				peerPubBytes[:], btcec.S256(),
-			)
+			peerPub, err := ParsePubKey(peerPubBytes[:])
 			if err != nil {
 				t.Fatalf("unable to parse pubkey: %v", err)
 			}
@@ -371,7 +366,7 @@ func TestPrefAttachmentSelectGreedyAllocation(t *testing.T) {
 			// Imagine a few channels are being opened, and there's
 			// only 0.5 BTC left. That should leave us with channel
 			// candidates of that size.
-			const remBalance = btcutil.SatoshiPerBitcoin * 0.5
+			const remBalance = dcrutil.AtomsPerCoin * 0.5
 			scores, err = prefAttach.NodeScores(graph, nil,
 				remBalance, nodes)
 			if err != nil {
@@ -407,7 +402,7 @@ func TestPrefAttachmentSelectSkipNodes(t *testing.T) {
 	prand.Seed(time.Now().Unix())
 
 	const (
-		maxChanSize = btcutil.Amount(btcutil.SatoshiPerBitcoin)
+		maxChanSize = dcrutil.Amount(dcrutil.AtomsPerCoin)
 	)
 
 	for _, graph := range chanGraphs {
@@ -424,7 +419,7 @@ func TestPrefAttachmentSelectSkipNodes(t *testing.T) {
 
 			// Next, we'll create a simple topology of two nodes,
 			// with a single channel connecting them.
-			const chanCapacity = btcutil.SatoshiPerBitcoin
+			const chanCapacity = dcrutil.AtomsPerCoin
 			_, _, err = graph.addRandChannel(nil, nil,
 				chanCapacity)
 			if err != nil {

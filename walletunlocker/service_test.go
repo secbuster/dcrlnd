@@ -8,13 +8,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcwallet/wallet"
-	"github.com/lightningnetwork/lnd/aezeed"
-	"github.com/lightningnetwork/lnd/keychain"
-	"github.com/lightningnetwork/lnd/lnrpc"
-	"github.com/lightningnetwork/lnd/lnwallet/btcwallet"
-	"github.com/lightningnetwork/lnd/walletunlocker"
+	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrlnd/aezeed"
+	"github.com/decred/dcrlnd/keychain"
+	"github.com/decred/dcrlnd/lnrpc"
+	"github.com/decred/dcrlnd/lnwallet/dcrwallet"
+	"github.com/decred/dcrlnd/walletunlocker"
+	"github.com/decred/dcrwallet/wallet"
 	"golang.org/x/net/context"
 )
 
@@ -39,7 +39,7 @@ var (
 )
 
 func createTestWallet(t *testing.T, dir string, netParams *chaincfg.Params) {
-	netDir := btcwallet.NetworkDir(dir, netParams)
+	netDir := dcrwallet.NetworkDir(dir, netParams)
 	loader := wallet.NewLoader(netParams, netDir, 0)
 	_, err := loader.CreateNewWallet(
 		testPassword, testPassword, testSeed, time.Time{},

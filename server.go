@@ -17,32 +17,32 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcd/connmgr"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
 	"github.com/coreos/bbolt"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/connmgr"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/autopilot"
+	"github.com/decred/dcrlnd/brontide"
+	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/contractcourt"
+	"github.com/decred/dcrlnd/discovery"
+	"github.com/decred/dcrlnd/htlcswitch"
+	"github.com/decred/dcrlnd/invoices"
+	"github.com/decred/dcrlnd/lncfg"
+	"github.com/decred/dcrlnd/lnpeer"
+	"github.com/decred/dcrlnd/lnrpc"
+	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwire"
+	"github.com/decred/dcrlnd/nat"
+	"github.com/decred/dcrlnd/netann"
+	"github.com/decred/dcrlnd/routing"
+	"github.com/decred/dcrlnd/sweep"
+	"github.com/decred/dcrlnd/ticker"
+	"github.com/decred/dcrlnd/tor"
 	"github.com/go-errors/errors"
-	"github.com/lightningnetwork/lightning-onion"
-	"github.com/lightningnetwork/lnd/autopilot"
-	"github.com/lightningnetwork/lnd/brontide"
-	"github.com/lightningnetwork/lnd/channeldb"
-	"github.com/lightningnetwork/lnd/contractcourt"
-	"github.com/lightningnetwork/lnd/discovery"
-	"github.com/lightningnetwork/lnd/htlcswitch"
-	"github.com/lightningnetwork/lnd/invoices"
-	"github.com/lightningnetwork/lnd/lncfg"
-	"github.com/lightningnetwork/lnd/lnpeer"
-	"github.com/lightningnetwork/lnd/lnrpc"
-	"github.com/lightningnetwork/lnd/lnwallet"
-	"github.com/lightningnetwork/lnd/lnwire"
-	"github.com/lightningnetwork/lnd/nat"
-	"github.com/lightningnetwork/lnd/netann"
-	"github.com/lightningnetwork/lnd/routing"
-	"github.com/lightningnetwork/lnd/sweep"
-	"github.com/lightningnetwork/lnd/ticker"
-	"github.com/lightningnetwork/lnd/tor"
+	"github.com/lightningnetwork/lightning-onion" // TODO(decred): ok?
 )
 
 const (
@@ -81,7 +81,7 @@ type server struct {
 
 	// identityPriv is the private key used to authenticate any incoming
 	// connections.
-	identityPriv *btcec.PrivateKey
+	identityPriv *secp256k1.PrivateKey
 
 	// nodeSigner is an implementation of the MessageSigner implementation
 	// that's backed by the identity private key of the running lnd node.
@@ -220,7 +220,7 @@ func parseAddr(address string) (net.Addr, error) {
 
 // noiseDial is a factory function which creates a connmgr compliant dialing
 // function by returning a closure which includes the server's identity key.
-func noiseDial(idPriv *btcec.PrivateKey) func(net.Addr) (net.Conn, error) {
+func noiseDial(idPriv *secp256k1.PrivateKey) func(net.Addr) (net.Conn, error) {
 	return func(a net.Addr) (net.Conn, error) {
 		lnAddr := a.(*lnwire.NetAddress)
 		return brontide.Dial(idPriv, lnAddr, cfg.net.Dial)
@@ -230,7 +230,7 @@ func noiseDial(idPriv *btcec.PrivateKey) func(net.Addr) (net.Conn, error) {
 // newServer creates a new instance of the server which is to listen using the
 // passed listener address.
 func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB, cc *chainControl,
-	privKey *btcec.PrivateKey) (*server, error) {
+	privKey *secp256k1.PrivateKey) (*server, error) {
 
 	var err error
 
@@ -303,7 +303,7 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB, cc *chainControl,
 	// invoice which all outgoing payments will be sent and all incoming
 	// HTLCs with the debug R-Hash immediately settled.
 	if cfg.DebugHTLC {
-		kiloCoin := btcutil.Amount(btcutil.SatoshiPerBitcoin * 1000)
+		kiloCoin := dcrutil.Amount(dcrutil.AtomsPerCoin * 1000)
 		s.invoices.AddDebugInvoice(kiloCoin, *invoices.DebugPre)
 		srvrLog.Debugf("Debug HTLC invoice inserted, preimage=%x, hash=%x",
 			invoices.DebugPre[:], invoices.DebugHash[:])
@@ -574,7 +574,7 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB, cc *chainControl,
 		Broadcast:  s.BroadcastMessage,
 		ChanSeries: chanSeries,
 		SendToPeer: s.SendToPeer,
-		FindPeer: func(pub *btcec.PublicKey) (lnpeer.Peer, error) {
+		FindPeer: func(pub *secp256k1.PublicKey) (lnpeer.Peer, error) {
 			return s.FindPeer(pub)
 		},
 		NotifyWhenOnline: s.NotifyWhenOnline,
@@ -765,8 +765,8 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB, cc *chainControl,
 		PublishTransaction: cc.wallet.PublishTransaction,
 		Notifier:           cc.chainNotifier,
 		FeeEstimator:       cc.feeEstimator,
-		SignMessage: func(pubKey *btcec.PublicKey,
-			msg []byte) (*btcec.Signature, error) {
+		SignMessage: func(pubKey *secp256k1.PublicKey,
+			msg []byte) (*secp256k1.Signature, error) {
 
 			if pubKey.IsEqual(privKey.PubKey()) {
 				return s.nodeSigner.SignMessage(pubKey, msg)
@@ -801,7 +801,7 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB, cc *chainControl,
 			return nil, fmt.Errorf("unable to find channel")
 		},
 		DefaultRoutingPolicy: cc.routingPolicy,
-		NumRequiredConfs: func(chanAmt btcutil.Amount,
+		NumRequiredConfs: func(chanAmt dcrutil.Amount,
 			pushAmt lnwire.MilliSatoshi) uint16 {
 			// For large channels we increase the number
 			// of confirmations we require for the
@@ -840,7 +840,7 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB, cc *chainControl,
 			}
 			return uint16(conf)
 		},
-		RequiredRemoteDelay: func(chanAmt btcutil.Amount) uint16 {
+		RequiredRemoteDelay: func(chanAmt dcrutil.Amount) uint16 {
 			// We scale the remote CSV delay (the time the
 			// remote have to claim funds in case of a unilateral
 			// close) linearly from minRemoteDelay blocks
@@ -857,7 +857,7 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB, cc *chainControl,
 			}
 
 			// If not we scale according to channel size.
-			delay := uint16(btcutil.Amount(maxRemoteDelay) *
+			delay := uint16(dcrutil.Amount(maxRemoteDelay) *
 				chanAmt / maxFundingAmount)
 			if delay < minRemoteDelay {
 				delay = minRemoteDelay
@@ -868,7 +868,7 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB, cc *chainControl,
 			return delay
 		},
 		WatchNewChannel: func(channel *channeldb.OpenChannel,
-			peerKey *btcec.PublicKey) error {
+			peerKey *secp256k1.PublicKey) error {
 
 			// First, we'll mark this new peer as a persistent peer
 			// for re-connection purposes.
@@ -886,7 +886,7 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB, cc *chainControl,
 			return s.htlcSwitch.UpdateShortChanID(cid)
 		},
 		RequiredRemoteChanReserve: func(chanAmt,
-			dustLimit btcutil.Amount) btcutil.Amount {
+			dustLimit dcrutil.Amount) dcrutil.Amount {
 
 			// By default, we'll require the remote peer to maintain
 			// at least 1% of the total channel capacity at all
@@ -900,21 +900,21 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB, cc *chainControl,
 
 			return reserve
 		},
-		RequiredRemoteMaxValue: func(chanAmt btcutil.Amount) lnwire.MilliSatoshi {
+		RequiredRemoteMaxValue: func(chanAmt dcrutil.Amount) lnwire.MilliSatoshi {
 			// By default, we'll allow the remote peer to fully
 			// utilize the full bandwidth of the channel, minus our
 			// required reserve.
 			reserve := lnwire.NewMSatFromSatoshis(chanAmt / 100)
 			return lnwire.NewMSatFromSatoshis(chanAmt) - reserve
 		},
-		RequiredRemoteMaxHTLCs: func(chanAmt btcutil.Amount) uint16 {
+		RequiredRemoteMaxHTLCs: func(chanAmt dcrutil.Amount) uint16 {
 			// By default, we'll permit them to utilize the full
 			// channel bandwidth.
 			return uint16(lnwallet.MaxHTLCNumber / 2)
 		},
 		ZombieSweeperInterval: 1 * time.Minute,
 		ReservationTimeout:    10 * time.Minute,
-		MinChanSize:           btcutil.Amount(cfg.MinChanSize),
+		MinChanSize:           dcrutil.Amount(cfg.MinChanSize),
 	})
 	if err != nil {
 		return nil, err
@@ -1632,7 +1632,7 @@ func (s *server) genNodeAnnouncement(refresh bool,
 }
 
 type nodeAddresses struct {
-	pubKey    *btcec.PublicKey
+	pubKey    *secp256k1.PublicKey
 	addresses []net.Addr
 }
 
@@ -1845,7 +1845,7 @@ func (s *server) BroadcastMessage(skips map[routing.Vertex]struct{},
 // method will return a non-nil error.
 //
 // NOTE: This function is safe for concurrent access.
-func (s *server) SendToPeer(target *btcec.PublicKey,
+func (s *server) SendToPeer(target *secp256k1.PublicKey,
 	msgs ...lnwire.Message) error {
 
 	// Compute the target peer's identifier.
@@ -1891,7 +1891,7 @@ func (s *server) SendToPeer(target *btcec.PublicKey,
 // particular peer comes online. The peer itself is sent across the peerChan.
 //
 // NOTE: This function is safe for concurrent access.
-func (s *server) NotifyWhenOnline(peerKey *btcec.PublicKey,
+func (s *server) NotifyWhenOnline(peerKey *secp256k1.PublicKey,
 	peerChan chan<- lnpeer.Peer) {
 
 	s.mu.Lock()
@@ -1977,7 +1977,7 @@ func (s *server) sendPeerMessages(
 // daemon's local representation of the remote peer.
 //
 // NOTE: This function is safe for concurrent access.
-func (s *server) FindPeer(peerKey *btcec.PublicKey) (*peer, error) {
+func (s *server) FindPeer(peerKey *secp256k1.PublicKey) (*peer, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -2060,7 +2060,7 @@ func (s *server) nextPeerBackoff(pubStr string,
 // utilize the ordering of the local and remote public key. If we didn't use
 // such a tie breaker, then we risk _both_ connections erroneously being
 // dropped.
-func shouldDropLocalConnection(local, remote *btcec.PublicKey) bool {
+func shouldDropLocalConnection(local, remote *secp256k1.PublicKey) bool {
 	localPubBytes := local.SerializeCompressed()
 	remotePubPbytes := remote.SerializeCompressed()
 
@@ -2636,12 +2636,12 @@ func (s *server) removePeer(p *peer) {
 // initiation of a channel funding workflow to the peer with either the
 // specified relative peer ID, or a global lightning  ID.
 type openChanReq struct {
-	targetPubkey *btcec.PublicKey
+	targetPubkey *secp256k1.PublicKey
 
 	chainHash chainhash.Hash
 
-	localFundingAmt  btcutil.Amount
-	remoteFundingAmt btcutil.Amount
+	localFundingAmt  dcrutil.Amount
+	remoteFundingAmt dcrutil.Amount
 
 	pushAmt lnwire.MilliSatoshi
 
@@ -2757,7 +2757,7 @@ func (s *server) connectToPeer(addr *lnwire.NetAddress, errChan chan<- error) {
 // identified by public key.
 //
 // NOTE: This function is safe for concurrent access.
-func (s *server) DisconnectPeer(pubKey *btcec.PublicKey) error {
+func (s *server) DisconnectPeer(pubKey *secp256k1.PublicKey) error {
 	pubBytes := pubKey.SerializeCompressed()
 	pubStr := string(pubBytes)
 
@@ -2902,7 +2902,7 @@ func computeNextBackoff(currBackoff time.Duration) time.Duration {
 }
 
 // fetchNodeAdvertisedAddr attempts to fetch an advertised address of a node.
-func (s *server) fetchNodeAdvertisedAddr(pub *btcec.PublicKey) (net.Addr, error) {
+func (s *server) fetchNodeAdvertisedAddr(pub *secp256k1.PublicKey) (net.Addr, error) {
 	node, err := s.chanDB.ChannelGraph().FetchLightningNode(pub)
 	if err != nil {
 		return nil, err
@@ -3025,7 +3025,7 @@ func extractChannelUpdate(ownerPubKey []byte,
 
 	// Helper function to extract the owner of the given policy.
 	owner := func(edge *channeldb.ChannelEdgePolicy) []byte {
-		var pubKey *btcec.PublicKey
+		var pubKey *secp256k1.PublicKey
 		switch {
 		case edge.Flags&lnwire.ChanUpdateDirection == 0:
 			pubKey, _ = info.NodeKey1()

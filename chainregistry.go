@@ -12,24 +12,21 @@ import (
 	"sync"
 	"time"
 
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcd/rpcclient"
-	"github.com/btcsuite/btcutil"
-	"github.com/btcsuite/btcwallet/chain"
-	"github.com/btcsuite/btcwallet/wallet"
-	"github.com/btcsuite/btcwallet/walletdb"
-	"github.com/lightninglabs/neutrino"
-	"github.com/lightningnetwork/lnd/chainntnfs"
-	"github.com/lightningnetwork/lnd/chainntnfs/bitcoindnotify"
-	"github.com/lightningnetwork/lnd/chainntnfs/btcdnotify"
-	"github.com/lightningnetwork/lnd/chainntnfs/neutrinonotify"
-	"github.com/lightningnetwork/lnd/channeldb"
-	"github.com/lightningnetwork/lnd/htlcswitch"
-	"github.com/lightningnetwork/lnd/keychain"
-	"github.com/lightningnetwork/lnd/lnwallet"
-	"github.com/lightningnetwork/lnd/lnwallet/btcwallet"
-	"github.com/lightningnetwork/lnd/lnwire"
-	"github.com/lightningnetwork/lnd/routing/chainview"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/rpcclient"
+	"github.com/decred/dcrlnd/chainntnfs"
+	"github.com/decred/dcrlnd/chainntnfs/dcrdnotify"
+	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/htlcswitch"
+	"github.com/decred/dcrlnd/keychain"
+	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwallet/dcrwallet"
+	"github.com/decred/dcrlnd/lnwire"
+	"github.com/decred/dcrlnd/routing/chainview"
+	"github.com/decred/dcrwallet/chain"
+	"github.com/decred/dcrwallet/wallet"
+	"github.com/decred/dcrwallet/walletdb"
 )
 
 const (
@@ -42,7 +39,7 @@ const (
 	defaultLitecoinBaseFeeMSat   = lnwire.MilliSatoshi(1000)
 	defaultLitecoinFeeRate       = lnwire.MilliSatoshi(1)
 	defaultLitecoinTimeLockDelta = 576
-	defaultLitecoinDustLimit     = btcutil.Amount(54600)
+	defaultLitecoinDustLimit     = dcrutil.Amount(54600)
 
 	// defaultBitcoinStaticFeePerKW is the fee rate of 50 sat/vbyte
 	// expressed in sat/kw.
@@ -123,9 +120,8 @@ type chainControl struct {
 }
 
 // newChainControlFromConfig attempts to create a chainControl instance
-// according to the parameters in the passed lnd configuration. Currently two
-// branches of chainControl instances exist: one backed by a running btcd
-// full-node, and the other backed by a running neutrino light client instance.
+// according to the parameters in the passed lnd configuration. Currently only
+// one chainControl instance exists: one backed by a running dcrd full-node.
 func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 	privateWalletPw, publicWalletPw []byte, birthday time.Time,
 	recoveryWindow uint32,
@@ -168,7 +164,7 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 			"chain %v is unknown", registeredChains.PrimaryChain())
 	}
 
-	walletConfig := &btcwallet.Config{
+	walletConfig := &dcrwallet.Config{
 		PrivatePass:    privateWalletPw,
 		PublicPass:     publicWalletPw,
 		Birthday:       birthday,
@@ -199,7 +195,7 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 	case "neutrino":
 		// First we'll open the database file for neutrino, creating
 		// the database if needed. We append the normalized network name
-		// here to match the behavior of btcwallet.
+		// here to match the behavior of dcrwallet.
 		neutrinoDbPath := filepath.Join(homeChainConfig.ChainDir,
 			normalizeNetwork(activeNetParams.Name))
 
@@ -267,7 +263,7 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 			return nil, nil, err
 		}
 
-		// Finally, we'll set the chain source for btcwallet, and
+		// Finally, we'll set the chain source for dcrwallet, and
 		// create our clean up function which simply closes the
 		// database.
 		walletConfig.ChainSource = chain.NewNeutrinoClient(
@@ -390,7 +386,7 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 	case "btcd", "ltcd":
 		// Otherwise, we'll be speaking directly via RPC to a node.
 		//
-		// So first we'll load btcd/ltcd's TLS cert for the RPC
+		// So first we'll load dcrd's TLS cert for the RPC
 		// connection. If a raw cert was specified in the config, then
 		// we'll set that directly. Otherwise, we attempt to read the
 		// cert from the path specified in the config.
@@ -421,7 +417,7 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 			}
 		}
 
-		// If the specified host for the btcd/ltcd RPC server already
+		// If the specified host for the btcd RPC server already
 		// has a port specified, then we use that directly. Otherwise,
 		// we assume the default port according to the selected chain
 		// parameters.

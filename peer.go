@@ -10,22 +10,22 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcd/connmgr"
-	"github.com/btcsuite/btcd/txscript"
-	"github.com/btcsuite/btcd/wire"
 	"github.com/davecgh/go-spew/spew"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/connmgr"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/txscript"
+	"github.com/decred/dcrd/wire"
 
-	"github.com/lightningnetwork/lnd/brontide"
-	"github.com/lightningnetwork/lnd/chainntnfs"
-	"github.com/lightningnetwork/lnd/channeldb"
-	"github.com/lightningnetwork/lnd/contractcourt"
-	"github.com/lightningnetwork/lnd/htlcswitch"
-	"github.com/lightningnetwork/lnd/lnpeer"
-	"github.com/lightningnetwork/lnd/lnwallet"
-	"github.com/lightningnetwork/lnd/lnwire"
-	"github.com/lightningnetwork/lnd/ticker"
+	"github.com/decred/dcrlnd/brontide"
+	"github.com/decred/dcrlnd/chainntnfs"
+	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/contractcourt"
+	"github.com/decred/dcrlnd/htlcswitch"
+	"github.com/decred/dcrlnd/lnpeer"
+	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwire"
+	"github.com/decred/dcrlnd/ticker"
 )
 
 var (
@@ -2242,7 +2242,7 @@ func (p *peer) PubKey() [33]byte {
 // IdentityKey returns the public key of the remote peer.
 //
 // NOTE: Part of the lnpeer.Peer interface.
-func (p *peer) IdentityKey() *btcec.PublicKey {
+func (p *peer) IdentityKey() *secp256k1.PublicKey {
 	return p.addr.IdentityKey
 }
 

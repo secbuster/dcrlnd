@@ -3,34 +3,28 @@ package chainview
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
-	"math/rand"
-	"os"
-	"os/exec"
-	"path/filepath"
 	"runtime"
 	"testing"
 	"time"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcd/btcjson"
-	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcd/integration/rpctest"
-	"github.com/btcsuite/btcd/rpcclient"
-	"github.com/btcsuite/btcd/txscript"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
-	"github.com/btcsuite/btcwallet/chain"
-	"github.com/btcsuite/btcwallet/walletdb"
-	_ "github.com/btcsuite/btcwallet/walletdb/bdb" // Required to register the boltdb walletdb implementation.
+	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/dcrjson"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/rpcclient"
+	"github.com/decred/dcrd/rpctest"
+	"github.com/decred/dcrd/txscript"
+	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/channeldb"
 
-	"github.com/lightninglabs/neutrino"
-	"github.com/lightningnetwork/lnd/channeldb"
+	"github.com/decred/dcrwallet/chain"
+	"github.com/decred/dcrwallet/walletdb"
+	_ "github.com/decred/dcrwallet/walletdb/bdb" // Required to register the boltdb walletdb implementation.
 )
 
 var (
-	netParams = &chaincfg.RegressionNetParams
+	netParams = &chaincfg.SimNetParams
 
 	testPrivKey = []byte{
 		0x81, 0xb6, 0x37, 0xd8, 0xfc, 0xd2, 0xc6, 0xda,
@@ -39,8 +33,8 @@ var (
 		0x1e, 0xb, 0x4c, 0xfd, 0x9e, 0xc5, 0x8c, 0xe9,
 	}
 
-	privKey, pubKey = btcec.PrivKeyFromBytes(btcec.S256(), testPrivKey)
-	addrPk, _       = btcutil.NewAddressPubKey(pubKey.SerializeCompressed(),
+	privKey, pubKey = secp256k1.PrivKeyFromBytes(testPrivKey)
+	addrPk, _       = dcrutil.NewAddressSecpPubKeyCompressed(pubKey,
 		netParams)
 	testAddr = addrPk.AddressPubKeyHash()
 
@@ -49,7 +43,7 @@ var (
 
 func waitForMempoolTx(r *rpctest.Harness, txid *chainhash.Hash) error {
 	var found bool
-	var tx *btcutil.Tx
+	var tx *dcrutil.Tx
 	var err error
 	timeout := time.After(10 * time.Second)
 	for !found {
@@ -65,8 +59,8 @@ func waitForMempoolTx(r *rpctest.Harness, txid *chainhash.Hash) error {
 		tx, err = r.Node.GetRawTransaction(txid)
 		if err != nil {
 			switch e := err.(type) {
-			case *btcjson.RPCError:
-				if e.Code == btcjson.ErrRPCNoTxInfo {
+			case *dcrjson.RPCError:
+				if e.Code == dcrjson.ErrRPCNoTxInfo {
 					continue
 				}
 			default:
@@ -109,7 +103,7 @@ func locateOutput(tx *wire.MsgTx, script []byte) (*wire.OutPoint, *wire.TxOut, e
 }
 
 func craftSpendTransaction(outpoint wire.OutPoint, payScript []byte) (*wire.MsgTx, error) {
-	spendingTx := wire.NewMsgTx(1)
+	spendingTx := wire.NewMsgTx()
 	spendingTx.AddTxIn(&wire.TxIn{
 		PreviousOutPoint: outpoint,
 	})
@@ -127,12 +121,12 @@ func craftSpendTransaction(outpoint wire.OutPoint, payScript []byte) (*wire.MsgT
 	return spendingTx, nil
 }
 
-func assertFilteredBlock(t *testing.T, fb *FilteredBlock, expectedHeight int32,
+func assertFilteredBlock(t *testing.T, fb *FilteredBlock, expectedHeight int64,
 	expectedHash *chainhash.Hash, txns []*chainhash.Hash) {
 
 	_, _, line, _ := runtime.Caller(1)
 
-	if fb.Height != uint32(expectedHeight) {
+	if fb.Height != expectedHeight {
 		t.Fatalf("line %v: block height mismatch: expected %v, got %v",
 			line, expectedHeight, fb.Height)
 	}
@@ -158,7 +152,6 @@ func assertFilteredBlock(t *testing.T, fb *FilteredBlock, expectedHeight int32,
 	if len(expectedTxids) != 0 {
 		t.Fatalf("line %v: missing txids: %v", line, expectedTxids)
 	}
-
 }
 
 func testFilterBlockNotifications(node *rpctest.Harness,
@@ -169,7 +162,7 @@ func testFilterBlockNotifications(node *rpctest.Harness,
 	// private key that we generated above.
 	txid1, err := getTestTXID(node)
 	if err != nil {
-		t.Fatalf("unable to get test txid: %v", err)
+		t.Fatalf("unable to get test txid1: %v", err)
 	}
 	err = waitForMempoolTx(node, txid1)
 	if err != nil {
@@ -177,7 +170,7 @@ func testFilterBlockNotifications(node *rpctest.Harness,
 	}
 	txid2, err := getTestTXID(node)
 	if err != nil {
-		t.Fatalf("unable to get test txid: %v", err)
+		t.Fatalf("unable to get test txid2: %v", err)
 	}
 	err = waitForMempoolTx(node, txid2)
 	if err != nil {
@@ -449,7 +442,7 @@ func testFilterSingleBlock(node *rpctest.Harness, chainView FilteredChainView,
 	select {
 	case filteredBlock := <-blockChan:
 		assertFilteredBlock(t, filteredBlock, currentHeight,
-			newBlockHashes[0], []*chainhash.Hash{})
+			newBlockHashes[0], nil)
 	case <-time.After(time.Second * 20):
 		t.Fatalf("filtered block notification didn't arrive")
 	}
@@ -475,14 +468,21 @@ func testFilterSingleBlock(node *rpctest.Harness, chainView FilteredChainView,
 	}
 	spendingTx1, err := craftSpendTransaction(*outPoint1, testScript)
 	if err != nil {
-		t.Fatalf("unable to create spending tx: %v", err)
+		t.Fatalf("unable to create spending tx1: %v", err)
 	}
 	spendingTx2, err := craftSpendTransaction(*outPoint2, testScript)
 	if err != nil {
-		t.Fatalf("unable to create spending tx: %v", err)
+		t.Fatalf("unable to create spending tx2: %v", err)
 	}
-	txns := []*btcutil.Tx{btcutil.NewTx(spendingTx1), btcutil.NewTx(spendingTx2)}
-	block, err := node.GenerateAndSubmitBlock(txns, 11, time.Time{})
+	_, err = node.Node.SendRawTransaction(spendingTx1, true)
+	if err != nil {
+		t.Fatalf("unable to send spending tx1: %v", err)
+	}
+	_, err = node.Node.SendRawTransaction(spendingTx2, true)
+	if err != nil {
+		t.Fatalf("unable to send spending tx2: %v", err)
+	}
+	blockHashes, err := node.Node.Generate(1)
 	if err != nil {
 		t.Fatalf("unable to generate block: %v", err)
 	}
@@ -490,7 +490,7 @@ func testFilterSingleBlock(node *rpctest.Harness, chainView FilteredChainView,
 	select {
 	case filteredBlock := <-blockChan:
 		assertFilteredBlock(t, filteredBlock, currentHeight+1,
-			block.Hash(), []*chainhash.Hash{})
+			blockHashes[0], nil)
 	case <-time.After(time.Second * 20):
 		t.Fatalf("filtered block notification didn't arrive")
 	}
@@ -521,13 +521,13 @@ func testFilterSingleBlock(node *rpctest.Harness, chainView FilteredChainView,
 
 	// Now we'll manually rescan that past block. This should include two
 	// filtered transactions, the spending transactions we created above.
-	filteredBlock, err := chainView.FilterBlock(block.Hash())
+	filteredBlock, err := chainView.FilterBlock(blockHashes[0])
 	if err != nil {
 		t.Fatalf("unable to filter block: %v", err)
 	}
 	txn1, txn2 := spendingTx1.TxHash(), spendingTx2.TxHash()
 	expectedTxns := []*chainhash.Hash{&txn1, &txn2}
-	assertFilteredBlock(t, filteredBlock, currentHeight, block.Hash(),
+	assertFilteredBlock(t, filteredBlock, currentHeight, blockHashes[0],
 		expectedTxns)
 }
 
@@ -564,7 +564,7 @@ func testFilterBlockDisconnected(node *rpctest.Harness,
 	}()
 
 	if err = reorgView.Start(); err != nil {
-		t.Fatalf("unable to start btcd chain view: %v", err)
+		t.Fatalf("unable to start dcrd chain view: %v", err)
 	}
 	defer reorgView.Stop()
 
@@ -865,7 +865,7 @@ var interfaceImpls = []struct {
 			spvNode.Start()
 
 			// Wait until the node has fully synced up to the local
-			// btcd node.
+			// dcrd node.
 			for !spvNode.IsCurrent() {
 				time.Sleep(time.Millisecond * 100)
 			}
@@ -885,9 +885,9 @@ var interfaceImpls = []struct {
 		},
 	},
 	{
-		name: "btcd_websockets",
+		name: "dcrd_websockets",
 		chainViewInit: func(config rpcclient.ConnConfig, _ string) (func(), FilteredChainView, error) {
-			chainView, err := NewBtcdFilteredChainView(config)
+			chainView, err := NewDcrdFilteredChainView(config)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -898,9 +898,9 @@ var interfaceImpls = []struct {
 }
 
 func TestFilteredChainView(t *testing.T) {
-	// Initialize the harness around a btcd node which will serve as our
+	// Initialize the harness around a dcrd node which will serve as our
 	// dedicated miner to generate blocks, cause re-orgs, etc. We'll set up
-	// this node with a chain length of 125, so we have plenty of BTC to
+	// this node with a chain length of 125, so we have plenty of DCR to
 	// play around with.
 	miner, err := rpctest.New(netParams, nil, []string{"--txindex"})
 	if err != nil {
@@ -912,13 +912,12 @@ func TestFilteredChainView(t *testing.T) {
 	}
 
 	rpcConfig := miner.RPCConfig()
-	p2pAddr := miner.P2PAddress()
 
 	for _, chainViewImpl := range interfaceImpls {
 		t.Logf("Testing '%v' implementation of FilteredChainView",
 			chainViewImpl.name)
 
-		cleanUpFunc, chainView, err := chainViewImpl.chainViewInit(rpcConfig, p2pAddr)
+		cleanUpFunc, chainView, err := chainViewImpl.chainViewInit(rpcConfig)
 		if err != nil {
 			t.Fatalf("unable to make chain view: %v", err)
 		}

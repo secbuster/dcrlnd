@@ -5,10 +5,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/btcsuite/btcd/btcec"
 	"github.com/coreos/bbolt"
-	"github.com/lightningnetwork/lnd/channeldb"
-	"github.com/lightningnetwork/lnd/lnwire"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+
+	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/lnwire"
 )
 
 const (
@@ -181,7 +182,7 @@ type paymentSession struct {
 // in order to populate additional edges to explore when finding a path to the
 // payment's destination.
 func (m *missionControl) NewPaymentSession(routeHints [][]HopHint,
-	target *btcec.PublicKey) (*paymentSession, error) {
+	target *secp256k1.PublicKey) (*paymentSession, error) {
 
 	viewSnapshot := m.GraphPruneView()
 

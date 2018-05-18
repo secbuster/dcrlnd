@@ -1,5 +1,5 @@
 // Copyright (c) 2013-2017 The btcsuite developers
-// Copyright (c) 2015-2016 The Decred developers
+// Copyright (c) 2015-2019 The Decred developers
 // Copyright (C) 2015-2017 The Lightning Network Developers
 
 package main
@@ -33,22 +33,22 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcwallet/wallet"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrwallet/wallet"
 	proxy "github.com/grpc-ecosystem/grpc-gateway/runtime"
 	flags "github.com/jessevdk/go-flags"
 
-	"github.com/lightningnetwork/lnd/autopilot"
-	"github.com/lightningnetwork/lnd/build"
-	"github.com/lightningnetwork/lnd/channeldb"
-	"github.com/lightningnetwork/lnd/keychain"
-	"github.com/lightningnetwork/lnd/lncfg"
-	"github.com/lightningnetwork/lnd/lnrpc"
-	"github.com/lightningnetwork/lnd/lnwallet"
-	"github.com/lightningnetwork/lnd/lnwallet/btcwallet"
-	"github.com/lightningnetwork/lnd/macaroons"
-	"github.com/lightningnetwork/lnd/signal"
-	"github.com/lightningnetwork/lnd/walletunlocker"
+	"github.com/decred/dcrlnd/autopilot"
+	"github.com/decred/dcrlnd/build"
+	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/keychain"
+	"github.com/decred/dcrlnd/lncfg"
+	"github.com/decred/dcrlnd/lnrpc"
+	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwallet/dcrwallet"
+	"github.com/decred/dcrlnd/macaroons"
+	"github.com/decred/dcrlnd/signal"
+	"github.com/decred/dcrlnd/walletunlocker"
 )
 
 const (
@@ -295,7 +295,7 @@ func lndMain() error {
 	if err != nil {
 		return err
 	}
-	idPrivKey.Curve = btcec.S256()
+	idPrivKey.Curve = secp256k1.S256()
 
 	if cfg.Tor.Active {
 		srvrLog.Infof("Proxying all network traffic via Tor "+
@@ -777,7 +777,7 @@ func waitForWalletPassword(grpcEndpoints, restEndpoints []net.Addr,
 				keychain.KeyDerivationVersion)
 		}
 
-		netDir := btcwallet.NetworkDir(
+		netDir := dcrwallet.NetworkDir(
 			chainConfig.ChainDir, activeNetParams.Params,
 		)
 		loader := wallet.NewLoader(

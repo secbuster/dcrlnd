@@ -6,16 +6,16 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
 	"github.com/davecgh/go-spew/spew"
-	"github.com/lightningnetwork/lnd/channeldb"
-	"github.com/lightningnetwork/lnd/keychain"
-	"github.com/lightningnetwork/lnd/lnwire"
-	"github.com/lightningnetwork/lnd/shachain"
+	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/keychain"
+	"github.com/decred/dcrlnd/lnwire"
+	"github.com/decred/dcrlnd/shachain"
+	"github.com/decred/dcrutil"
 )
 
 /**
@@ -28,35 +28,35 @@ import (
 // BOLT 03 spec.
 type testContext struct {
 	netParams *chaincfg.Params
-	block1    *btcutil.Block
+	block1    *dcrutil.Block
 
-	fundingInputPrivKey *btcec.PrivateKey
-	localFundingPrivKey *btcec.PrivateKey
-	localPaymentPrivKey *btcec.PrivateKey
+	fundingInputPrivKey *secp256k1.PrivateKey
+	localFundingPrivKey *secp256k1.PrivateKey
+	localPaymentPrivKey *secp256k1.PrivateKey
 
-	remoteFundingPubKey    *btcec.PublicKey
-	localFundingPubKey     *btcec.PublicKey
-	localRevocationPubKey  *btcec.PublicKey
-	localPaymentPubKey     *btcec.PublicKey
-	remotePaymentPubKey    *btcec.PublicKey
-	localDelayPubKey       *btcec.PublicKey
-	commitmentPoint        *btcec.PublicKey
-	localPaymentBasePoint  *btcec.PublicKey
-	remotePaymentBasePoint *btcec.PublicKey
+	remoteFundingPubKey    *secp256k1.PublicKey
+	localFundingPubKey     *secp256k1.PublicKey
+	localRevocationPubKey  *secp256k1.PublicKey
+	localPaymentPubKey     *secp256k1.PublicKey
+	remotePaymentPubKey    *secp256k1.PublicKey
+	localDelayPubKey       *secp256k1.PublicKey
+	commitmentPoint        *secp256k1.PublicKey
+	localPaymentBasePoint  *secp256k1.PublicKey
+	remotePaymentBasePoint *secp256k1.PublicKey
 
-	fundingChangeAddress btcutil.Address
+	fundingChangeAddress dcrutil.Address
 	fundingInputUtxo     *Utxo
 	fundingInputTxOut    *wire.TxOut
-	fundingTx            *btcutil.Tx
+	fundingTx            *dcrutil.Tx
 	fundingOutpoint      wire.OutPoint
 	shortChanID          lnwire.ShortChannelID
 
 	htlcs []channeldb.HTLC
 
 	localCsvDelay uint16
-	fundingAmount btcutil.Amount
-	dustLimit     btcutil.Amount
-	feePerKW      btcutil.Amount
+	fundingAmount dcrutil.Amount
+	dustLimit     dcrutil.Amount
+	feePerKW      dcrutil.Amount
 }
 
 // htlcDesc is a description used to construct each HTLC in each test case.
@@ -189,7 +189,7 @@ func newTestContext() (tc *testContext, err error) {
 	}
 
 	const fundingChangeAddressStr = "bcrt1qgyeqfmptyh780dsk32qawsvdffc2g5q5sxamg0"
-	tc.fundingChangeAddress, err = btcutil.DecodeAddress(
+	tc.fundingChangeAddress, err = dcrutil.DecodeAddress(
 		fundingChangeAddressStr, tc.netParams)
 	if err != nil {
 		err = fmt.Errorf("Failed to parse address: %v", err)
@@ -328,7 +328,7 @@ func (tc *testContext) extractFundingInput() (*Utxo, *wire.TxOut, error) {
 
 	block1Utxo := Utxo{
 		AddressType: WitnessPubKey,
-		Value:       btcutil.Amount(txout.Value),
+		Value:       dcrutil.Amount(txout.Value),
 		OutPoint: wire.OutPoint{
 			Hash:  *tx.Hash(),
 			Index: 0,
@@ -351,15 +351,15 @@ func TestCommitmentAndHTLCTransactions(t *testing.T) {
 
 	// Generate random some keys that don't actually matter but need to be set.
 	var (
-		identityKey         *btcec.PublicKey
-		localDelayBasePoint *btcec.PublicKey
+		identityKey         *secp256k1.PublicKey
+		localDelayBasePoint *secp256k1.PublicKey
 	)
-	generateKeys := []**btcec.PublicKey{
+	generateKeys := []**secp256k1.PublicKey{
 		&identityKey,
 		&localDelayBasePoint,
 	}
 	for _, keyRef := range generateKeys {
-		privkey, err := btcec.NewPrivateKey(btcec.S256())
+		privkey, err := secp256k1.GeneratePrivateKey()
 		if err != nil {
 			t.Fatalf("Failed to generate new key: %v", err)
 		}
@@ -409,7 +409,7 @@ func TestCommitmentAndHTLCTransactions(t *testing.T) {
 		RevocationProducer: shachain.NewRevocationProducer(zeroHash),
 	}
 	signer := &mockSigner{
-		privkeys: []*btcec.PrivateKey{
+		privkeys: []*secp256k1.PrivateKey{
 			tc.localFundingPrivKey, tc.localPaymentPrivKey,
 		},
 		netParams: tc.netParams,

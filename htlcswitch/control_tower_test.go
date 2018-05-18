@@ -1,12 +1,12 @@
 package htlcswitch
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"testing"
 
-	"github.com/btcsuite/fastsha256"
-	"github.com/lightningnetwork/lnd/channeldb"
-	"github.com/lightningnetwork/lnd/lnwire"
+	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/lnwire"
 )
 
 func genHtlc() (*lnwire.UpdateAddHTLC, error) {
@@ -15,7 +15,7 @@ func genHtlc() (*lnwire.UpdateAddHTLC, error) {
 		return nil, fmt.Errorf("unable to generate preimage: %v", err)
 	}
 
-	rhash := fastsha256.Sum256(preimage[:])
+	rhash := sha256.Sum256(preimage[:])
 	htlc := &lnwire.UpdateAddHTLC{
 		PaymentHash: rhash,
 		Amount:      1,

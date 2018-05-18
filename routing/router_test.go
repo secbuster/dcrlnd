@@ -9,15 +9,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/btcsuite/btcd/wire"
-	"github.com/lightningnetwork/lnd/channeldb"
-	"github.com/lightningnetwork/lnd/htlcswitch"
-
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/davecgh/go-spew/spew"
-	"github.com/lightningnetwork/lightning-onion"
-	"github.com/lightningnetwork/lnd/lnwire"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/htlcswitch"
+	"github.com/decred/dcrlnd/lnwire"
+
+	"github.com/lightningnetwork/lightning-onion" // TODO(decred): ok?
 )
 
 // defaultNumRoutes is the default value for the maximum number of routes to
@@ -29,7 +29,7 @@ type testCtx struct {
 
 	graph *channeldb.ChannelGraph
 
-	aliases map[string]*btcec.PublicKey
+	aliases map[string]*secp256k1.PublicKey
 
 	chain *mockChain
 
@@ -67,9 +67,9 @@ func (c *testCtx) RestartRouter() error {
 	return nil
 }
 
-func copyPubKey(pub *btcec.PublicKey) *btcec.PublicKey {
-	return &btcec.PublicKey{
-		Curve: btcec.S256(),
+func copyPubKey(pub *secp256k1.PublicKey) *secp256k1.PublicKey {
+	return &secp256k1.PublicKey{
+		Curve: secp256k1.S256(),
 		X:     pub.X,
 		Y:     pub.Y,
 	}
@@ -1148,8 +1148,8 @@ func TestAddEdgeUnknownVertexes(t *testing.T) {
 	}
 
 	var (
-		pubKey1 *btcec.PublicKey
-		pubKey2 *btcec.PublicKey
+		pubKey1 *secp256k1.PublicKey
+		pubKey2 *secp256k1.PublicKey
 	)
 	node1Bytes := priv1.PubKey().SerializeCompressed()
 	node2Bytes := connectNode.SerializeCompressed()

@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/btcsuite/btcd/blockchain"
-	"github.com/btcsuite/btcd/txscript"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
-	"github.com/btcsuite/btcwallet/wallet/txrules"
-	"github.com/lightningnetwork/lnd/lnwallet"
+	"github.com/decred/dcrd/blockchain"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/txscript"
+	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrwallet/wallet/txrules"
 )
 
 var (
@@ -36,7 +36,7 @@ func generateInputPartitionings(sweepableInputs []Input,
 	// txes.
 	dustLimit := txrules.GetDustThreshold(
 		lnwallet.P2WPKHSize,
-		btcutil.Amount(relayFeePerKW.FeePerKVByte()),
+		dcrutil.Amount(relayFeePerKW.FeePerKVByte()),
 	)
 
 	// Sort input by yield. We will start constructing input sets starting
@@ -114,14 +114,14 @@ func generateInputPartitionings(sweepableInputs []Input,
 // minimizing any negative externalities we cause for the Bitcoin system as a
 // whole.
 func getPositiveYieldInputs(sweepableInputs []Input, maxInputs int,
-	feePerKW lnwallet.SatPerKWeight) (int, btcutil.Amount) {
+	feePerKW lnwallet.SatPerKWeight) (int, dcrutil.Amount) {
 
 	var weightEstimate lnwallet.TxWeightEstimator
 
 	// Add the sweep tx output to the weight estimate.
 	weightEstimate.AddP2WKHOutput()
 
-	var total, outputValue btcutil.Amount
+	var total, outputValue dcrutil.Amount
 	for idx, input := range sweepableInputs {
 		// Can ignore error, because it has already been checked when
 		// calculating the yields.
@@ -130,7 +130,7 @@ func getPositiveYieldInputs(sweepableInputs []Input, maxInputs int,
 		// Keep a running weight estimate of the input set.
 		weightEstimate.AddWitnessInput(size)
 
-		newTotal := total + btcutil.Amount(input.SignDesc().Output.Value)
+		newTotal := total + dcrutil.Amount(input.SignDesc().Output.Value)
 
 		weight := weightEstimate.Weight()
 		fee := feePerKW.FeeForWeight(int64(weight))
@@ -175,9 +175,9 @@ func createSweepTx(inputs []Input, outputPkScript []byte,
 	txFee := feePerKw.FeeForWeight(txWeight)
 
 	// Sum up the total value contained in the inputs.
-	var totalSum btcutil.Amount
+	var totalSum dcrutil.Amount
 	for _, o := range inputs {
-		totalSum += btcutil.Amount(o.SignDesc().Output.Value)
+		totalSum += dcrutil.Amount(o.SignDesc().Output.Value)
 	}
 
 	// Sweep as much possible, after subtracting txn fees.
@@ -209,7 +209,7 @@ func createSweepTx(inputs []Input, outputPkScript []byte,
 	// TODO(conner): add more control to sanity checks, allowing us to
 	// delay spending "problem" outputs, e.g. possibly batching with other
 	// classes if fees are too low.
-	btx := btcutil.NewTx(sweepTx)
+	btx := dcrutil.NewTx(sweepTx)
 	if err := blockchain.CheckTransactionSanity(btx); err != nil {
 		return nil, err
 	}

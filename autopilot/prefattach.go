@@ -4,8 +4,8 @@ import (
 	prand "math/rand"
 	"time"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcutil"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/dcrutil"
 )
 
 // PrefAttachment is an implementation of the AttachmentHeuristic interface
@@ -37,7 +37,7 @@ var _ AttachmentHeuristic = (*PrefAttachment)(nil)
 type NodeID [33]byte
 
 // NewNodeID creates a new nodeID from a passed public key.
-func NewNodeID(pub *btcec.PublicKey) NodeID {
+func NewNodeID(pub *secp256k1.PublicKey) NodeID {
 	var n NodeID
 	copy(n[:], pub.SerializeCompressed())
 	return n
@@ -61,7 +61,7 @@ func NewNodeID(pub *btcec.PublicKey) NodeID {
 //
 // NOTE: This is a part of the AttachmentHeuristic interface.
 func (p *PrefAttachment) NodeScores(g ChannelGraph, chans []Channel,
-	chanSize btcutil.Amount, nodes map[NodeID]struct{}) (
+	chanSize dcrutil.Amount, nodes map[NodeID]struct{}) (
 	map[NodeID]*NodeScore, error) {
 
 	// Count the number of channels in the graph. We'll also count the

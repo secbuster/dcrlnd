@@ -8,9 +8,9 @@ import (
 	"io"
 	"time"
 
-	"github.com/btcsuite/btcd/wire"
 	"github.com/coreos/bbolt"
-	"github.com/lightningnetwork/lnd/lnwire"
+	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/lnwire"
 )
 
 var (

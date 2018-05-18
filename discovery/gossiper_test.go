@@ -14,16 +14,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcd/wire"
 	"github.com/davecgh/go-spew/spew"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/chainntnfs"
+	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/lnpeer"
+	"github.com/decred/dcrlnd/lnwire"
+	"github.com/decred/dcrlnd/routing"
 	"github.com/go-errors/errors"
-	"github.com/lightningnetwork/lnd/chainntnfs"
-	"github.com/lightningnetwork/lnd/channeldb"
-	"github.com/lightningnetwork/lnd/lnpeer"
-	"github.com/lightningnetwork/lnd/lnwire"
-	"github.com/lightningnetwork/lnd/routing"
 )
 
 var (
@@ -31,7 +31,7 @@ var (
 		Port: 9000}
 	testAddrs    = []net.Addr{testAddr}
 	testFeatures = lnwire.NewRawFeatureVector()
-	testSig      = &btcec.Signature{
+	testSig      = &secp256k1.Signature{
 		R: new(big.Int),
 		S: new(big.Int),
 	}
@@ -42,16 +42,16 @@ var (
 	sha, _   = chainhash.NewHashFromStr(inputStr)
 	outpoint = wire.NewOutPoint(sha, 0)
 
-	bitcoinKeyPriv1, _ = btcec.NewPrivateKey(btcec.S256())
+	bitcoinKeyPriv1, _ = secp256k1.GeneratePrivateKey()
 	bitcoinKeyPub1     = bitcoinKeyPriv1.PubKey()
 
-	nodeKeyPriv1, _ = btcec.NewPrivateKey(btcec.S256())
+	nodeKeyPriv1, _ = secp256k1.GeneratePrivateKey()
 	nodeKeyPub1     = nodeKeyPriv1.PubKey()
 
-	bitcoinKeyPriv2, _ = btcec.NewPrivateKey(btcec.S256())
+	bitcoinKeyPriv2, _ = secp256k1.GeneratePrivateKey()
 	bitcoinKeyPub2     = bitcoinKeyPriv2.PubKey()
 
-	nodeKeyPriv2, _ = btcec.NewPrivateKey(btcec.S256())
+	nodeKeyPriv2, _ = secp256k1.GeneratPrivateKey()
 	nodeKeyPub2     = nodeKeyPriv2.PubKey()
 
 	trickleDelay     = time.Millisecond * 100
@@ -85,11 +85,11 @@ func makeTestDB() (*channeldb.DB, func(), error) {
 }
 
 type mockSigner struct {
-	privKey *btcec.PrivateKey
+	privKey *secp256k1.PrivateKey
 }
 
-func (n *mockSigner) SignMessage(pubKey *btcec.PublicKey,
-	msg []byte) (*btcec.Signature, error) {
+func (n *mockSigner) SignMessage(pubKey *secp256k1.PublicKey,
+	msg []byte) (*secp256k1.Signature, error) {
 
 	if !pubKey.IsEqual(n.privKey.PubKey()) {
 		return nil, fmt.Errorf("unknown public key")
@@ -405,7 +405,7 @@ func createAnnouncements(blockHeight uint32) (*annBatch, error) {
 
 }
 
-func createNodeAnnouncement(priv *btcec.PrivateKey,
+func createNodeAnnouncement(priv *secp256k1.PrivateKey,
 	timestamp uint32, extraBytes ...[]byte) (*lnwire.NodeAnnouncement, error) {
 
 	var err error
@@ -441,7 +441,7 @@ func createNodeAnnouncement(priv *btcec.PrivateKey,
 }
 
 func createUpdateAnnouncement(blockHeight uint32, flags lnwire.ChanUpdateFlag,
-	nodeKey *btcec.PrivateKey, timestamp uint32,
+	nodeKey *secp256k1.PrivateKey, timestamp uint32,
 	extraBytes ...[]byte) (*lnwire.ChannelUpdate, error) {
 
 	var err error
@@ -585,10 +585,10 @@ func createTestCtx(startHeight uint32) (*testCtx, func(), error) {
 
 			return nil
 		},
-		SendToPeer: func(target *btcec.PublicKey, msg ...lnwire.Message) error {
+		SendToPeer: func(target *secp256k1.PublicKey, msg ...lnwire.Message) error {
 			return nil
 		},
-		FindPeer: func(target *btcec.PublicKey) (lnpeer.Peer, error) {
+		FindPeer: func(target *secp256k1.PublicKey) (lnpeer.Peer, error) {
 			return &mockPeer{target, nil, nil}, nil
 		},
 		Router:           router,
@@ -632,7 +632,7 @@ func TestProcessAnnouncement(t *testing.T) {
 	}
 	defer cleanup()
 
-	assertSenderExistence := func(sender *btcec.PublicKey, msg msgWithSenders) {
+	assertSenderExistence := func(sender *secp256k1.PublicKey, msg msgWithSenders) {
 		if _, ok := msg.senders[routing.NewVertex(sender)]; !ok {
 			t.Fatalf("sender=%x not present in %v",
 				sender.SerializeCompressed(), spew.Sdump(msg))
@@ -826,10 +826,10 @@ func TestSignatureAnnouncementLocalFirst(t *testing.T) {
 	// Set up a channel that we can use to inspect the messages
 	// sent directly fromn the gossiper.
 	sentMsgs := make(chan lnwire.Message, 10)
-	ctx.gossiper.cfg.FindPeer = func(target *btcec.PublicKey) (lnpeer.Peer, error) {
+	ctx.gossiper.cfg.FindPeer = func(target *secp256k1.PublicKey) (lnpeer.Peer, error) {
 		return &mockPeer{target, sentMsgs, ctx.gossiper.quit}, nil
 	}
-	ctx.gossiper.cfg.SendToPeer = func(target *btcec.PublicKey,
+	ctx.gossiper.cfg.SendToPeer = func(target *secp256k1.PublicKey,
 		msg ...lnwire.Message) error {
 
 		select {
@@ -845,11 +845,11 @@ func TestSignatureAnnouncementLocalFirst(t *testing.T) {
 		t.Fatalf("can't generate announcements: %v", err)
 	}
 
-	localKey, err := btcec.ParsePubKey(batch.nodeAnn1.NodeID[:], btcec.S256())
+	localKey, err := secp256k1.ParsePubKey(batch.nodeAnn1.NodeID[:])
 	if err != nil {
 		t.Fatalf("unable to parse pubkey: %v", err)
 	}
-	remoteKey, err := btcec.ParsePubKey(batch.nodeAnn2.NodeID[:], btcec.S256())
+	remoteKey, err := secp256k1.ParsePubKey(batch.nodeAnn2.NodeID[:])
 	if err != nil {
 		t.Fatalf("unable to parse pubkey: %v", err)
 	}
@@ -1030,10 +1030,10 @@ func TestOrphanSignatureAnnouncement(t *testing.T) {
 	// Set up a channel that we can use to inspect the messages
 	// sent directly from the gossiper.
 	sentMsgs := make(chan lnwire.Message, 10)
-	ctx.gossiper.cfg.FindPeer = func(target *btcec.PublicKey) (lnpeer.Peer, error) {
+	ctx.gossiper.cfg.FindPeer = func(target *secp256k1.PublicKey) (lnpeer.Peer, error) {
 		return &mockPeer{target, sentMsgs, ctx.gossiper.quit}, nil
 	}
-	ctx.gossiper.cfg.SendToPeer = func(target *btcec.PublicKey, msg ...lnwire.Message) error {
+	ctx.gossiper.cfg.SendToPeer = func(target *secp256k1.PublicKey, msg ...lnwire.Message) error {
 		select {
 		case sentMsgs <- msg[0]:
 		case <-ctx.gossiper.quit:
@@ -1047,11 +1047,11 @@ func TestOrphanSignatureAnnouncement(t *testing.T) {
 		t.Fatalf("can't generate announcements: %v", err)
 	}
 
-	localKey, err := btcec.ParsePubKey(batch.nodeAnn1.NodeID[:], btcec.S256())
+	localKey, err := secp256k1.ParsePubKey(batch.nodeAnn1.NodeID[:])
 	if err != nil {
 		t.Fatalf("unable to parse pubkey: %v", err)
 	}
-	remoteKey, err := btcec.ParsePubKey(batch.nodeAnn2.NodeID[:], btcec.S256())
+	remoteKey, err := secp256k1.ParsePubKey(batch.nodeAnn2.NodeID[:])
 	if err != nil {
 		t.Fatalf("unable to parse pubkey: %v", err)
 	}
@@ -1242,11 +1242,11 @@ func TestSignatureAnnouncementRetry(t *testing.T) {
 		t.Fatalf("can't generate announcements: %v", err)
 	}
 
-	localKey, err := btcec.ParsePubKey(batch.nodeAnn1.NodeID[:], btcec.S256())
+	localKey, err := secp256k1.ParsePubKey(batch.nodeAnn1.NodeID[:])
 	if err != nil {
 		t.Fatalf("unable to parse pubkey: %v", err)
 	}
-	remoteKey, err := btcec.ParsePubKey(batch.nodeAnn2.NodeID[:], btcec.S256())
+	remoteKey, err := secp256k1.ParsePubKey(batch.nodeAnn2.NodeID[:])
 	if err != nil {
 		t.Fatalf("unable to parse pubkey: %v", err)
 	}
@@ -1335,7 +1335,7 @@ func TestSignatureAnnouncementRetry(t *testing.T) {
 	}
 
 	// Make the SendToPeer fail, simulating the peer being offline.
-	ctx.gossiper.cfg.SendToPeer = func(target *btcec.PublicKey,
+	ctx.gossiper.cfg.SendToPeer = func(target *secp256k1.PublicKey,
 		msg ...lnwire.Message) error {
 		return fmt.Errorf("intentional error in SendToPeer")
 	}
@@ -1344,7 +1344,7 @@ func TestSignatureAnnouncementRetry(t *testing.T) {
 	// comes back online, so keep track of the channel it wants to get
 	// notified on.
 	notifyPeers := make(chan chan<- lnpeer.Peer, 1)
-	ctx.gossiper.cfg.NotifyWhenOnline = func(peer *btcec.PublicKey,
+	ctx.gossiper.cfg.NotifyWhenOnline = func(peer *secp256k1.PublicKey,
 		connectedChan chan<- lnpeer.Peer) {
 		notifyPeers <- connectedChan
 	}
@@ -1399,7 +1399,7 @@ func TestSignatureAnnouncementRetry(t *testing.T) {
 	// retry sending the AnnounceSignatures. We make the SendToPeer
 	// method work again.
 	sentToPeer := make(chan lnwire.Message, 1)
-	ctx.gossiper.cfg.SendToPeer = func(target *btcec.PublicKey,
+	ctx.gossiper.cfg.SendToPeer = func(target *secp256k1.PublicKey,
 		msg ...lnwire.Message) error {
 		sentToPeer <- msg[0]
 		return nil
@@ -1468,11 +1468,11 @@ func TestSignatureAnnouncementRetryAtStartup(t *testing.T) {
 		t.Fatalf("can't generate announcements: %v", err)
 	}
 
-	localKey, err := btcec.ParsePubKey(batch.nodeAnn1.NodeID[:], btcec.S256())
+	localKey, err := secp256k1.ParsePubKey(batch.nodeAnn1.NodeID[:])
 	if err != nil {
 		t.Fatalf("unable to parse pubkey: %v", err)
 	}
-	remoteKey, err := btcec.ParsePubKey(batch.nodeAnn2.NodeID[:], btcec.S256())
+	remoteKey, err := secp256k1.ParsePubKey(batch.nodeAnn2.NodeID[:])
 	if err != nil {
 		t.Fatalf("unable to parse pubkey: %v", err)
 	}
@@ -1561,12 +1561,12 @@ func TestSignatureAnnouncementRetryAtStartup(t *testing.T) {
 	}
 
 	// Make the SendToPeerFail, simulating the peer being offline.
-	ctx.gossiper.cfg.SendToPeer = func(target *btcec.PublicKey,
+	ctx.gossiper.cfg.SendToPeer = func(target *secp256k1.PublicKey,
 		msg ...lnwire.Message) error {
 		return fmt.Errorf("intentional error in SendToPeer")
 	}
 	notifyPeers := make(chan chan<- lnpeer.Peer, 1)
-	ctx.gossiper.cfg.NotifyWhenOnline = func(peer *btcec.PublicKey,
+	ctx.gossiper.cfg.NotifyWhenOnline = func(peer *secp256k1.PublicKey,
 		connectedChan chan<- lnpeer.Peer) {
 		notifyPeers <- connectedChan
 	}
@@ -1619,11 +1619,11 @@ func TestSignatureAnnouncementRetryAtStartup(t *testing.T) {
 	gossiper, err := New(Config{
 		Notifier:  ctx.gossiper.cfg.Notifier,
 		Broadcast: ctx.gossiper.cfg.Broadcast,
-		SendToPeer: func(target *btcec.PublicKey,
+		SendToPeer: func(target *secp256k1.PublicKey,
 			msg ...lnwire.Message) error {
 			return fmt.Errorf("intentional error in SendToPeer")
 		},
-		NotifyWhenOnline: func(peer *btcec.PublicKey,
+		NotifyWhenOnline: func(peer *secp256k1.PublicKey,
 			connectedChan chan<- lnpeer.Peer) {
 			notifyPeers <- connectedChan
 		},
@@ -1656,7 +1656,7 @@ func TestSignatureAnnouncementRetryAtStartup(t *testing.T) {
 
 	// Fix the SendToPeer method.
 	sentToPeer := make(chan lnwire.Message, 1)
-	ctx.gossiper.cfg.SendToPeer = func(target *btcec.PublicKey,
+	ctx.gossiper.cfg.SendToPeer = func(target *secp256k1.PublicKey,
 		msg ...lnwire.Message) error {
 		select {
 		case sentToPeer <- msg[0]:
@@ -1730,11 +1730,11 @@ func TestSignatureAnnouncementFullProofWhenRemoteProof(t *testing.T) {
 		t.Fatalf("can't generate announcements: %v", err)
 	}
 
-	localKey, err := btcec.ParsePubKey(batch.nodeAnn1.NodeID[:], btcec.S256())
+	localKey, err := secp256k1.ParsePubKey(batch.nodeAnn1.NodeID[:])
 	if err != nil {
 		t.Fatalf("unable to parse pubkey: %v", err)
 	}
-	remoteKey, err := btcec.ParsePubKey(batch.nodeAnn2.NodeID[:], btcec.S256())
+	remoteKey, err := secp256k1.ParsePubKey(batch.nodeAnn2.NodeID[:])
 	if err != nil {
 		t.Fatalf("unable to parse pubkey: %v", err)
 	}
@@ -1827,7 +1827,7 @@ func TestSignatureAnnouncementFullProofWhenRemoteProof(t *testing.T) {
 	sentToPeer := make(chan lnwire.Message, 1)
 	remotePeer.sentMsgs = sentToPeer
 	remotePeer.quit = ctx.gossiper.quit
-	ctx.gossiper.cfg.SendToPeer = func(target *btcec.PublicKey,
+	ctx.gossiper.cfg.SendToPeer = func(target *secp256k1.PublicKey,
 		msg ...lnwire.Message) error {
 		select {
 		case <-ctx.gossiper.quit:
@@ -1838,7 +1838,7 @@ func TestSignatureAnnouncementFullProofWhenRemoteProof(t *testing.T) {
 	}
 
 	notifyPeers := make(chan chan<- lnpeer.Peer, 1)
-	ctx.gossiper.cfg.NotifyWhenOnline = func(peer *btcec.PublicKey,
+	ctx.gossiper.cfg.NotifyWhenOnline = func(peer *secp256k1.PublicKey,
 		connectedChan chan<- lnpeer.Peer) {
 		notifyPeers <- connectedChan
 	}
@@ -2314,10 +2314,10 @@ func TestReceiveRemoteChannelUpdateFirst(t *testing.T) {
 	// Set up a channel that we can use to inspect the messages
 	// sent directly fromn the gossiper.
 	sentMsgs := make(chan lnwire.Message, 10)
-	ctx.gossiper.cfg.FindPeer = func(target *btcec.PublicKey) (lnpeer.Peer, error) {
+	ctx.gossiper.cfg.FindPeer = func(target *secp256k1.PublicKey) (lnpeer.Peer, error) {
 		return &mockPeer{target, sentMsgs, ctx.gossiper.quit}, nil
 	}
-	ctx.gossiper.cfg.SendToPeer = func(target *btcec.PublicKey, msg ...lnwire.Message) error {
+	ctx.gossiper.cfg.SendToPeer = func(target *secp256k1.PublicKey, msg ...lnwire.Message) error {
 		select {
 		case sentMsgs <- msg[0]:
 		case <-ctx.gossiper.quit:
@@ -2331,11 +2331,11 @@ func TestReceiveRemoteChannelUpdateFirst(t *testing.T) {
 		t.Fatalf("can't generate announcements: %v", err)
 	}
 
-	localKey, err := btcec.ParsePubKey(batch.nodeAnn1.NodeID[:], btcec.S256())
+	localKey, err := secp256k1.ParsePubKey(batch.nodeAnn1.NodeID[:])
 	if err != nil {
 		t.Fatalf("unable to parse pubkey: %v", err)
 	}
-	remoteKey, err := btcec.ParsePubKey(batch.nodeAnn2.NodeID[:], btcec.S256())
+	remoteKey, err := secp256k1.ParsePubKey(batch.nodeAnn2.NodeID[:])
 	if err != nil {
 		t.Fatalf("unable to parse pubkey: %v", err)
 	}
@@ -2665,8 +2665,7 @@ func TestNodeAnnouncementNoChannels(t *testing.T) {
 		t.Fatalf("can't generate announcements: %v", err)
 	}
 
-	remoteKey, err := btcec.ParsePubKey(batch.nodeAnn2.NodeID[:],
-		btcec.S256())
+	remoteKey, err := secp256k1.ParsePubKey(batch.nodeAnn2.NodeID[:])
 	if err != nil {
 		t.Fatalf("unable to parse pubkey: %v", err)
 	}
@@ -2755,7 +2754,7 @@ func TestNodeAnnouncementNoChannels(t *testing.T) {
 // mockPeer implements the lnpeer.Peer interface and is used to test the
 // gossiper's interaction with peers.
 type mockPeer struct {
-	pk       *btcec.PublicKey
+	pk       *secp256k1.PublicKey
 	sentMsgs chan lnwire.Message
 	quit     chan struct{}
 }
@@ -2780,7 +2779,7 @@ func (p *mockPeer) AddNewChannel(_ *channeldb.OpenChannel, _ <-chan struct{}) er
 	return nil
 }
 func (p *mockPeer) WipeChannel(_ *wire.OutPoint) error { return nil }
-func (p *mockPeer) IdentityKey() *btcec.PublicKey      { return p.pk }
+func (p *mockPeer) IdentityKey() *secp256k1.PublicKey  { return p.pk }
 func (p *mockPeer) PubKey() [33]byte {
 	var pubkey [33]byte
 	copy(pubkey[:], p.pk.SerializeCompressed())

@@ -7,11 +7,11 @@ import (
 	"net"
 	"time"
 
-	"github.com/btcsuite/btcd/btcec"
+	"github.com/decred/dcrd/dcrec/secp256k1"
 )
 
 type MockPeer struct {
-	remotePub  *btcec.PublicKey
+	remotePub  *secp256k1.PublicKey
 	remoteAddr net.Addr
 
 	IncomingMsgs chan []byte
@@ -23,7 +23,7 @@ type MockPeer struct {
 	Quit chan struct{}
 }
 
-func NewMockPeer(pk *btcec.PublicKey, addr net.Addr, bufferSize int) *MockPeer {
+func NewMockPeer(pk *secp256k1.PublicKey, addr net.Addr, bufferSize int) *MockPeer {
 	return &MockPeer{
 		remotePub:    pk,
 		remoteAddr:   addr,
@@ -89,7 +89,7 @@ func (p *MockPeer) SetReadDeadline(t time.Time) error {
 	return nil
 }
 
-func (p *MockPeer) RemotePub() *btcec.PublicKey {
+func (p *MockPeer) RemotePub() *secp256k1.PublicKey {
 	return p.remotePub
 }
 

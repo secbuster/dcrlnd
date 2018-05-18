@@ -7,8 +7,8 @@ import (
 	"net"
 	"time"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/lightningnetwork/lnd/lnwire"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrlnd/lnwire"
 )
 
 // Conn is an implementation of net.Conn which enforces an authenticated key
@@ -32,7 +32,7 @@ var _ net.Conn = (*Conn)(nil)
 // remote peer located at address which has remotePub as its long-term static
 // public key. In the case of a handshake failure, the connection is closed and
 // a non-nil error is returned.
-func Dial(localPriv *btcec.PrivateKey, netAddr *lnwire.NetAddress,
+func Dial(localPriv *secp256k1.PrivateKey, netAddr *lnwire.NetAddress,
 	dialer func(string, string) (net.Conn, error)) (*Conn, error) {
 	ipAddr := netAddr.Address.String()
 	var conn net.Conn
@@ -216,11 +216,11 @@ func (c *Conn) SetWriteDeadline(t time.Time) error {
 }
 
 // RemotePub returns the remote peer's static public key.
-func (c *Conn) RemotePub() *btcec.PublicKey {
+func (c *Conn) RemotePub() *secp256k1.PublicKey {
 	return c.noise.remoteStatic
 }
 
 // LocalPub returns the local peer's static public key.
-func (c *Conn) LocalPub() *btcec.PublicKey {
-	return c.noise.localStatic.PubKey()
+func (c *Conn) LocalPub() *secp256k1.PublicKey {
+	return (*secp256k1.PublicKey)(&c.noise.localStatic.PublicKey)
 }

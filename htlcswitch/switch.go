@@ -9,17 +9,17 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
 	"github.com/coreos/bbolt"
 	"github.com/davecgh/go-spew/spew"
-	"github.com/lightningnetwork/lnd/chainntnfs"
-	"github.com/lightningnetwork/lnd/channeldb"
-	"github.com/lightningnetwork/lnd/contractcourt"
-	"github.com/lightningnetwork/lnd/lnwallet"
-	"github.com/lightningnetwork/lnd/lnwire"
-	"github.com/lightningnetwork/lnd/ticker"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/chainntnfs"
+	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/contractcourt"
+	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwire"
+	"github.com/decred/dcrlnd/ticker"
 )
 
 const (
@@ -130,7 +130,7 @@ type Config struct {
 	// SelfKey is the key of the backing Lightning node. This key is used
 	// to properly craft failure messages, such that the Layer 3 router can
 	// properly route around link./vertex failures.
-	SelfKey *btcec.PublicKey
+	SelfKey *secp256k1.PublicKey
 
 	// FwdingLog is an interface that will be used by the switch to log
 	// forwarding events. A forwarding event happens each time a payment
@@ -1504,8 +1504,8 @@ func (s *Switch) htlcForwarder() {
 	// TODO(roasbeef): cleared vs settled distinction
 	var (
 		totalNumUpdates uint64
-		totalSatSent    btcutil.Amount
-		totalSatRecv    btcutil.Amount
+		totalSatSent    dcrutil.Amount
+		totalSatRecv    dcrutil.Amount
 	)
 	s.cfg.LogEventTicker.Resume()
 	defer s.cfg.LogEventTicker.Stop()
@@ -1614,8 +1614,8 @@ out:
 
 			var (
 				newNumUpdates uint64
-				newSatSent    btcutil.Amount
-				newSatRecv    btcutil.Amount
+				newSatSent    dcrutil.Amount
+				newSatRecv    dcrutil.Amount
 			)
 
 			// Next, we'll run through all the registered links and
@@ -1633,8 +1633,8 @@ out:
 
 			var (
 				diffNumUpdates uint64
-				diffSatSent    btcutil.Amount
-				diffSatRecv    btcutil.Amount
+				diffSatSent    dcrutil.Amount
+				diffSatRecv    dcrutil.Amount
 			)
 
 			// If this is the first time we're computing these

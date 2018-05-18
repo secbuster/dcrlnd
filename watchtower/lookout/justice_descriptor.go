@@ -3,14 +3,14 @@ package lookout
 import (
 	"errors"
 
-	"github.com/btcsuite/btcd/blockchain"
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcd/txscript"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
-	"github.com/lightningnetwork/lnd/lnwallet"
-	"github.com/lightningnetwork/lnd/watchtower/blob"
-	"github.com/lightningnetwork/lnd/watchtower/wtdb"
+	"github.com/decred/dcrd/blockchain"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/txscript"
+	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/watchtower/blob"
+	"github.com/decred/dcrlnd/watchtower/wtdb"
+	"github.com/decred/dcrutil"
 )
 
 var (
@@ -105,7 +105,7 @@ func (p *JusticeDescriptor) commitToRemoteInput() (*breachedInput, error) {
 
 	// Since the to-remote witness script should just be a regular p2wkh
 	// output, we'll parse it to retrieve the public key.
-	toRemotePubKey, err := btcec.ParsePubKey(toRemoteScript, btcec.S256())
+	toRemotePubKey, err := secp256k1.ParsePubKey(toRemoteScript)
 	if err != nil {
 		return nil, err
 	}
@@ -158,9 +158,9 @@ func (p *JusticeDescriptor) assembleJusticeTxn(txWeight int64,
 
 	// First, construct add the breached inputs to our justice transaction
 	// and compute the total amount that will be swept.
-	var totalAmt btcutil.Amount
+	var totalAmt dcrutil.Amount
 	for _, input := range inputs {
-		totalAmt += btcutil.Amount(input.txOut.Value)
+		totalAmt += dcrutil.Amount(input.txOut.Value)
 		justiceTxn.AddTxIn(&wire.TxIn{
 			PreviousOutPoint: input.outPoint,
 		})
@@ -193,7 +193,7 @@ func (p *JusticeDescriptor) assembleJusticeTxn(txWeight int64,
 
 	// TODO(conner): apply and handle BIP69 sort
 
-	btx := btcutil.NewTx(justiceTxn)
+	btx := dcrutil.NewTx(justiceTxn)
 	if err := blockchain.CheckTransactionSanity(btx); err != nil {
 		return nil, err
 	}

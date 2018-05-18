@@ -3,8 +3,8 @@
 package signrpc
 
 import (
-	"github.com/lightningnetwork/lnd/lnwallet"
-	"github.com/lightningnetwork/lnd/macaroons"
+	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/macaroons"
 )
 
 // Config is the primary configuration struct for the signer RPC server. It

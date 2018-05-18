@@ -4,8 +4,8 @@ import (
 	"sync"
 
 	"github.com/coreos/bbolt"
+	"github.com/decred/dcrlnd/channeldb"
 	"github.com/go-errors/errors"
-	"github.com/lightningnetwork/lnd/channeldb"
 )
 
 // defaultSequenceBatchSize specifies the window of sequence numbers that are

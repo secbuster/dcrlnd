@@ -20,14 +20,14 @@ import (
 	"google.golang.org/grpc/credentials"
 	macaroon "gopkg.in/macaroon.v2"
 
-	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcd/rpcclient"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
+	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/rpcclient"
+	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/lnrpc"
+	"github.com/decred/dcrlnd/macaroons"
 	"github.com/go-errors/errors"
-	"github.com/lightningnetwork/lnd/lnrpc"
-	"github.com/lightningnetwork/lnd/macaroons"
 )
 
 var (
@@ -136,24 +136,22 @@ func (cfg nodeConfig) genArgs() []string {
 	var args []string
 
 	switch cfg.NetParams {
-	case &chaincfg.TestNet3Params:
-		args = append(args, "--bitcoin.testnet")
+	case &chaincfg.TestNet2Params:
+		args = append(args, "--decred.testnet")
 	case &chaincfg.SimNetParams:
-		args = append(args, "--bitcoin.simnet")
-	case &chaincfg.RegressionNetParams:
-		args = append(args, "--bitcoin.regtest")
+		args = append(args, "--decred.simnet")
 	}
 
 	encodedCert := hex.EncodeToString(cfg.RPCConfig.Certificates)
-	args = append(args, "--bitcoin.active")
+	args = append(args, "--decred.active")
 	args = append(args, "--nobootstrap")
 	args = append(args, "--debuglevel=debug")
-	args = append(args, "--bitcoin.defaultchanconfs=1")
-	args = append(args, fmt.Sprintf("--bitcoin.defaultremotedelay=%v", DefaultCSV))
-	args = append(args, fmt.Sprintf("--btcd.rpchost=%v", cfg.RPCConfig.Host))
-	args = append(args, fmt.Sprintf("--btcd.rpcuser=%v", cfg.RPCConfig.User))
-	args = append(args, fmt.Sprintf("--btcd.rpcpass=%v", cfg.RPCConfig.Pass))
-	args = append(args, fmt.Sprintf("--btcd.rawrpccert=%v", encodedCert))
+	args = append(args, "--decred.defaultchanconfs=1")
+	args = append(args, fmt.Sprintf("--decred.defaultremotedelay=%v", DefaultCSV))
+	args = append(args, fmt.Sprintf("--dcrd.rpchost=%v", cfg.RPCConfig.Host))
+	args = append(args, fmt.Sprintf("--dcrd.rpcuser=%v", cfg.RPCConfig.User))
+	args = append(args, fmt.Sprintf("--dcrd.rpcpass=%v", cfg.RPCConfig.Pass))
+	args = append(args, fmt.Sprintf("--dcrd.rawrpccert=%v", encodedCert))
 	args = append(args, fmt.Sprintf("--rpclisten=%v", cfg.RPCAddr()))
 	args = append(args, fmt.Sprintf("--restlisten=%v", cfg.RESTAddr()))
 	args = append(args, fmt.Sprintf("--listen=%v", cfg.P2PAddr()))
@@ -911,7 +909,7 @@ func (hn *HarnessNode) WaitForBalance(expectedBalance int64, confirmed bool) err
 	ctx := context.Background()
 	req := &lnrpc.WalletBalanceRequest{}
 
-	var lastBalance btcutil.Amount
+	var lastBalance dcrutil.Amount
 	doesBalanceMatch := func() bool {
 		balance, err := hn.WalletBalance(ctx, req)
 		if err != nil {
@@ -919,11 +917,11 @@ func (hn *HarnessNode) WaitForBalance(expectedBalance int64, confirmed bool) err
 		}
 
 		if confirmed {
-			lastBalance = btcutil.Amount(balance.ConfirmedBalance)
+			lastBalance = dcrutil.Amount(balance.ConfirmedBalance)
 			return balance.ConfirmedBalance == expectedBalance
 		}
 
-		lastBalance = btcutil.Amount(balance.UnconfirmedBalance)
+		lastBalance = dcrutil.Amount(balance.UnconfirmedBalance)
 		return balance.UnconfirmedBalance == expectedBalance
 	}
 

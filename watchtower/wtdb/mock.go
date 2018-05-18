@@ -5,7 +5,7 @@ package wtdb
 import (
 	"sync"
 
-	"github.com/lightningnetwork/lnd/chainntnfs"
+	"github.com/decred/dcrlnd/chainntnfs"
 )
 
 type MockDB struct {

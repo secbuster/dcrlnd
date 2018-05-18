@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/wire"
 )
 
 // AddressType is an enum-like type which denotes the possible address types
@@ -51,7 +51,7 @@ var (
 // original output.
 type Utxo struct {
 	AddressType   AddressType
-	Value         btcutil.Amount
+	Value         dcrutil.Amount
 	Confirmations int64
 	PkScript      []byte
 	RedeemScript  []byte
@@ -69,7 +69,7 @@ type TransactionDetail struct {
 	// PoV of the wallet. If this transaction purely spends from the
 	// wallet's funds, then this value will be negative. Similarly, if this
 	// transaction credits the wallet, then this value will be positive.
-	Value btcutil.Amount
+	Value dcrutil.Amount
 
 	// NumConfirmations is the number of confirmations this transaction
 	// has. If the transaction is unconfirmed, then this value will be
@@ -94,7 +94,7 @@ type TransactionDetail struct {
 	TotalFees int64
 
 	// DestAddresses are the destinations for a transaction
-	DestAddresses []btcutil.Address
+	DestAddresses []dcrutil.Address
 }
 
 // TransactionSubscription is an interface which describes an object capable of
@@ -118,12 +118,11 @@ type TransactionSubscription interface {
 // Go wallet, a local or remote wallet via an RPC mechanism, or possibly even
 // a daemon assisted hardware wallet. This interface serves the purpose of
 // allowing LightningWallet to be seamlessly compatible with several wallets
-// such as: uspv, btcwallet, Bitcoin Core, Electrum, etc. This interface then
-// serves as a "base wallet", with Lightning Network awareness taking place at
-// a "higher" level of abstraction. Essentially, an overlay wallet.
-// Implementors of this interface must closely adhere to the documented
-// behavior of all interface methods in order to ensure identical behavior
-// across all concrete implementations.
+// such as: uspv, dcrwallet, etc. This interface then serves as a "base wallet",
+// with Lightning Network awareness taking place at a "higher" level of
+// abstraction. Essentially, an overlay wallet.  Implementors of this interface
+// must closely adhere to the documented behavior of all interface methods in
+// order to ensure identical behavior across all concrete implementations.
 type WalletController interface {
 	// FetchInputInfo queries for the WalletController's knowledge of the
 	// passed outpoint. If the base wallet determines this output is under
@@ -139,18 +138,18 @@ type WalletController interface {
 	// NOTE: Only witness outputs should be included in the computation of
 	// the total spendable balance of the wallet. We require this as only
 	// witness inputs can be used for funding channels.
-	ConfirmedBalance(confs int32) (btcutil.Amount, error)
+	ConfirmedBalance(confs int32) (dcrutil.Amount, error)
 
 	// NewAddress returns the next external or internal address for the
 	// wallet dictated by the value of the `change` parameter. If change is
 	// true, then an internal address should be used, otherwise an external
 	// address should be returned. The type of address returned is dictated
-	// by the wallet's capabilities, and may be of type: p2sh, p2wkh,
-	// p2wsh, etc.
-	NewAddress(addrType AddressType, change bool) (btcutil.Address, error)
+	// by the wallet's capabilities, and may be of type: p2sh, p2pkh,
+	// etc.
+	NewAddress(addrType AddressType, change bool) (dcrutil.Address, error)
 
 	// IsOurAddress checks if the passed address belongs to this wallet
-	IsOurAddress(a btcutil.Address) bool
+	IsOurAddress(a dcrutil.Address) bool
 
 	// SendOutputs funds, signs, and broadcasts a Bitcoin transaction paying
 	// out to the specified outputs. In the case the wallet has insufficient
@@ -218,8 +217,7 @@ type WalletController interface {
 	Stop() error
 
 	// BackEnd returns a name for the wallet's backing chain service,
-	// which could be e.g. btcd, bitcoind, neutrino, or another consensus
-	// service.
+	// which could be e.g. dcrd or another consensus service.
 	BackEnd() string
 }
 
@@ -265,6 +263,7 @@ type Signer interface {
 	// NOTE: The resulting signature should be void of a sighash byte.
 	SignOutputRaw(tx *wire.MsgTx, signDesc *SignDescriptor) ([]byte, error)
 
+	// TODO(decred): p2wkh to p2pkh
 	// ComputeInputScript generates a complete InputIndex for the passed
 	// transaction with the signature as defined within the passed
 	// SignDescriptor. This method should be capable of generating the
@@ -286,7 +285,7 @@ type MessageSigner interface {
 	// that corresponds to the passed public key. If the target private key
 	// is unable to be found, then an error will be returned. The actual
 	// digest signed is the double SHA-256 of the passed message.
-	SignMessage(pubKey *btcec.PublicKey, msg []byte) (*btcec.Signature, error)
+	SignMessage(pubKey *secp256k1.PublicKey, msg []byte) (*secp256k1.Signature, error)
 }
 
 // PreimageCache is an interface that represents a global cache for preimages.
@@ -320,7 +319,7 @@ type WalletDriver struct {
 	New func(args ...interface{}) (WalletController, error)
 
 	// BackEnds returns a list of available chain service drivers for the
-	// wallet driver. This could be e.g. bitcoind, btcd, neutrino, etc.
+	// wallet driver.
 	BackEnds func() []string
 }
 

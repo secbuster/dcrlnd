@@ -2,7 +2,7 @@
 
 package chainntnfs
 
-import "github.com/btcsuite/btcd/chaincfg/chainhash"
+import "github.com/decred/dcrd/chaincfg/chainhash"
 
 // TestChainNotifier enables the use of methods that are only present during
 // testing for ChainNotifiers.

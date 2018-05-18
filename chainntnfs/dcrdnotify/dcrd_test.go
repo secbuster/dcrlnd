@@ -1,15 +1,15 @@
 // +build dev
 
-package btcdnotify
+package dcrddnotify
 
 import (
 	"io/ioutil"
 	"testing"
 
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcd/integration/rpctest"
-	"github.com/lightningnetwork/lnd/chainntnfs"
-	"github.com/lightningnetwork/lnd/channeldb"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/rpctest"
+	"github.com/decred/dcrlnd/chainntnfs"
+	"github.com/decred/dcrlnd/channeldb"
 )
 
 func initHintCache(t *testing.T) *chainntnfs.HeightHintCache {
@@ -31,9 +31,9 @@ func initHintCache(t *testing.T) *chainntnfs.HeightHintCache {
 	return hintCache
 }
 
-// setUpNotifier is a helper function to start a new notifier backed by a btcd
+// setUpNotifier is a helper function to start a new notifier backed by a dcrd
 // driver.
-func setUpNotifier(t *testing.T, h *rpctest.Harness) *BtcdNotifier {
+func setUpNotifier(t *testing.T, h *rpctest.Harness) *DcrdNotifier {
 	hintCache := initHintCache(t)
 
 	rpcCfg := h.RPCConfig()

@@ -15,21 +15,20 @@ import (
 	"testing"
 	"time"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
-	"github.com/btcsuite/fastsha256"
 	"github.com/coreos/bbolt"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/contractcourt"
+	"github.com/decred/dcrlnd/keychain"
+	"github.com/decred/dcrlnd/lnpeer"
+	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwire"
+	"github.com/decred/dcrlnd/shachain"
+	"github.com/decred/dcrlnd/ticker"
 	"github.com/go-errors/errors"
-	"github.com/lightningnetwork/lnd/channeldb"
-	"github.com/lightningnetwork/lnd/contractcourt"
-	"github.com/lightningnetwork/lnd/keychain"
-	"github.com/lightningnetwork/lnd/lnpeer"
-	"github.com/lightningnetwork/lnd/lnwallet"
-	"github.com/lightningnetwork/lnd/lnwire"
-	"github.com/lightningnetwork/lnd/shachain"
-	"github.com/lightningnetwork/lnd/ticker"
 )
 
 var (
@@ -44,8 +43,8 @@ var (
 		0x1e, 0xb, 0x4c, 0xfd, 0x9e, 0xc5, 0x8c, 0xe9,
 	}
 
-	_, testPubKey = btcec.PrivKeyFromBytes(btcec.S256(), testPrivKey)
-	testSig       = &btcec.Signature{
+	_, testPubKey = secp256k1.PrivKeyFromBytes(testPrivKey)
+	testSig       = &secp256k1.Signature{
 		R: new(big.Int),
 		S: new(big.Int),
 	}
@@ -150,20 +149,20 @@ func generateRandomBytes(n int) ([]byte, error) {
 //
 // TODO(roasbeef): need to factor out, similar func re-used in many parts of codebase
 func createTestChannel(alicePrivKey, bobPrivKey []byte,
-	aliceAmount, bobAmount, aliceReserve, bobReserve btcutil.Amount,
+	aliceAmount, bobAmount, aliceReserve, bobReserve dcrutil.Amount,
 	chanID lnwire.ShortChannelID) (*lnwallet.LightningChannel, *lnwallet.LightningChannel, func(),
 	func() (*lnwallet.LightningChannel, *lnwallet.LightningChannel,
 		error), error) {
 
-	aliceKeyPriv, aliceKeyPub := btcec.PrivKeyFromBytes(btcec.S256(), alicePrivKey)
-	bobKeyPriv, bobKeyPub := btcec.PrivKeyFromBytes(btcec.S256(), bobPrivKey)
+	aliceKeyPriv, aliceKeyPub := secp256k1.PrivKeyFromBytes(alicePrivKey)
+	bobKeyPriv, bobKeyPub := secp256k1.PrivKeyFromBytes(bobPrivKey)
 
 	channelCapacity := aliceAmount + bobAmount
 	csvTimeoutAlice := uint32(5)
 	csvTimeoutBob := uint32(4)
 
 	aliceConstraints := &channeldb.ChannelConstraints{
-		DustLimit: btcutil.Amount(200),
+		DustLimit: dcrutil.Amount(200),
 		MaxPendingAmount: lnwire.NewMSatFromSatoshis(
 			channelCapacity),
 		ChanReserve:      aliceReserve,
@@ -172,7 +171,7 @@ func createTestChannel(alicePrivKey, bobPrivKey []byte,
 	}
 
 	bobConstraints := &channeldb.ChannelConstraints{
-		DustLimit: btcutil.Amount(800),
+		DustLimit: dcrutil.Amount(800),
 		MaxPendingAmount: lnwire.NewMSatFromSatoshis(
 			channelCapacity),
 		ChanReserve:      bobReserve,
@@ -191,7 +190,7 @@ func createTestChannel(alicePrivKey, bobPrivKey []byte,
 		Hash:  chainhash.Hash(hash),
 		Index: 0,
 	}
-	fundingTxIn := wire.NewTxIn(prevOut, nil, nil)
+	fundingTxIn := wire.NewTxIn(prevOut, nil)
 
 	aliceCfg := channeldb.ChannelConfig{
 		ChannelConstraints: *aliceConstraints,
@@ -296,7 +295,7 @@ func createTestChannel(alicePrivKey, bobPrivKey []byte,
 		LocalBalance:  lnwire.NewMSatFromSatoshis(aliceAmount - commitFee),
 		RemoteBalance: lnwire.NewMSatFromSatoshis(bobAmount),
 		CommitFee:     commitFee,
-		FeePerKw:      btcutil.Amount(feePerKw),
+		FeePerKw:      dcrutil.Amount(feePerKw),
 		CommitTx:      aliceCommitTx,
 		CommitSig:     bytes.Repeat([]byte{1}, 71),
 	}
@@ -305,7 +304,7 @@ func createTestChannel(alicePrivKey, bobPrivKey []byte,
 		LocalBalance:  lnwire.NewMSatFromSatoshis(bobAmount),
 		RemoteBalance: lnwire.NewMSatFromSatoshis(aliceAmount - commitFee),
 		CommitFee:     commitFee,
-		FeePerKw:      btcutil.Amount(feePerKw),
+		FeePerKw:      dcrutil.Amount(feePerKw),
 		CommitTx:      bobCommitTx,
 		CommitSig:     bytes.Repeat([]byte{1}, 71),
 	}
@@ -533,7 +532,7 @@ func generatePayment(invoiceAmt, htlcAmt lnwire.MilliSatoshi, timelock uint32,
 	}
 	copy(preimage[:], r)
 
-	rhash := fastsha256.Sum256(preimage[:])
+	rhash := sha256.Sum256(preimage[:])
 
 	invoice := &channeldb.Invoice{
 		CreationDate: time.Now(),
@@ -704,7 +703,7 @@ func (n *threeHopNetwork) makePayment(sendingPeer, receivingPeer lnpeer.Peer,
 			err:   paymentErr,
 		}
 	}
-	rhash = fastsha256.Sum256(invoice.Terms.PaymentPreimage[:])
+	rhash = sha256.Sum256(invoice.Terms.PaymentPreimage[:])
 
 	// Check who is last in the route and add invoice to server registry.
 	if err := receiver.registry.AddInvoice(*invoice); err != nil {
@@ -776,7 +775,7 @@ type clusterChannels struct {
 
 // createClusterChannels creates lightning channels which are needed for
 // network cluster to be initialized.
-func createClusterChannels(aliceToBob, bobToCarol btcutil.Amount) (
+func createClusterChannels(aliceToBob, bobToCarol dcrutil.Amount) (
 	*clusterChannels, func(), func() (*clusterChannels, error), error) {
 
 	_, _, firstChanID, secondChanID := genIDs()
@@ -912,7 +911,7 @@ func newThreeHopNetwork(t testing.TB, aliceChannel, firstBobChannel,
 			Circuits:           aliceServer.htlcSwitch.CircuitModifier(),
 			ForwardPackets:     aliceServer.htlcSwitch.ForwardPackets,
 			DecodeHopIterators: aliceDecoder.DecodeHopIterators,
-			ExtractErrorEncrypter: func(*btcec.PublicKey) (
+			ExtractErrorEncrypter: func(*secp256k1.PublicKey) (
 				ErrorEncrypter, lnwire.FailCode) {
 				return obfuscator, lnwire.CodeNone
 			},
@@ -955,7 +954,7 @@ func newThreeHopNetwork(t testing.TB, aliceChannel, firstBobChannel,
 			Circuits:           bobServer.htlcSwitch.CircuitModifier(),
 			ForwardPackets:     bobServer.htlcSwitch.ForwardPackets,
 			DecodeHopIterators: bobDecoder.DecodeHopIterators,
-			ExtractErrorEncrypter: func(*btcec.PublicKey) (
+			ExtractErrorEncrypter: func(*secp256k1.PublicKey) (
 				ErrorEncrypter, lnwire.FailCode) {
 				return obfuscator, lnwire.CodeNone
 			},
@@ -998,7 +997,7 @@ func newThreeHopNetwork(t testing.TB, aliceChannel, firstBobChannel,
 			Circuits:           bobServer.htlcSwitch.CircuitModifier(),
 			ForwardPackets:     bobServer.htlcSwitch.ForwardPackets,
 			DecodeHopIterators: bobDecoder.DecodeHopIterators,
-			ExtractErrorEncrypter: func(*btcec.PublicKey) (
+			ExtractErrorEncrypter: func(*secp256k1.PublicKey) (
 				ErrorEncrypter, lnwire.FailCode) {
 				return obfuscator, lnwire.CodeNone
 			},
@@ -1041,7 +1040,7 @@ func newThreeHopNetwork(t testing.TB, aliceChannel, firstBobChannel,
 			Circuits:           carolServer.htlcSwitch.CircuitModifier(),
 			ForwardPackets:     carolServer.htlcSwitch.ForwardPackets,
 			DecodeHopIterators: carolDecoder.DecodeHopIterators,
-			ExtractErrorEncrypter: func(*btcec.PublicKey) (
+			ExtractErrorEncrypter: func(*secp256k1.PublicKey) (
 				ErrorEncrypter, lnwire.FailCode) {
 				return obfuscator, lnwire.CodeNone
 			},

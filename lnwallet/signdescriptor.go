@@ -5,10 +5,10 @@ import (
 	"errors"
 	"io"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcd/txscript"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/lightningnetwork/lnd/keychain"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/txscript"
+	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/keychain"
 )
 
 var (
@@ -53,10 +53,10 @@ type SignDescriptor struct {
 	// NOTE: If this value is nil, then the input can be signed using only
 	// the above public key. Either a SingleTweak should be set or a
 	// DoubleTweak, not both.
-	DoubleTweak *btcec.PrivateKey
+	DoubleTweak *secp256k1.PrivateKey
 
 	// WitnessScript is the full script required to properly redeem the
-	// output. This field will only be populated if a p2wsh or a p2sh
+	// output. This field will only be populated if a p2wsh or a p2sh // TODO(decred): p2wsh....
 	// output is being signed.
 	WitnessScript []byte
 
@@ -69,9 +69,10 @@ type SignDescriptor struct {
 	// generating the final sighash, and signature.
 	HashType txscript.SigHashType
 
+	// TODO(decred): Fix...
 	// SigHashes is the pre-computed sighash midstate to be used when
 	// generating the final sighash for signing.
-	SigHashes *txscript.TxSigHashes
+	//SigHashes *txscript.TxSigHashes
 
 	// InputIndex is the target input within the transaction that should be
 	// signed.
@@ -158,9 +159,7 @@ func ReadSignDescriptor(r io.Reader, sd *SignDescriptor) error {
 		if err != nil {
 			return err
 		}
-		sd.KeyDesc.PubKey, err = btcec.ParsePubKey(
-			pubKeyBytes, btcec.S256(),
-		)
+		sd.KeyDesc.PubKey, err = secp256k1.ParsePubKey(pubKeyBytes)
 		if err != nil {
 			return err
 		}
@@ -195,7 +194,7 @@ func ReadSignDescriptor(r io.Reader, sd *SignDescriptor) error {
 	if len(doubleTweakBytes) == 0 {
 		sd.DoubleTweak = nil
 	} else {
-		sd.DoubleTweak, _ = btcec.PrivKeyFromBytes(btcec.S256(), doubleTweakBytes)
+		sd.DoubleTweak, _ = secp256k1.PrivKeyFromBytes(doubleTweakBytes)
 	}
 
 	// Only one tweak should ever be set, fail if both are present.

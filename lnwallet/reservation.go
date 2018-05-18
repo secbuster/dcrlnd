@@ -4,12 +4,12 @@ import (
 	"net"
 	"sync"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
-	"github.com/lightningnetwork/lnd/channeldb"
-	"github.com/lightningnetwork/lnd/lnwire"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/lnwire"
 )
 
 // ChannelContribution is the primary constituent of the funding workflow
@@ -21,7 +21,7 @@ import (
 type ChannelContribution struct {
 	// FundingOutpoint is the amount of funds contributed to the funding
 	// transaction.
-	FundingAmount btcutil.Amount
+	FundingAmount dcrutil.Amount
 
 	// Inputs to the funding transaction.
 	Inputs []*wire.TxIn
@@ -34,7 +34,7 @@ type ChannelContribution struct {
 	// FirstCommitmentPoint is the first commitment point that will be used
 	// to create the revocation key in the first commitment transaction we
 	// send to the remote party.
-	FirstCommitmentPoint *btcec.PublicKey
+	FirstCommitmentPoint *secp256k1.PublicKey
 
 	// ChannelConfig is the concrete contribution that this node is
 	// offering to the channel. This includes all the various constraints
@@ -134,7 +134,7 @@ type ChannelReservation struct {
 // used only internally by lnwallet. In order to concurrent safety, the
 // creation of all channel reservations should be carried out via the
 // lnwallet.InitChannelReservation interface.
-func NewChannelReservation(capacity, fundingAmt btcutil.Amount,
+func NewChannelReservation(capacity, fundingAmt dcrutil.Amount,
 	commitFeePerKw SatPerKWeight, wallet *LightningWallet,
 	id uint64, pushMSat lnwire.MilliSatoshi, chainHash *chainhash.Hash,
 	flags lnwire.FundingFlag) (*ChannelReservation, error) {
@@ -146,6 +146,8 @@ func NewChannelReservation(capacity, fundingAmt btcutil.Amount,
 	)
 
 	commitFee := commitFeePerKw.FeeForWeight(CommitWeight)
+
+>>>>>>> Initial Decred port.
 	fundingMSat := lnwire.NewMSatFromSatoshis(fundingAmt)
 	capacityMSat := lnwire.NewMSatFromSatoshis(capacity)
 	feeMSat := lnwire.NewMSatFromSatoshis(commitFee)
@@ -245,13 +247,13 @@ func NewChannelReservation(capacity, fundingAmt btcutil.Amount,
 			LocalCommitment: channeldb.ChannelCommitment{
 				LocalBalance:  ourBalance,
 				RemoteBalance: theirBalance,
-				FeePerKw:      btcutil.Amount(commitFeePerKw),
+				FeePerKw:      dcrutil.Amount(commitFeePerKw),
 				CommitFee:     commitFee,
 			},
 			RemoteCommitment: channeldb.ChannelCommitment{
 				LocalBalance:  ourBalance,
 				RemoteBalance: theirBalance,
-				FeePerKw:      btcutil.Amount(commitFeePerKw),
+				FeePerKw:      dcrutil.Amount(commitFeePerKw),
 				CommitFee:     commitFee,
 			},
 			Db: wallet.Cfg.Database,
@@ -284,7 +286,7 @@ func (r *ChannelReservation) SetNumConfsRequired(numConfs uint16) {
 // if the parameters are seemed unsound.
 func (r *ChannelReservation) CommitConstraints(csvDelay, maxHtlcs uint16,
 	maxValueInFlight, minHtlc lnwire.MilliSatoshi,
-	chanReserve, dustLimit btcutil.Amount) error {
+	chanReserve, dustLimit dcrutil.Amount) error {
 
 	r.Lock()
 	defer r.Unlock()
@@ -317,8 +319,7 @@ func (r *ChannelReservation) CommitConstraints(csvDelay, maxHtlcs uint16,
 		return ErrMinHtlcTooLarge(minHtlc, maxValueInFlight)
 	}
 
-	// Fail if maxHtlcs is above the maximum allowed number of 483.  This
-	// number is specified in BOLT-02.
+	// Fail if maxHtlcs is above the maximum allowed number.
 	if maxHtlcs > uint16(MaxHTLCNumber/2) {
 		return ErrMaxHtlcNumTooLarge(maxHtlcs, uint16(MaxHTLCNumber/2))
 	}

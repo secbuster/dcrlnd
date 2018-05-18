@@ -14,20 +14,20 @@ import (
 	"testing"
 	"time"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
+	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/wire"
 
-	"github.com/lightningnetwork/lnd/chainntnfs"
-	"github.com/lightningnetwork/lnd/channeldb"
-	"github.com/lightningnetwork/lnd/htlcswitch"
-	"github.com/lightningnetwork/lnd/keychain"
-	"github.com/lightningnetwork/lnd/lnpeer"
-	"github.com/lightningnetwork/lnd/lnrpc"
-	"github.com/lightningnetwork/lnd/lnwallet"
-	"github.com/lightningnetwork/lnd/lnwire"
+	"github.com/decred/dcrlnd/chainntnfs"
+	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/htlcswitch"
+	"github.com/decred/dcrlnd/keychain"
+	"github.com/decred/dcrlnd/lnpeer"
+	"github.com/decred/dcrlnd/lnrpc"
+	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwire"
 )
 
 const (
@@ -56,8 +56,7 @@ var (
 		0x6a, 0x49, 0x18, 0x83, 0x31, 0x98, 0x47, 0x53,
 	}
 
-	alicePrivKey, alicePubKey = btcec.PrivKeyFromBytes(btcec.S256(),
-		alicePrivKeyBytes[:])
+	alicePrivKey, alicePubKey = secp256k1.PrivKeyFromBytes(alicePrivKeyBytes[:])
 
 	aliceTCPAddr, _ = net.ResolveTCPAddr("tcp", "10.0.0.2:9001")
 
@@ -73,8 +72,7 @@ var (
 		0x1e, 0xb, 0x4c, 0xfd, 0x9e, 0xc5, 0x8c, 0xe9,
 	}
 
-	bobPrivKey, bobPubKey = btcec.PrivKeyFromBytes(btcec.S256(),
-		bobPrivKeyBytes[:])
+	bobPrivKey, bobPubKey = secp256k1.PrivKeyFromBytes(bobPrivKeyBytes[:])
 
 	bobTCPAddr, _ = net.ResolveTCPAddr("tcp", "10.0.0.2:9000")
 
@@ -83,7 +81,7 @@ var (
 		Address:     bobTCPAddr,
 	}
 
-	testSig = &btcec.Signature{
+	testSig = &secp256k1.Signature{
 		R: new(big.Int),
 		S: new(big.Int),
 	}
@@ -135,7 +133,7 @@ func (m *mockNotifier) RegisterSpendNtfn(outpoint *wire.OutPoint, _ []byte,
 }
 
 type testNode struct {
-	privKey         *btcec.PrivateKey
+	privKey         *secp256k1.PrivateKey
 	addr            *lnwire.NetAddress
 	msgChan         chan lnwire.Message
 	announceChan    chan lnwire.Message
@@ -152,7 +150,7 @@ type testNode struct {
 
 var _ lnpeer.Peer = (*testNode)(nil)
 
-func (n *testNode) IdentityKey() *btcec.PublicKey {
+func (n *testNode) IdentityKey() *secp256k1.PublicKey {
 	return n.addr.IdentityKey
 }
 
@@ -227,7 +225,7 @@ func createTestWallet(cdb *channeldb.DB, netParams *chaincfg.Params,
 	return wallet, nil
 }
 
-func createTestFundingManager(t *testing.T, privKey *btcec.PrivateKey,
+func createTestFundingManager(t *testing.T, privKey *secp256k1.PrivateKey,
 	addr *lnwire.NetAddress, tempTestDir string) (*testNode, error) {
 
 	netParams := activeNetParams.Params
@@ -279,7 +277,7 @@ func createTestFundingManager(t *testing.T, privKey *btcec.PrivateKey,
 		Wallet:       lnw,
 		Notifier:     chainNotifier,
 		FeeEstimator: estimator,
-		SignMessage: func(pubKey *btcec.PublicKey, msg []byte) (*btcec.Signature, error) {
+		SignMessage: func(pubKey *secp256k1.PublicKey, msg []byte) (*secp256k1.Signature, error) {
 			return testSig, nil
 		},
 		SendAnnouncement: func(msg lnwire.Message) chan error {
@@ -317,15 +315,15 @@ func createTestFundingManager(t *testing.T, privKey *btcec.PrivateKey,
 			FeeRate:       1000,
 			TimeLockDelta: 10,
 		},
-		NumRequiredConfs: func(chanAmt btcutil.Amount,
+		NumRequiredConfs: func(chanAmt dcrutil.Amount,
 			pushAmt lnwire.MilliSatoshi) uint16 {
 			return 3
 		},
-		RequiredRemoteDelay: func(amt btcutil.Amount) uint16 {
+		RequiredRemoteDelay: func(amt dcrutil.Amount) uint16 {
 			return 4
 		},
 		RequiredRemoteChanReserve: func(chanAmt,
-			dustLimit btcutil.Amount) btcutil.Amount {
+			dustLimit dcrutil.Amount) dcrutil.Amount {
 
 			reserve := chanAmt / 100
 			if reserve < dustLimit {
@@ -334,14 +332,14 @@ func createTestFundingManager(t *testing.T, privKey *btcec.PrivateKey,
 
 			return reserve
 		},
-		RequiredRemoteMaxValue: func(chanAmt btcutil.Amount) lnwire.MilliSatoshi {
+		RequiredRemoteMaxValue: func(chanAmt dcrutil.Amount) lnwire.MilliSatoshi {
 			reserve := lnwire.NewMSatFromSatoshis(chanAmt / 100)
 			return lnwire.NewMSatFromSatoshis(chanAmt) - reserve
 		},
-		RequiredRemoteMaxHTLCs: func(chanAmt btcutil.Amount) uint16 {
+		RequiredRemoteMaxHTLCs: func(chanAmt dcrutil.Amount) uint16 {
 			return uint16(lnwallet.MaxHTLCNumber / 2)
 		},
-		WatchNewChannel: func(*channeldb.OpenChannel, *btcec.PublicKey) error {
+		WatchNewChannel: func(*channeldb.OpenChannel, *secp256k1.PublicKey) error {
 			return nil
 		},
 		ReportShortChanID: func(wire.OutPoint) error {
@@ -374,7 +372,7 @@ func createTestFundingManager(t *testing.T, privKey *btcec.PrivateKey,
 		addr:            addr,
 	}
 
-	f.cfg.NotifyWhenOnline = func(peer *btcec.PublicKey,
+	f.cfg.NotifyWhenOnline = func(peer *secp256k1.PublicKey,
 		connectedChan chan<- lnpeer.Peer) {
 
 		connectedChan <- testNode
@@ -402,8 +400,8 @@ func recreateAliceFundingManager(t *testing.T, alice *testNode) {
 		Wallet:       oldCfg.Wallet,
 		Notifier:     oldCfg.Notifier,
 		FeeEstimator: oldCfg.FeeEstimator,
-		SignMessage: func(pubKey *btcec.PublicKey,
-			msg []byte) (*btcec.Signature, error) {
+		SignMessage: func(pubKey *secp256k1.PublicKey,
+			msg []byte) (*secp256k1.Signature, error) {
 			return testSig, nil
 		},
 		SendAnnouncement: func(msg lnwire.Message) chan error {
@@ -419,7 +417,7 @@ func recreateAliceFundingManager(t *testing.T, alice *testNode) {
 		CurrentNodeAnnouncement: func() (lnwire.NodeAnnouncement, error) {
 			return lnwire.NodeAnnouncement{}, nil
 		},
-		NotifyWhenOnline: func(peer *btcec.PublicKey,
+		NotifyWhenOnline: func(peer *secp256k1.PublicKey,
 			connectedChan chan<- lnpeer.Peer) {
 
 			connectedChan <- alice.remotePeer
@@ -529,7 +527,7 @@ func tearDownFundingManagers(t *testing.T, a, b *testNode) {
 // openChannel takes the funding process to the point where the funding
 // transaction is confirmed on-chain. Returns the funding out point.
 func openChannel(t *testing.T, alice, bob *testNode, localFundingAmt,
-	pushAmt btcutil.Amount, numConfs uint32,
+	pushAmt dcrutil.Amount, numConfs uint32,
 	updateChan chan *lnrpc.OpenStatusUpdate, announceChan bool) *wire.OutPoint {
 	// Create a funding request and start the workflow.
 	errChan := make(chan error, 1)
@@ -702,7 +700,7 @@ func assertFundingMsgSent(t *testing.T, msgChan chan lnwire.Message,
 }
 
 func assertNumPendingReservations(t *testing.T, node *testNode,
-	peerPubKey *btcec.PublicKey, expectedNum int) {
+	peerPubKey *secp256k1.PublicKey, expectedNum int) {
 	serializedPubKey := newSerializedKey(peerPubKey)
 	actualNum := len(node.fundingMgr.activeReservations[serializedPubKey])
 	if actualNum == expectedNum {
@@ -1088,7 +1086,7 @@ func TestFundingManagerRestartBehavior(t *testing.T) {
 	bob.sendMessage = func(msg lnwire.Message) error {
 		return fmt.Errorf("intentional error in SendToPeer")
 	}
-	alice.fundingMgr.cfg.NotifyWhenOnline = func(peer *btcec.PublicKey,
+	alice.fundingMgr.cfg.NotifyWhenOnline = func(peer *secp256k1.PublicKey,
 		con chan<- lnpeer.Peer) {
 		// Intentionally empty.
 	}
@@ -1220,9 +1218,9 @@ func TestFundingManagerOfflinePeer(t *testing.T) {
 	bob.sendMessage = func(msg lnwire.Message) error {
 		return fmt.Errorf("intentional error in SendToPeer")
 	}
-	peerChan := make(chan *btcec.PublicKey, 1)
+	peerChan := make(chan *secp256k1.PublicKey, 1)
 	conChan := make(chan chan<- lnpeer.Peer, 1)
-	alice.fundingMgr.cfg.NotifyWhenOnline = func(peer *btcec.PublicKey,
+	alice.fundingMgr.cfg.NotifyWhenOnline = func(peer *secp256k1.PublicKey,
 		connected chan<- lnpeer.Peer) {
 
 		peerChan <- peer
@@ -1262,7 +1260,7 @@ func TestFundingManagerOfflinePeer(t *testing.T) {
 
 	// Alice should be waiting for the server to notify when Bob comes back
 	// online.
-	var peer *btcec.PublicKey
+	var peer *secp256k1.PublicKey
 	var con chan<- lnpeer.Peer
 	select {
 	case peer = <-peerChan:

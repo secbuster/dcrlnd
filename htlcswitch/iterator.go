@@ -4,9 +4,9 @@ import (
 	"encoding/binary"
 	"io"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/lightningnetwork/lightning-onion"
-	"github.com/lightningnetwork/lnd/lnwire"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrlnd/lnwire"
+	"github.com/lightningnetwork/lightning-onion" // TODO(decred): ok?
 )
 
 // NetworkHop indicates the blockchain network that is intended to be the next
@@ -402,7 +402,7 @@ func (p *OnionProcessor) DecodeHopIterators(id []byte,
 // ErrorEncrypter instance using the derived shared secret. In the case that en
 // error occurs, a lnwire failure code detailing the parsing failure will be
 // returned.
-func (p *OnionProcessor) ExtractErrorEncrypter(ephemeralKey *btcec.PublicKey) (
+func (p *OnionProcessor) ExtractErrorEncrypter(ephemeralKey *secp256k1.PublicKey) (
 	ErrorEncrypter, lnwire.FailCode) {
 
 	onionObfuscator, err := sphinx.NewOnionErrorEncrypter(

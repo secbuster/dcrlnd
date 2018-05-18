@@ -3,7 +3,7 @@ package wtwire
 import (
 	"io"
 
-	"github.com/lightningnetwork/lnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwallet"
 )
 
 // CreateSession is sent from a client to tower when to negotiate a session, which

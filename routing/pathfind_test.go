@@ -16,12 +16,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
-	"github.com/lightningnetwork/lnd/channeldb"
-	"github.com/lightningnetwork/lnd/lnwire"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/lnwire"
 )
 
 const (
@@ -48,7 +48,7 @@ const (
 )
 
 var (
-	testSig = &btcec.Signature{
+	testSig = &secp256k1.Signature{
 		R: new(big.Int),
 		S: new(big.Int),
 	}
@@ -154,7 +154,7 @@ func parseTestGraph(path string) (*testGraphInstance, error) {
 		return nil, err
 	}
 
-	aliasMap := make(map[string]*btcec.PublicKey)
+	aliasMap := make(map[string]*secp256k1.PublicKey)
 	var source *channeldb.LightningNode
 
 	// First we insert all the nodes within the graph as vertexes.
@@ -181,7 +181,7 @@ func parseTestGraph(path string) (*testGraphInstance, error) {
 				"must be unique!")
 		}
 
-		pub, err := btcec.ParsePubKey(pubBytes, btcec.S256())
+		pub, err := secp256k1.ParsePubKey(pubBytes)
 		if err != nil {
 			return nil, err
 		}
@@ -256,7 +256,7 @@ func parseTestGraph(path string) (*testGraphInstance, error) {
 			ChannelID:    edge.ChannelID,
 			AuthProof:    &testAuthProof,
 			ChannelPoint: fundingPoint,
-			Capacity:     btcutil.Amount(edge.Capacity),
+			Capacity:     dcrutil.Amount(edge.Capacity),
 		}
 
 		copy(edgeInfo.NodeKey1Bytes[:], node1Bytes)
@@ -315,7 +315,7 @@ func defaultTestChannelEnd(alias string) *testChannelEnd {
 	}
 }
 
-func symmetricTestChannel(alias1 string, alias2 string, capacity btcutil.Amount,
+func symmetricTestChannel(alias1 string, alias2 string, capacity dcrutil.Amount,
 	policy *testChannelPolicy, chanID ...uint64) *testChannel {
 
 	// Leaving id zero will result in auto-generation of a channel id during
@@ -342,7 +342,7 @@ func symmetricTestChannel(alias1 string, alias2 string, capacity btcutil.Amount,
 type testChannel struct {
 	Node1     *testChannelEnd
 	Node2     *testChannelEnd
-	Capacity  btcutil.Amount
+	Capacity  dcrutil.Amount
 	ChannelID uint64
 }
 
@@ -353,11 +353,11 @@ type testGraphInstance struct {
 	// aliasMap is a map from a node's alias to its public key. This type is
 	// provided in order to allow easily look up from the human memorable alias
 	// to an exact node's public key.
-	aliasMap map[string]*btcec.PublicKey
+	aliasMap map[string]*secp256k1.PublicKey
 
 	// privKeyMap maps a node alias to its private key. This is used to be
 	// able to mock a remote node's signing behaviour.
-	privKeyMap map[string]*btcec.PrivateKey
+	privKeyMap map[string]*secp256k1.PrivateKey
 }
 
 // createTestGraphFromChannels returns a fully populated ChannelGraph based on a set of
@@ -382,8 +382,8 @@ func createTestGraphFromChannels(testChannels []*testChannel) (*testGraphInstanc
 		return nil, err
 	}
 
-	aliasMap := make(map[string]*btcec.PublicKey)
-	privKeyMap := make(map[string]*btcec.PrivateKey)
+	aliasMap := make(map[string]*secp256k1.PublicKey)
+	privKeyMap := make(map[string]*secp256k1.PrivateKey)
 
 	nodeIndex := byte(0)
 	addNodeWithAlias := func(alias string) (*channeldb.LightningNode, error) {
@@ -395,8 +395,7 @@ func createTestGraphFromChannels(testChannels []*testChannel) (*testGraphInstanc
 			0, 0, 0, 0, 0, 0, 0, nodeIndex + 1,
 		}
 
-		privKey, pubKey := btcec.PrivKeyFromBytes(btcec.S256(),
-			keyBytes)
+		privKey, pubKey := secp256k1.PrivKeyFromBytes(keyBytes)
 
 		dbNode := &channeldb.LightningNode{
 			HaveNodeAnnouncement: true,
@@ -617,7 +616,7 @@ func TestFindLowestFeePath(t *testing.T) {
 }
 
 func getAliasFromPubKey(pubKey []byte,
-	aliases map[string]*btcec.PublicKey) string {
+	aliases map[string]*secp256k1.PublicKey) string {
 
 	for alias, key := range aliases {
 		if bytes.Equal(key.SerializeCompressed(), pubKey) {
@@ -636,7 +635,7 @@ type expectedHop struct {
 
 type basicGraphPathFindingTestCase struct {
 	target                string
-	paymentAmt            btcutil.Amount
+	paymentAmt            dcrutil.Amount
 	feeLimit              lnwire.MilliSatoshi
 	expectedTotalAmt      lnwire.MilliSatoshi
 	expectedTotalTimeLock uint32
@@ -873,7 +872,7 @@ func TestPathFindingWithAdditionalEdges(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to decode public key: %v", err)
 	}
-	dogePubKey, err := btcec.ParsePubKey(dogePubKeyBytes, btcec.S256())
+	dogePubKey, err := secp256k1.ParsePubKey(dogePubKeyBytes)
 	if err != nil {
 		t.Fatalf("unable to parse public key from bytes: %v", err)
 	}
@@ -1325,7 +1324,7 @@ func TestPathNotAvailable(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to parse bytes: %v", err)
 	}
-	unknownNode, err := btcec.ParsePubKey(unknownNodeBytes, btcec.S256())
+	unknownNode, err := secp256k1.ParsePubKey(unknownNodeBytes)
 	if err != nil {
 		t.Fatalf("unable to parse pubkey: %v", err)
 	}
@@ -1366,13 +1365,13 @@ func TestPathInsufficientCapacity(t *testing.T) {
 	// channel graph cannot support due to insufficient capacity triggers
 	// an error.
 
-	// To test his we'll attempt to make a payment of 1 BTC, or 100 million
+	// To test his we'll attempt to make a payment of 1 DCR, or 100 million
 	// satoshis. The largest channel in the basic graph is of size 100k
 	// satoshis, so we shouldn't be able to find a path to sophon even
 	// though we have a 2-hop link.
 	target := graph.aliasMap["sophon"]
 
-	payAmt := lnwire.NewMSatFromSatoshis(btcutil.SatoshiPerBitcoin)
+	payAmt := lnwire.NewMSatFromSatoshis(dcrutil.AtomsPerCoin)
 	_, err = findPath(
 		&graphParams{
 			graph: graph.graph,

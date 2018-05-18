@@ -1,13 +1,13 @@
 // +build dev
 
-package btcdnotify
+package dcrdnotify
 
 import (
 	"fmt"
 	"time"
 
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/lightningnetwork/lnd/chainntnfs"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrlnd/chainntnfs"
 )
 
 // UnsafeStart starts the notifier with a specified best height and optional
@@ -16,10 +16,10 @@ import (
 // bitcoind notifier to ensure we drain all notifications up to syncHeight,
 // since if they are generated ahead of UnsafeStart the chainConn may start up
 // with an outdated best block and miss sending ntfns. Used for testing.
-func (b *BtcdNotifier) UnsafeStart(bestHeight int32, bestHash *chainhash.Hash,
+func (b *DcrdNotifier) UnsafeStart(bestHeight int32, bestHash *chainhash.Hash,
 	syncHeight int32, generateBlocks func() error) error {
 
-	// Connect to btcd, and register for notifications on connected, and
+	// Connect to dcrd, and register for notifications on connected, and
 	// disconnected blocks.
 	if err := b.chainConn.Connect(20); err != nil {
 		return err

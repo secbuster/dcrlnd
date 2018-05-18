@@ -5,8 +5,6 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"github.com/lightningnetwork/lnd/channeldb"
-	"github.com/lightningnetwork/lnd/sweep"
 	"io/ioutil"
 	"math"
 	"os"
@@ -16,12 +14,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcd/txscript"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
-	"github.com/lightningnetwork/lnd/lnwallet"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/txscript"
+	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/sweep"
 )
 
 var (
@@ -204,7 +204,7 @@ var (
 	kidOutputs = []kidOutput{
 		{
 			breachedOutput: breachedOutput{
-				amt:         btcutil.Amount(13e7),
+				amt:         dcrutil.Amount(13e7),
 				outpoint:    outPoints[1],
 				witnessType: lnwallet.CommitmentTimeLock,
 				confHeight:  uint32(1000),
@@ -215,7 +215,7 @@ var (
 
 		{
 			breachedOutput: breachedOutput{
-				amt:         btcutil.Amount(24e7),
+				amt:         dcrutil.Amount(24e7),
 				outpoint:    outPoints[2],
 				witnessType: lnwallet.CommitmentTimeLock,
 				confHeight:  uint32(1000),
@@ -226,7 +226,7 @@ var (
 
 		{
 			breachedOutput: breachedOutput{
-				amt:         btcutil.Amount(2e5),
+				amt:         dcrutil.Amount(2e5),
 				outpoint:    outPoints[3],
 				witnessType: lnwallet.CommitmentTimeLock,
 				confHeight:  uint32(500),
@@ -237,7 +237,7 @@ var (
 
 		{
 			breachedOutput: breachedOutput{
-				amt:         btcutil.Amount(10e6),
+				amt:         dcrutil.Amount(10e6),
 				outpoint:    outPoints[4],
 				witnessType: lnwallet.CommitmentTimeLock,
 				confHeight:  uint32(500),
@@ -265,7 +265,7 @@ var (
 		},
 	}
 
-	// Dummy timeout tx used to test serialization, borrowed from btcd
+	// Dummy timeout tx used to test serialization, borrowed from dcrd
 	// msgtx_test
 	timeoutTx = &wire.MsgTx{
 		Version: 1,
@@ -326,7 +326,7 @@ func init() {
 	// Finish initializing our test vectors by parsing the desired public keys and
 	// properly populating the sign descriptors of all baby and kid outputs.
 	for i := range signDescriptors {
-		pk, err := btcec.ParsePubKey(keys[i], btcec.S256())
+		pk, err := secp256k1.ParsePubKey(keys[i])
 		if err != nil {
 			panic(fmt.Sprintf("unable to parse pub key during init: %v", err))
 		}
@@ -675,7 +675,7 @@ func incubateTestOutput(t *testing.T, nursery *utxoNursery,
 
 func assertNurseryReport(t *testing.T, nursery *utxoNursery,
 	expectedNofHtlcs int, expectedStage uint32,
-	expectedLimboBalance btcutil.Amount) {
+	expectedLimboBalance dcrutil.Amount) {
 	report, err := nursery.NurseryReport(&testChanPoint)
 	if err != nil {
 		t.Fatal(err)

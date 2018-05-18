@@ -6,13 +6,13 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
 	"github.com/davecgh/go-spew/spew"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/lnwire"
 	"github.com/go-errors/errors"
-	"github.com/lightningnetwork/lnd/channeldb"
-	"github.com/lightningnetwork/lnd/lnwire"
 )
 
 // TopologyClient represents an intent to receive notifications from the
@@ -192,7 +192,7 @@ type ClosedChanSummary struct {
 	ChanID uint64
 
 	// Capacity was the total capacity of the channel before it was closed.
-	Capacity btcutil.Amount
+	Capacity dcrutil.Amount
 
 	// ClosedHeight is the height in the chain that the channel was closed
 	// at.
@@ -232,7 +232,7 @@ type NetworkNodeUpdate struct {
 	// IdentityKey is the identity public key of the target node. This is
 	// used to encrypt onion blobs as well as to authenticate any new
 	// updates.
-	IdentityKey *btcec.PublicKey
+	IdentityKey *secp256k1.PublicKey
 
 	// GlobalFeatures is a set of opaque bytes that describe the set of
 	// features supported by the node.
@@ -261,7 +261,7 @@ type ChannelEdgeUpdate struct {
 	ChanPoint wire.OutPoint
 
 	// Capacity is the capacity of the newly created channel.
-	Capacity btcutil.Amount
+	Capacity dcrutil.Amount
 
 	// MinHTLC is the minimum HTLC amount that this channel will forward.
 	MinHTLC lnwire.MilliSatoshi
@@ -281,10 +281,10 @@ type ChannelEdgeUpdate struct {
 	TimeLockDelta uint16
 
 	// AdvertisingNode is the node that's advertising this edge.
-	AdvertisingNode *btcec.PublicKey
+	AdvertisingNode *secp256k1.PublicKey
 
 	// ConnectingNode is the node that the advertising node connects to.
-	ConnectingNode *btcec.PublicKey
+	ConnectingNode *secp256k1.PublicKey
 
 	// Disabled, if true, signals that the channel is unavailable to relay
 	// payments.

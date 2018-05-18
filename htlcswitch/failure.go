@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/lightningnetwork/lightning-onion"
-	"github.com/lightningnetwork/lnd/lnwire"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrlnd/lnwire"
+	"github.com/lightningnetwork/lightning-onion" // TODO(decred): ok?
 )
 
 // ForwardingError wraps an lnwire.FailureMessage in a struct that also
@@ -16,7 +16,7 @@ type ForwardingError struct {
 	// ErrorSource is the public key of the node that sent the error. With
 	// this information, the dispatcher of a payment can modify their set
 	// of candidate routes in response to the type of error extracted.
-	ErrorSource *btcec.PublicKey
+	ErrorSource *secp256k1.PublicKey
 
 	// ExtraMsg is an additional error message that callers can provide in
 	// order to provide context specific error details.
@@ -74,7 +74,7 @@ func (e UnknownEncrypterType) Error() string {
 
 // ErrorEncrypterExtracter defines a function signature that extracts an
 // ErrorEncrypter from an sphinx OnionPacket.
-type ErrorEncrypterExtracter func(*btcec.PublicKey) (ErrorEncrypter,
+type ErrorEncrypterExtracter func(*secp256k1.PublicKey) (ErrorEncrypter,
 	lnwire.FailCode)
 
 // ErrorEncrypter is an interface that is used to encrypt HTLC related errors
@@ -119,7 +119,7 @@ type ErrorEncrypter interface {
 type SphinxErrorEncrypter struct {
 	*sphinx.OnionErrorEncrypter
 
-	EphemeralKey *btcec.PublicKey
+	EphemeralKey *secp256k1.PublicKey
 }
 
 // NewSphinxErrorEncrypter initializes a blank sphinx error encrypter, that
@@ -132,7 +132,7 @@ type SphinxErrorEncrypter struct {
 func NewSphinxErrorEncrypter() *SphinxErrorEncrypter {
 	return &SphinxErrorEncrypter{
 		OnionErrorEncrypter: nil,
-		EphemeralKey:        &btcec.PublicKey{},
+		EphemeralKey:        &secp256k1.PublicKey{},
 	}
 }
 
@@ -186,7 +186,7 @@ func (s *SphinxErrorEncrypter) Decode(r io.Reader) error {
 	}
 
 	var err error
-	s.EphemeralKey, err = btcec.ParsePubKey(ephemeral[:], btcec.S256())
+	s.EphemeralKey, err = secp256k1.ParsePubKey(ephemeral[:])
 	if err != nil {
 		return err
 	}
@@ -250,7 +250,7 @@ func (s *SphinxErrorDecrypter) DecryptError(reason lnwire.OpaqueReason) (*Forwar
 	}
 
 	return &ForwardingError{
-		ErrorSource:    source,
+		ErrorSource:    (*secp256k1.PublicKey)(source),
 		FailureMessage: failureMsg,
 	}, nil
 }

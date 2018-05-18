@@ -8,16 +8,14 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/lightningnetwork/lnd/sweep"
-
-	"github.com/btcsuite/btcd/txscript"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
 	"github.com/davecgh/go-spew/spew"
-
-	"github.com/lightningnetwork/lnd/chainntnfs"
-	"github.com/lightningnetwork/lnd/channeldb"
-	"github.com/lightningnetwork/lnd/lnwallet"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/txscript"
+	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/chainntnfs"
+	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/sweep"
 )
 
 //                          SUMMARY OF OUTPUT STATES
@@ -1057,14 +1055,14 @@ type contractMaturityReport struct {
 
 	// limboBalance is the total number of frozen coins within this
 	// contract.
-	limboBalance btcutil.Amount
+	limboBalance dcrutil.Amount
 
 	// recoveredBalance is the total value that has been successfully swept
 	// back to the user's wallet.
-	recoveredBalance btcutil.Amount
+	recoveredBalance dcrutil.Amount
 
 	// localAmount is the local value of the commitment output.
-	localAmount btcutil.Amount
+	localAmount dcrutil.Amount
 
 	// confHeight is the block height that this output originally confirmed.
 	confHeight uint32
@@ -1088,7 +1086,7 @@ type htlcMaturityReport struct {
 	outpoint wire.OutPoint
 
 	// amount is the final value that will be swept in back to the wallet.
-	amount btcutil.Amount
+	amount dcrutil.Amount
 
 	// confHeight is the block height that this output originally confirmed.
 	confHeight uint32
@@ -1476,7 +1474,7 @@ func (k *kidOutput) Decode(r io.Reader) error {
 	if _, err := r.Read(scratch[:]); err != nil {
 		return err
 	}
-	k.amt = btcutil.Amount(byteOrder.Uint64(scratch[:]))
+	k.amt = dcrutil.Amount(byteOrder.Uint64(scratch[:]))
 
 	if err := readOutpoint(io.LimitReader(r, 40), &k.outpoint); err != nil {
 		return err

@@ -10,19 +10,21 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
 	"github.com/coreos/bbolt"
 	"github.com/davecgh/go-spew/spew"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/multimutex"
+
+	//"github.com/decred/dcrlnd/htlcswitch" // TODO(decred): Uncomment.
+	//"github.com/decred/dcrlnd/lnwallet" // TODO(decred): Uncomment.
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrlnd/lnwire"
+	"github.com/decred/dcrlnd/routing/chainview"
+
 	"github.com/go-errors/errors"
-	"github.com/lightningnetwork/lightning-onion"
-	"github.com/lightningnetwork/lnd/channeldb"
-	"github.com/lightningnetwork/lnd/htlcswitch"
-	"github.com/lightningnetwork/lnd/lnwallet"
-	"github.com/lightningnetwork/lnd/lnwire"
-	"github.com/lightningnetwork/lnd/multimutex"
-	"github.com/lightningnetwork/lnd/routing/chainview"
+	"github.com/lightningnetwork/lightning-onion" // TODO(decred): ok?
 )
 
 const (
@@ -1081,7 +1083,7 @@ func (r *ChannelRouter) processUpdate(msg interface{}) error {
 
 		// TODO(roasbeef): this is a hack, needs to be removed
 		// after commitment fees are dynamic.
-		msg.Capacity = btcutil.Amount(chanUtxo.Value)
+		msg.Capacity = dcrutil.Amount(chanUtxo.Value)
 		msg.ChannelPoint = *fundingPoint
 		if err := r.cfg.Graph.AddChannelEdge(msg); err != nil {
 			return errors.Errorf("unable to add edge: %v", err)
@@ -1383,7 +1385,7 @@ func pathsToFeeSortedRoutes(source Vertex, paths [][]*channeldb.ChannelEdgePolic
 // the required fee and time lock values running backwards along the route. The
 // route that will be ranked the highest is the one with the lowest cumulative
 // fee along the route.
-func (r *ChannelRouter) FindRoutes(target *btcec.PublicKey,
+func (r *ChannelRouter) FindRoutes(target *secp256k1.PublicKey,
 	amt, feeLimit lnwire.MilliSatoshi, numPaths uint32,
 	finalExpiry ...uint16) ([]*Route, error) {
 
@@ -1509,10 +1511,9 @@ func generateSphinxPacket(route *Route, paymentHash []byte) ([]byte,
 
 	// First obtain all the public keys along the route which are contained
 	// in each hop.
-	nodes := make([]*btcec.PublicKey, len(route.Hops))
+	nodes := make([]*secp256k1.PublicKey, len(route.Hops))
 	for i, hop := range route.Hops {
-		pub, err := btcec.ParsePubKey(hop.PubKeyBytes[:],
-			btcec.S256())
+		pub, err := secp256k1.ParsePubKey(hop.PubKeyBytes[:])
 		if err != nil {
 			return nil, nil, err
 		}
@@ -1531,7 +1532,7 @@ func generateSphinxPacket(route *Route, paymentHash []byte) ([]byte,
 		}),
 	)
 
-	sessionKey, err := btcec.NewPrivateKey(btcec.S256())
+	sessionKey, err := secp256k1.GeneratePrivateKey()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1571,7 +1572,7 @@ func generateSphinxPacket(route *Route, paymentHash []byte) ([]byte,
 // final destination.
 type LightningPayment struct {
 	// Target is the node in which the payment should be routed towards.
-	Target *btcec.PublicKey
+	Target *secp256k1.PublicKey
 
 	// Amount is the value of the payment to send through the network in
 	// milli-satoshis.
@@ -1818,7 +1819,7 @@ func (r *ChannelRouter) sendPayment(payment *LightningPayment,
 			// node may lie to us or the update may be corrupt.
 			processChannelUpdateAndRetry := func(
 				update *lnwire.ChannelUpdate,
-				pubKey *btcec.PublicKey) {
+				pubKey *secp256k1.PublicKey) {
 
 				// Try to apply the channel update.
 				updateOk := r.applyChannelUpdate(update, pubKey)
@@ -2052,7 +2053,7 @@ func getFailedEdge(route *Route, errSource Vertex) (
 // applyChannelUpdate validates a channel update and if valid, applies it to the
 // database. It returns a bool indicating whether the updates was successful.
 func (r *ChannelRouter) applyChannelUpdate(msg *lnwire.ChannelUpdate,
-	pubKey *btcec.PublicKey) bool {
+	pubKey *secp256k1.PublicKey) bool {
 	// If we get passed a nil channel update (as it's optional with some
 	// onion errors), then we'll exit early with a success result.
 	if msg == nil {
@@ -2178,7 +2179,7 @@ func (r *ChannelRouter) GetChannelByID(chanID lnwire.ShortChannelID) (
 //
 // NOTE: This method is part of the ChannelGraphSource interface.
 func (r *ChannelRouter) FetchLightningNode(node Vertex) (*channeldb.LightningNode, error) {
-	pubKey, err := btcec.ParsePubKey(node[:], btcec.S256())
+	pubKey, err := secp256k1.ParsePubKey(node[:])
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse raw public key: %v", err)
 	}

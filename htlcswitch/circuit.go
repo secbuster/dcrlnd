@@ -4,8 +4,9 @@ import (
 	"encoding/binary"
 	"io"
 
-	"github.com/lightningnetwork/lnd/channeldb"
-	"github.com/lightningnetwork/lnd/lnwire"
+	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/lnwire"
+	"github.com/go-errors/errors"
 )
 
 // EmptyCircuitKey is a default value for an outgoing circuit key returned when

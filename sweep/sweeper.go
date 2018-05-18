@@ -8,11 +8,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
 	"github.com/davecgh/go-spew/spew"
-	"github.com/lightningnetwork/lnd/chainntnfs"
-	"github.com/lightningnetwork/lnd/lnwallet"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/chainntnfs"
+	"github.com/decred/dcrlnd/lnwallet"
 )
 
 var (
@@ -264,7 +264,7 @@ func (s *UtxoSweeper) SweepInput(input Input) (chan Result, error) {
 	log.Infof("Sweep request received: out_point=%v, witness_type=%v, "+
 		"time_lock=%v, size=%v", input.OutPoint(), input.WitnessType(),
 		input.BlocksToMaturity(),
-		btcutil.Amount(input.SignDesc().Output.Value))
+		dcrutil.Amount(input.SignDesc().Output.Value))
 
 	sweeperInput := &sweepInputMessage{
 		input:      input,
@@ -772,7 +772,7 @@ func (s *UtxoSweeper) CreateSweepTx(inputs []Input, confTarget uint32,
 // DefaultNextAttemptDeltaFunc is the default calculation for next sweep attempt
 // scheduling. It implements exponential back-off with some randomness. This is
 // to prevent a stuck tx (for example because fee is too low and can't be bumped
-// in btcd) from blocking all other retried inputs in the same tx.
+// in dcrd) from blocking all other retried inputs in the same tx.
 func DefaultNextAttemptDeltaFunc(attempts int) int32 {
 	return 1 + rand.Int31n(1<<uint(attempts-1))
 }

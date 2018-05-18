@@ -11,30 +11,25 @@ import (
 	"testing"
 	"time"
 
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcd/integration/rpctest"
-	"github.com/btcsuite/btcd/rpcclient"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
-	"github.com/lightninglabs/neutrino"
-	"github.com/lightningnetwork/lnd/chainntnfs"
-	"github.com/lightningnetwork/lnd/channeldb"
+	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/dcrjson"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/rpcclient"
+	"github.com/decred/dcrd/rpctest"
+	"github.com/decred/dcrd/txscript"
+	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/chainntnfs"
+	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrwallet/walletdb"
 
-	// Required to auto-register the bitcoind backed ChainNotifier
+	// Required to auto-register the dcrd backed ChainNotifier
 	// implementation.
-	"github.com/lightningnetwork/lnd/chainntnfs/bitcoindnotify"
-
-	// Required to auto-register the btcd backed ChainNotifier
-	// implementation.
-	"github.com/lightningnetwork/lnd/chainntnfs/btcdnotify"
-
-	// Required to auto-register the neutrino backed ChainNotifier
-	// implementation.
-	"github.com/lightningnetwork/lnd/chainntnfs/neutrinonotify"
+	_ "github.com/decred/dcrlnd/chainntnfs/dcrdnotify"
 
 	// Required to register the boltdb walletdb implementation.
-	"github.com/btcsuite/btcwallet/chain"
-	_ "github.com/btcsuite/btcwallet/walletdb/bdb"
+	_ "github.com/decred/dcrwallet/walletdb/bdb"
 )
 
 func testSingleConfirmationNotification(miner *rpctest.Harness,
@@ -90,7 +85,7 @@ func testSingleConfirmationNotification(miner *rpctest.Harness,
 			t.Fatalf("unable to fetch block: %v", err)
 		}
 
-		block := btcutil.NewBlock(msgBlock)
+		block := dcrutil.NewBlock(msgBlock)
 		specifiedTxHash, err := block.TxHash(int(confInfo.TxIndex))
 		if err != nil {
 			t.Fatalf("unable to index into block: %v", err)
@@ -548,7 +543,7 @@ func testTxConfirmedBeforeNtfnRegistration(miner *rpctest.Harness,
 		if err != nil {
 			t.Fatalf("unable to fetch block: %v", err)
 		}
-		block := btcutil.NewBlock(msgBlock)
+		block := dcrutil.NewBlock(msgBlock)
 		specifiedTxHash, err := block.TxHash(int(confInfo.TxIndex))
 		if err != nil {
 			t.Fatalf("unable to index into block: %v", err)
@@ -1736,9 +1731,9 @@ var blockCatchupTests = []blockCatchupTestCase{
 // the interface. Second, an additional case in the switch within the main loop
 // below needs to be added which properly initializes the interface.
 func TestInterfaces(t *testing.T) {
-	// Initialize the harness around a btcd node which will serve as our
+	// Initialize the harness around a dcrd node which will serve as our
 	// dedicated miner to generate blocks, cause re-orgs, etc. We'll set up
-	// this node with a chain length of 125, so we have plenty of BTC to
+	// this node with a chain length of 125, so we have plenty of DCR to
 	// play around with.
 	miner, tearDown := chainntnfs.NewMiner(t, nil, true, 25)
 	defer tearDown()
@@ -1770,32 +1765,10 @@ func TestInterfaces(t *testing.T) {
 		)
 
 		switch notifierType {
-		case "bitcoind":
-			var bitcoindConn *chain.BitcoindConn
-			bitcoindConn, cleanUp = chainntnfs.NewBitcoindBackend(
-				t, p2pAddr, true,
-			)
+		case "dcrd":
 			newNotifier = func() (chainntnfs.TestChainNotifier, error) {
-				return bitcoindnotify.New(
-					bitcoindConn, hintCache, hintCache,
-				), nil
-			}
-
-		case "btcd":
-			newNotifier = func() (chainntnfs.TestChainNotifier, error) {
-				return btcdnotify.New(
+				return dcrdnotify.New(
 					&rpcConfig, hintCache, hintCache,
-				)
-			}
-
-		case "neutrino":
-			var spvNode *neutrino.ChainService
-			spvNode, cleanUp = chainntnfs.NewNeutrinoBackend(
-				t, p2pAddr,
-			)
-			newNotifier = func() (chainntnfs.TestChainNotifier, error) {
-				return neutrinonotify.New(
-					spvNode, hintCache, hintCache,
 				)
 			}
 		}

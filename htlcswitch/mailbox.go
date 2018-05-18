@@ -7,7 +7,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/lightningnetwork/lnd/lnwire"
+	"github.com/decred/dcrlnd/lnwire"
 )
 
 // ErrMailBoxShuttingDown is returned when the mailbox is interrupted by a

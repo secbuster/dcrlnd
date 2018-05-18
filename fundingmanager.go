@@ -8,22 +8,22 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
 	"github.com/coreos/bbolt"
 	"github.com/davecgh/go-spew/spew"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/chainntnfs"
+	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/htlcswitch"
+	"github.com/decred/dcrlnd/keychain"
+	"github.com/decred/dcrlnd/lnpeer"
+	"github.com/decred/dcrlnd/lnrpc"
+	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwire"
+	"github.com/decred/dcrlnd/routing"
 	"github.com/go-errors/errors"
-	"github.com/lightningnetwork/lnd/chainntnfs"
-	"github.com/lightningnetwork/lnd/channeldb"
-	"github.com/lightningnetwork/lnd/htlcswitch"
-	"github.com/lightningnetwork/lnd/keychain"
-	"github.com/lightningnetwork/lnd/lnpeer"
-	"github.com/lightningnetwork/lnd/lnrpc"
-	"github.com/lightningnetwork/lnd/lnwallet"
-	"github.com/lightningnetwork/lnd/lnwire"
-	"github.com/lightningnetwork/lnd/routing"
 	"golang.org/x/crypto/salsa20"
 	"google.golang.org/grpc"
 )
@@ -53,14 +53,14 @@ const (
 
 	// minChanFundingSize is the smallest channel that we'll allow to be
 	// created over the RPC interface.
-	minChanFundingSize = btcutil.Amount(20000)
+	minChanFundingSize = dcrutil.Amount(20000)
 
 	// maxBtcFundingAmount is a soft-limit of the maximum channel size
 	// currently accepted on the Bitcoin chain within the Lightning
 	// Protocol. This limit is defined in BOLT-0002, and serves as an
 	// initial precautionary limit while implementations are battle tested
 	// in the real world.
-	maxBtcFundingAmount = btcutil.Amount(1<<24) - 1
+	maxBtcFundingAmount = dcrutil.Amount(1<<24) - 1
 
 	// maxLtcFundingAmount is a soft-limit of the maximum channel size
 	// currently accepted on the Litecoin chain within the Lightning
@@ -100,7 +100,7 @@ type reservationWithCtx struct {
 	reservation *lnwallet.ChannelReservation
 	peer        lnpeer.Peer
 
-	chanAmt btcutil.Amount
+	chanAmt dcrutil.Amount
 
 	// Constraints we require for the remote.
 	remoteCsvDelay uint16
@@ -193,7 +193,7 @@ type fundingLockedMsg struct {
 // message. This allows the funding manager to properly process the error.
 type fundingErrorMsg struct {
 	err     *lnwire.Error
-	peerKey *btcec.PublicKey
+	peerKey *secp256k1.PublicKey
 }
 
 // pendingChannels is a map instantiated per-peer which tracks all active
@@ -208,7 +208,7 @@ type serializedPubKey [33]byte
 
 // newSerializedKey creates a new serialized public key from an instance of a
 // live pubkey object.
-func newSerializedKey(pubKey *btcec.PublicKey) serializedPubKey {
+func newSerializedKey(pubKey *secp256k1.PublicKey) serializedPubKey {
 	var s serializedPubKey
 	copy(s[:], pubKey.SerializeCompressed())
 	return s
@@ -220,7 +220,7 @@ func newSerializedKey(pubKey *btcec.PublicKey) serializedPubKey {
 type fundingConfig struct {
 	// IDKey is the PublicKey that is used to identify this node within the
 	// Lightning Network.
-	IDKey *btcec.PublicKey
+	IDKey *secp256k1.PublicKey
 
 	// Wallet handles the parts of the funding process that involves moving
 	// funds from on-chain transaction outputs into Lightning channels.
@@ -246,7 +246,7 @@ type fundingConfig struct {
 	//
 	// TODO(roasbeef): should instead pass on this responsibility to a
 	// distinct sub-system?
-	SignMessage func(pubKey *btcec.PublicKey, msg []byte) (*btcec.Signature, error)
+	SignMessage func(pubKey *secp256k1.PublicKey, msg []byte) (*secp256k1.Signature, error)
 
 	// CurrentNodeAnnouncement should return the latest, fully signed node
 	// announcement from the backing Lightning Network node.
@@ -263,7 +263,7 @@ type fundingConfig struct {
 	// delivered after the funding transaction is confirmed.
 	//
 	// NOTE: The peerChan channel must be buffered.
-	NotifyWhenOnline func(peer *btcec.PublicKey, peerChan chan<- lnpeer.Peer)
+	NotifyWhenOnline func(peer *secp256k1.PublicKey, peerChan chan<- lnpeer.Peer)
 
 	// FindChannel queries the database for the channel with the given
 	// channel ID.
@@ -282,37 +282,37 @@ type fundingConfig struct {
 	// channel extended to it. The function is able to take into account
 	// the amount of the channel, and any funds we'll be pushed in the
 	// process to determine how many confirmations we'll require.
-	NumRequiredConfs func(btcutil.Amount, lnwire.MilliSatoshi) uint16
+	NumRequiredConfs func(dcrutil.Amount, lnwire.MilliSatoshi) uint16
 
 	// RequiredRemoteDelay is a function that maps the total amount in a
 	// proposed channel to the CSV delay that we'll require for the remote
 	// party. Naturally a larger channel should require a higher CSV delay
 	// in order to give us more time to claim funds in the case of a
 	// contract breach.
-	RequiredRemoteDelay func(btcutil.Amount) uint16
+	RequiredRemoteDelay func(dcrutil.Amount) uint16
 
 	// RequiredRemoteChanReserve is a function closure that, given the
 	// channel capacity and dust limit, will return an appropriate amount
 	// for the remote peer's required channel reserve that is to be adhered
 	// to at all times.
-	RequiredRemoteChanReserve func(capacity, dustLimit btcutil.Amount) btcutil.Amount
+	RequiredRemoteChanReserve func(capacity, dustLimit dcrutil.Amount) dcrutil.Amount
 
 	// RequiredRemoteMaxValue is a function closure that, given the channel
 	// capacity, returns the amount of MilliSatoshis that our remote peer
 	// can have in total outstanding HTLCs with us.
-	RequiredRemoteMaxValue func(btcutil.Amount) lnwire.MilliSatoshi
+	RequiredRemoteMaxValue func(dcrutil.Amount) lnwire.MilliSatoshi
 
 	// RequiredRemoteMaxHTLCs is a function closure that, given the channel
 	// capacity, returns the number of maximum HTLCs the remote peer can
 	// offer us.
-	RequiredRemoteMaxHTLCs func(btcutil.Amount) uint16
+	RequiredRemoteMaxHTLCs func(dcrutil.Amount) uint16
 
 	// WatchNewChannel is to be called once a new channel enters the final
 	// funding stage: waiting for on-chain confirmation. This method sends
 	// the channel to the ChainArbitrator so it can watch for any on-chain
 	// events related to the channel. We also provide the public key of the
 	// node we're establishing a channel with for reconnection purposes.
-	WatchNewChannel func(*channeldb.OpenChannel, *btcec.PublicKey) error
+	WatchNewChannel func(*channeldb.OpenChannel, *secp256k1.PublicKey) error
 
 	// ReportShortChanID allows the funding manager to report the newly
 	// discovered short channel ID of a formerly pending channel to outside
@@ -331,7 +331,7 @@ type fundingConfig struct {
 	// inbound channel. We have such a parameter, as otherwise, nodes could
 	// flood us with very small channels that would never really be usable
 	// due to fees.
-	MinChanSize btcutil.Amount
+	MinChanSize dcrutil.Amount
 }
 
 // fundingManager acts as an orchestrator/bridge between the wallet's
@@ -736,11 +736,11 @@ func (f *fundingManager) nextPendingChanID() [32]byte {
 }
 
 type pendingChannel struct {
-	identityPub   *btcec.PublicKey
+	identityPub   *secp256k1.PublicKey
 	channelPoint  *wire.OutPoint
-	capacity      btcutil.Amount
-	localBalance  btcutil.Amount
-	remoteBalance btcutil.Amount
+	capacity      dcrutil.Amount
+	localBalance  dcrutil.Amount
+	remoteBalance dcrutil.Amount
 }
 
 type pendingChansReq struct {
@@ -1027,7 +1027,7 @@ func (f *fundingManager) handleFundingOpen(fmsg *fundingOpenMsg) {
 	if amt < f.cfg.MinChanSize {
 		f.failFundingFlow(
 			fmsg.peer, fmsg.msg.PendingChannelID,
-			lnwallet.ErrChanTooSmall(amt, btcutil.Amount(f.cfg.MinChanSize)),
+			lnwallet.ErrChanTooSmall(amt, dcrutil.Amount(f.cfg.MinChanSize)),
 		)
 		return
 	}
@@ -2407,8 +2407,8 @@ func (f *fundingManager) handleFundingLocked(fmsg *fundingLockedMsg) {
 // announcement on the network. The two signatures individually sign a
 // statement of the existence of a channel.
 type channelProof struct {
-	nodeSig    *btcec.Signature
-	bitcoinSig *btcec.Signature
+	nodeSig    *secp256k1.Signature
+	bitcoinSig *secp256k1.Signature
 }
 
 // chanAnnouncement encapsulates the two authenticated announcements that we
@@ -2427,7 +2427,7 @@ type chanAnnouncement struct {
 // authenticated only by us and contains our directional routing policy for the
 // channel.
 func (f *fundingManager) newChanAnnouncement(localPubKey, remotePubKey,
-	localFundingKey, remoteFundingKey *btcec.PublicKey,
+	localFundingKey, remoteFundingKey *secp256k1.PublicKey,
 	shortChanID lnwire.ShortChannelID, chanID lnwire.ChannelID,
 	fwdMinHTLC lnwire.MilliSatoshi) (*chanAnnouncement, error) {
 
@@ -2564,7 +2564,7 @@ func (f *fundingManager) newChanAnnouncement(localPubKey, remotePubKey,
 // This method is synchronous and will return when all the network requests
 // finish, either successfully or with an error.
 func (f *fundingManager) announceChannel(localIDKey, remoteIDKey, localFundingKey,
-	remoteFundingKey *btcec.PublicKey, shortChanID lnwire.ShortChannelID,
+	remoteFundingKey *secp256k1.PublicKey, shortChanID lnwire.ShortChannelID,
 	chanID lnwire.ChannelID, fwdMinHTLC lnwire.MilliSatoshi) error {
 
 	// First, we'll create the batch of announcements to be sent upon
@@ -2659,7 +2659,7 @@ func (f *fundingManager) handleInitFundingMsg(msg *initFundingMsg) {
 	)
 
 	// We'll determine our dust limit depending on which chain is active.
-	var ourDustLimit btcutil.Amount
+	var ourDustLimit dcrutil.Amount
 	switch registeredChains.PrimaryChain() {
 	case bitcoinChain:
 		ourDustLimit = lnwallet.DefaultDustLimit()
@@ -2836,7 +2836,7 @@ func (f *fundingManager) waitUntilChannelOpen(targetChan lnwire.ChannelID,
 // processFundingError sends a message to the fundingManager allowing it to
 // process the occurred generic error.
 func (f *fundingManager) processFundingError(err *lnwire.Error,
-	peerKey *btcec.PublicKey) {
+	peerKey *secp256k1.PublicKey) {
 
 	select {
 	case f.fundingMsgs <- &fundingErrorMsg{err, peerKey}:
@@ -2917,7 +2917,7 @@ func (f *fundingManager) pruneZombieReservations() {
 
 // cancelReservationCtx does all needed work in order to securely cancel the
 // reservation.
-func (f *fundingManager) cancelReservationCtx(peerKey *btcec.PublicKey,
+func (f *fundingManager) cancelReservationCtx(peerKey *secp256k1.PublicKey,
 	pendingChanID [32]byte) (*reservationWithCtx, error) {
 
 	fndgLog.Infof("Cancelling funding reservation for node_key=%x, "+
@@ -2957,7 +2957,7 @@ func (f *fundingManager) cancelReservationCtx(peerKey *btcec.PublicKey,
 
 // deleteReservationCtx deletes the reservation uniquely identified by the
 // target public key of the peer, and the specified pending channel ID.
-func (f *fundingManager) deleteReservationCtx(peerKey *btcec.PublicKey,
+func (f *fundingManager) deleteReservationCtx(peerKey *secp256k1.PublicKey,
 	pendingChanID [32]byte) {
 
 	// TODO(roasbeef): possibly cancel funding barrier in peer's
@@ -2982,7 +2982,7 @@ func (f *fundingManager) deleteReservationCtx(peerKey *btcec.PublicKey,
 
 // getReservationCtx returns the reservation context for a particular pending
 // channel ID for a target peer.
-func (f *fundingManager) getReservationCtx(peerKey *btcec.PublicKey,
+func (f *fundingManager) getReservationCtx(peerKey *secp256k1.PublicKey,
 	pendingChanID [32]byte) (*reservationWithCtx, error) {
 
 	peerIDKey := newSerializedKey(peerKey)
@@ -3004,7 +3004,7 @@ func (f *fundingManager) getReservationCtx(peerKey *btcec.PublicKey,
 // channel will receive a new, permanent channel ID, and will no longer be
 // considered pending.
 func (f *fundingManager) IsPendingChannel(pendingChanID [32]byte,
-	peerKey *btcec.PublicKey) bool {
+	peerKey *secp256k1.PublicKey) bool {
 
 	peerIDKey := newSerializedKey(peerKey)
 	f.resMtx.RLock()
@@ -3014,9 +3014,9 @@ func (f *fundingManager) IsPendingChannel(pendingChanID [32]byte,
 	return ok
 }
 
-func copyPubKey(pub *btcec.PublicKey) *btcec.PublicKey {
-	return &btcec.PublicKey{
-		Curve: btcec.S256(),
+func copyPubKey(pub *secp256k1.PublicKey) *secp256k1.PublicKey {
+	return &secp256k1.PublicKey{
+		Curve: secp256k1.S256(),
 		X:     pub.X,
 		Y:     pub.Y,
 	}

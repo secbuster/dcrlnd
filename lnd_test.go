@@ -21,17 +21,17 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 
-	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcd/integration/rpctest"
-	"github.com/btcsuite/btcd/rpcclient"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
 	"github.com/davecgh/go-spew/spew"
+	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/rpcclient"
+	"github.com/decred/dcrd/rpctest"
+	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/lnrpc"
+	"github.com/decred/dcrlnd/lntest"
+	"github.com/decred/dcrlnd/lnwire"
 	"github.com/go-errors/errors"
-	"github.com/lightningnetwork/lnd/lnrpc"
-	"github.com/lightningnetwork/lnd/lntest"
-	"github.com/lightningnetwork/lnd/lnwire"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
@@ -503,14 +503,14 @@ func shutdownAndAssert(net *lntest.NetworkHarness, t *harnessTest,
 //
 // TODO(bvu): Refactor when dynamic fee estimation is added.
 // TODO(conner) remove code duplication
-func calcStaticFee(numHTLCs int) btcutil.Amount {
+func calcStaticFee(numHTLCs int) dcrutil.Amount {
 	const (
-		commitWeight = btcutil.Amount(724)
+		commitWeight = dcrutil.Amount(724)
 		htlcWeight   = 172
-		feePerKw     = btcutil.Amount(50 * 1000 / 4)
+		feePerKw     = dcrutil.Amount(50 * 1000 / 4)
 	)
 	return feePerKw * (commitWeight +
-		btcutil.Amount(htlcWeight*numHTLCs)) / 1000
+		dcrutil.Amount(htlcWeight*numHTLCs)) / 1000
 }
 
 // completePaymentRequests sends payments from a lightning node to complete all
@@ -570,7 +570,7 @@ func makeFakePayHash(t *harnessTest) []byte {
 // createPayReqs is a helper method that will create a slice of payment
 // requests for the given node.
 func createPayReqs(ctx context.Context, node *lntest.HarnessNode,
-	paymentAmt btcutil.Amount, numInvoices int) ([]string, [][]byte,
+	paymentAmt dcrutil.Amount, numInvoices int) ([]string, [][]byte,
 	[]*lnrpc.Invoice, error) {
 
 	payReqs := make([]string, numInvoices)
@@ -725,10 +725,10 @@ func testOnchainFundRecovery(net *lntest.NetworkHarness, t *harnessTest) {
 				}
 			}
 
-			// Send one BTC to the next P2WKH address.
+			// Send one DCR to the next P2WKH address.
 			ctxt, _ := context.WithTimeout(ctxb, defaultTimeout)
 			err = net.SendCoins(
-				ctxt, btcutil.SatoshiPerBitcoin, node,
+				ctxt, dcrutil.AtomsPerCoin, node,
 			)
 			if err != nil {
 				t.Fatalf("unable to send coins to node: %v",
@@ -738,7 +738,7 @@ func testOnchainFundRecovery(net *lntest.NetworkHarness, t *harnessTest) {
 			// And another to the next NP2WKH address.
 			ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
 			err = net.SendCoinsNP2WKH(
-				ctxt, btcutil.SatoshiPerBitcoin, node,
+				ctxt, dcrutil.AtomsPerCoin, node,
 			)
 			if err != nil {
 				t.Fatalf("unable to send coins to node: %v",
@@ -750,7 +750,7 @@ func testOnchainFundRecovery(net *lntest.NetworkHarness, t *harnessTest) {
 	// Restore Carol with a recovery window of 0. Since no coins have been
 	// sent, her balance should be zero.
 	//
-	// After, one BTC is sent to both her first external P2WKH and NP2WKH
+	// After, one DCR is sent to both her first external P2WKH and NP2WKH
 	// addresses.
 	restoreCheckBalance(0, 0, skipAndSend(0))
 
@@ -762,27 +762,27 @@ func testOnchainFundRecovery(net *lntest.NetworkHarness, t *harnessTest) {
 	// two transactions above.
 	//
 	// After, we will generate and skip 9 P2WKH and NP2WKH addresses, and
-	// send another BTC to the subsequent 10th address in each derivation
+	// send another DCR to the subsequent 10th address in each derivation
 	// path.
-	restoreCheckBalance(2*btcutil.SatoshiPerBitcoin, 1, skipAndSend(9))
+	restoreCheckBalance(2*dcrutil.AtomsPerCoin, 1, skipAndSend(9))
 
 	// Check that using a recovery window of 9 does not find the two most
 	// recent txns.
-	restoreCheckBalance(2*btcutil.SatoshiPerBitcoin, 9, nil)
+	restoreCheckBalance(2*dcrutil.AtomsPerCoin, 9, nil)
 
 	// Extending our recovery window to 10 should find the most recent
-	// transactions, leaving the wallet with 4 BTC total.
+	// transactions, leaving the wallet with 4 DCR total.
 	//
 	// After, we will skip 19 more addrs, sending to the 20th address past
 	// our last found address, and repeat the same checks.
-	restoreCheckBalance(4*btcutil.SatoshiPerBitcoin, 10, skipAndSend(19))
+	restoreCheckBalance(4*dcrutil.AtomsPerCoin, 10, skipAndSend(19))
 
 	// Check that recovering with a recovery window of 19 fails to find the
 	// most recent transactions.
-	restoreCheckBalance(4*btcutil.SatoshiPerBitcoin, 19, nil)
+	restoreCheckBalance(4*dcrutil.AtomsPerCoin, 19, nil)
 
 	// Ensure that using a recovery window of 20 succeeds.
-	restoreCheckBalance(6*btcutil.SatoshiPerBitcoin, 20, nil)
+	restoreCheckBalance(6*dcrutil.AtomsPerCoin, 20, nil)
 }
 
 // testBasicChannelFunding performs a test exercising expected behavior from a
@@ -794,9 +794,9 @@ func testBasicChannelFunding(net *lntest.NetworkHarness, t *harnessTest) {
 	ctxb := context.Background()
 
 	chanAmt := maxBtcFundingAmount
-	pushAmt := btcutil.Amount(100000)
+	pushAmt := dcrutil.Amount(100000)
 
-	// First establish a channel with a capacity of 0.5 BTC between Alice
+	// First establish a channel with a capacity of 0.5 DCR between Alice
 	// and Bob with Alice pushing 100k satoshis to Bob's side during
 	// funding. This function will block until the channel itself is fully
 	// open or an error occurs in the funding process. A series of
@@ -857,7 +857,7 @@ func testUnconfirmedChannelFunding(net *lntest.NetworkHarness, t *harnessTest) {
 
 	const (
 		chanAmt = maxBtcFundingAmount
-		pushAmt = btcutil.Amount(100000)
+		pushAmt = dcrutil.Amount(100000)
 	)
 
 	// We'll start off by creating a node for Carol.
@@ -1197,7 +1197,7 @@ func testUpdateChannelPolicy(net *lntest.NetworkHarness, t *harnessTest) {
 
 	// Send some coins to Carol that can be used for channel funding.
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
-	err = net.SendCoins(ctxt, btcutil.SatoshiPerBitcoin, carol)
+	err = net.SendCoins(ctxt, dcrutil.AtomsPerCoin, carol)
 	if err != nil {
 		t.Fatalf("unable to send coins to carol: %v", err)
 	}
@@ -1276,7 +1276,7 @@ func testUpdateChannelPolicy(net *lntest.NetworkHarness, t *harnessTest) {
 	// First we'll try to send a payment from Alice to Carol with an amount
 	// less than the min_htlc value required by Carol. This payment should
 	// fail, as the channel Bob->Carol cannot carry HTLCs this small.
-	payAmt := btcutil.Amount(4)
+	payAmt := dcrutil.Amount(4)
 	invoice := &lnrpc.Invoice{
 		Memo:  "testing",
 		Value: int64(payAmt),
@@ -1302,7 +1302,7 @@ func testUpdateChannelPolicy(net *lntest.NetworkHarness, t *harnessTest) {
 	// Now we try to send a payment over the channel with a value too low
 	// to be accepted. First we query for a route to route a payment of
 	// 5000 mSAT, as this is accepted.
-	payAmt = btcutil.Amount(5)
+	payAmt = dcrutil.Amount(5)
 	routesReq := &lnrpc.QueryRoutesRequest{
 		PubKey:         carol.PubKeyStr,
 		Amt:            int64(payAmt),
@@ -1322,7 +1322,7 @@ func testUpdateChannelPolicy(net *lntest.NetworkHarness, t *harnessTest) {
 
 	// We change the route to carry a payment of 4000 mSAT instead of 5000
 	// mSAT.
-	payAmt = btcutil.Amount(4)
+	payAmt = dcrutil.Amount(4)
 	amtSat := int64(payAmt)
 	amtMSat := int64(lnwire.NewMSatFromSatoshis(payAmt))
 	routes.Routes[0].Hops[0].AmtToForward = amtSat
@@ -1366,7 +1366,7 @@ func testUpdateChannelPolicy(net *lntest.NetworkHarness, t *harnessTest) {
 	}
 
 	// Make sure sending using the original value succeeds.
-	payAmt = btcutil.Amount(5)
+	payAmt = dcrutil.Amount(5)
 	amtSat = int64(payAmt)
 	amtMSat = int64(lnwire.NewMSatFromSatoshis(payAmt))
 	routes.Routes[0].Hops[0].AmtToForward = amtSat
@@ -1446,7 +1446,7 @@ func testUpdateChannelPolicy(net *lntest.NetworkHarness, t *harnessTest) {
 	// doesn't pay for transit over that channel as it's direct.
 	// Note that the payment amount is >= the min_htlc value for the
 	// channel Bob->Carol, so it should successfully be forwarded.
-	payAmt = btcutil.Amount(5)
+	payAmt = dcrutil.Amount(5)
 	invoice = &lnrpc.Invoice{
 		Memo:  "testing",
 		Value: int64(payAmt),
@@ -1600,7 +1600,7 @@ func testOpenChannelAfterReorg(net *lntest.NetworkHarness, t *harnessTest) {
 	// Create a new channel that requires 1 confs before it's considered
 	// open, then broadcast the funding transaction
 	chanAmt := maxBtcFundingAmount
-	pushAmt := btcutil.Amount(0)
+	pushAmt := dcrutil.Amount(0)
 	ctxt, _ := context.WithTimeout(ctxb, channelOpenTimeout)
 	pendingUpdate, err := net.OpenPendingChannel(ctxt, net.Alice, net.Bob,
 		chanAmt, pushAmt)
@@ -1751,7 +1751,7 @@ func testDisconnectingTargetPeer(net *lntest.NetworkHarness, t *harnessTest) {
 	assertNumConnections(t, net.Alice, net.Bob, 1)
 
 	chanAmt := maxBtcFundingAmount
-	pushAmt := btcutil.Amount(0)
+	pushAmt := dcrutil.Amount(0)
 
 	// Create a new channel that requires 1 confs before it's considered
 	// open, then broadcast the funding transaction
@@ -1881,7 +1881,7 @@ func testChannelFundingPersistence(net *lntest.NetworkHarness, t *harnessTest) {
 	ctxb := context.Background()
 
 	chanAmt := maxBtcFundingAmount
-	pushAmt := btcutil.Amount(0)
+	pushAmt := dcrutil.Amount(0)
 
 	// As we need to create a channel that requires more than 1
 	// confirmation before it's open, with the current set of defaults,
@@ -2010,14 +2010,14 @@ func testChannelFundingPersistence(net *lntest.NetworkHarness, t *harnessTest) {
 func testChannelBalance(net *lntest.NetworkHarness, t *harnessTest) {
 	ctxb := context.Background()
 
-	// Open a channel with 0.16 BTC between Alice and Bob, ensuring the
+	// Open a channel with 0.16 DCR between Alice and Bob, ensuring the
 	// channel has been opened properly.
 	amount := maxBtcFundingAmount
 
 	// Creates a helper closure to be used below which asserts the proper
 	// response to a channel balance RPC.
 	checkChannelBalance := func(node lnrpc.LightningClient,
-		amount btcutil.Amount) {
+		amount dcrutil.Amount) {
 
 		ctxt, _ := context.WithTimeout(ctxb, defaultTimeout)
 		response, err := node.ChannelBalance(ctxt, &lnrpc.ChannelBalanceRequest{})
@@ -2025,7 +2025,7 @@ func testChannelBalance(net *lntest.NetworkHarness, t *harnessTest) {
 			t.Fatalf("unable to get channel balance: %v", err)
 		}
 
-		balance := btcutil.Amount(response.Balance)
+		balance := dcrutil.Amount(response.Balance)
 		if balance != amount {
 			t.Fatalf("channel balance wrong: %v != %v", balance,
 				amount)
@@ -2061,7 +2061,7 @@ func testChannelBalance(net *lntest.NetworkHarness, t *harnessTest) {
 	}
 
 	// As this is a single funder channel, Alice's balance should be
-	// exactly 0.5 BTC since now state transitions have taken place yet.
+	// exactly 0.5 DCR since now state transitions have taken place yet.
 	checkChannelBalance(net.Alice, amount-calcStaticFee(0))
 
 	// Ensure Bob currently has no available balance within the channel.
@@ -2207,8 +2207,8 @@ func testChannelForceClosure(net *lntest.NetworkHarness, t *harnessTest) {
 	ctxb := context.Background()
 
 	const (
-		chanAmt     = btcutil.Amount(10e6)
-		pushAmt     = btcutil.Amount(5e6)
+		chanAmt     = dcrutil.Amount(10e6)
+		pushAmt     = dcrutil.Amount(5e6)
 		paymentAmt  = 100000
 		numInvoices = 6
 	)
@@ -2975,8 +2975,8 @@ func testChannelForceClosure(net *lntest.NetworkHarness, t *harnessTest) {
 	if err != nil {
 		t.Fatalf("unable to get carol's balance: %v", err)
 	}
-	carolExpectedBalance := btcutil.Amount(carolStartingBalance) + pushAmt
-	if btcutil.Amount(carolBalResp.ConfirmedBalance) < carolExpectedBalance {
+	carolExpectedBalance := dcrutil.Amount(carolStartingBalance) + pushAmt
+	if dcrutil.Amount(carolBalResp.ConfirmedBalance) < carolExpectedBalance {
 		t.Fatalf("carol's balance is incorrect: expected %v got %v",
 			carolExpectedBalance,
 			carolBalResp.ConfirmedBalance)
@@ -2993,7 +2993,7 @@ func testSphinxReplayPersistence(net *lntest.NetworkHarness, t *harnessTest) {
 
 	// Open a channel with 100k satoshis between Carol and Dave with Carol being
 	// the sole funder of the channel.
-	chanAmt := btcutil.Amount(100000)
+	chanAmt := dcrutil.Amount(100000)
 
 	// First, we'll create Dave, the receiver, and start him in hodl mode.
 	dave, err := net.NewNode("Dave", []string{"--debughtlc", "--hodl.exit-settle"})
@@ -3021,7 +3021,7 @@ func testSphinxReplayPersistence(net *lntest.NetworkHarness, t *harnessTest) {
 		t.Fatalf("unable to connect carol to dave: %v", err)
 	}
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
-	err = net.SendCoins(ctxt, btcutil.SatoshiPerBitcoin, carol)
+	err = net.SendCoins(ctxt, dcrutil.AtomsPerCoin, carol)
 	if err != nil {
 		t.Fatalf("unable to send coins to carol: %v", err)
 	}
@@ -3033,7 +3033,7 @@ func testSphinxReplayPersistence(net *lntest.NetworkHarness, t *harnessTest) {
 		},
 	)
 
-	assertAmountSent := func(amt btcutil.Amount) {
+	assertAmountSent := func(amt dcrutil.Amount) {
 		// Both channels should also have properly accounted from the
 		// amount that has been sent/received over the channel.
 		listReq := &lnrpc.ListChannelsRequest{}
@@ -3172,7 +3172,7 @@ func testSingleHopInvoice(net *lntest.NetworkHarness, t *harnessTest) {
 	// Open a channel with 100k satoshis between Alice and Bob with Alice being
 	// the sole funder of the channel.
 	ctxt, _ := context.WithTimeout(ctxb, channelOpenTimeout)
-	chanAmt := btcutil.Amount(100000)
+	chanAmt := dcrutil.Amount(100000)
 	chanPoint := openChannelAndAssert(
 		ctxt, t, net, net.Alice, net.Bob,
 		lntest.OpenChannelParams{
@@ -3180,7 +3180,7 @@ func testSingleHopInvoice(net *lntest.NetworkHarness, t *harnessTest) {
 		},
 	)
 
-	assertAmountSent := func(amt btcutil.Amount) {
+	assertAmountSent := func(amt dcrutil.Amount) {
 		// Both channels should also have properly accounted from the
 		// amount that has been sent/received over the channel.
 		listReq := &lnrpc.ListChannelsRequest{}
@@ -3336,7 +3336,7 @@ func testListPayments(net *lntest.NetworkHarness, t *harnessTest) {
 
 	// Open a channel with 100k satoshis between Alice and Bob with Alice
 	// being the sole funder of the channel.
-	chanAmt := btcutil.Amount(100000)
+	chanAmt := dcrutil.Amount(100000)
 	ctxt, _ = context.WithTimeout(ctxb, channelOpenTimeout)
 	chanPoint := openChannelAndAssert(
 		ctxt, t, net, net.Alice, net.Bob,
@@ -3564,7 +3564,7 @@ func updateChannelPolicy(t *harnessTest, node *lntest.HarnessNode,
 func testMultiHopPayments(net *lntest.NetworkHarness, t *harnessTest) {
 	ctxb := context.Background()
 
-	const chanAmt = btcutil.Amount(100000)
+	const chanAmt = dcrutil.Amount(100000)
 	var networkChans []*lnrpc.ChannelPoint
 
 	// Open a channel with 100k satoshis between Alice and Bob with Alice
@@ -3609,7 +3609,7 @@ func testMultiHopPayments(net *lntest.NetworkHarness, t *harnessTest) {
 		t.Fatalf("unable to connect dave to alice: %v", err)
 	}
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
-	err = net.SendCoins(ctxt, btcutil.SatoshiPerBitcoin, dave)
+	err = net.SendCoins(ctxt, dcrutil.AtomsPerCoin, dave)
 	if err != nil {
 		t.Fatalf("unable to send coins to dave: %v", err)
 	}
@@ -3647,7 +3647,7 @@ func testMultiHopPayments(net *lntest.NetworkHarness, t *harnessTest) {
 		t.Fatalf("unable to connect carol to dave: %v", err)
 	}
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
-	err = net.SendCoins(ctxt, btcutil.SatoshiPerBitcoin, carol)
+	err = net.SendCoins(ctxt, dcrutil.AtomsPerCoin, carol)
 	if err != nil {
 		t.Fatalf("unable to send coins to carol: %v", err)
 	}
@@ -3855,7 +3855,7 @@ func testMultiHopPayments(net *lntest.NetworkHarness, t *harnessTest) {
 func testSingleHopSendToRoute(net *lntest.NetworkHarness, t *harnessTest) {
 	ctxb := context.Background()
 
-	const chanAmt = btcutil.Amount(100000)
+	const chanAmt = dcrutil.Amount(100000)
 	var networkChans []*lnrpc.ChannelPoint
 
 	// Open a channel with 100k satoshis between Alice and Bob with Alice
@@ -4001,7 +4001,7 @@ func testSingleHopSendToRoute(net *lntest.NetworkHarness, t *harnessTest) {
 func testMultiHopSendToRoute(net *lntest.NetworkHarness, t *harnessTest) {
 	ctxb := context.Background()
 
-	const chanAmt = btcutil.Amount(100000)
+	const chanAmt = dcrutil.Amount(100000)
 	var networkChans []*lnrpc.ChannelPoint
 
 	// Open a channel with 100k satoshis between Alice and Bob with Alice
@@ -4042,7 +4042,7 @@ func testMultiHopSendToRoute(net *lntest.NetworkHarness, t *harnessTest) {
 		t.Fatalf("unable to connect carol to alice: %v", err)
 	}
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
-	err = net.SendCoins(ctxt, btcutil.SatoshiPerBitcoin, net.Bob)
+	err = net.SendCoins(ctxt, dcrutil.AtomsPerCoin, net.Bob)
 	if err != nil {
 		t.Fatalf("unable to send coins to bob: %v", err)
 	}
@@ -4195,7 +4195,7 @@ func testMultiHopSendToRoute(net *lntest.NetworkHarness, t *harnessTest) {
 func testSendToRouteErrorPropagation(net *lntest.NetworkHarness, t *harnessTest) {
 	ctxb := context.Background()
 
-	const chanAmt = btcutil.Amount(100000)
+	const chanAmt = dcrutil.Amount(100000)
 
 	// Open a channel with 100k satoshis between Alice and Bob with Alice
 	// being the sole funder of the channel.
@@ -4227,7 +4227,7 @@ func testSendToRouteErrorPropagation(net *lntest.NetworkHarness, t *harnessTest)
 	defer shutdownAndAssert(net, t, carol)
 
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
-	err = net.SendCoins(ctxt, btcutil.SatoshiPerBitcoin, carol)
+	err = net.SendCoins(ctxt, dcrutil.AtomsPerCoin, carol)
 	if err != nil {
 		t.Fatalf("unable to send coins to carol: %v", err)
 	}
@@ -4239,7 +4239,7 @@ func testSendToRouteErrorPropagation(net *lntest.NetworkHarness, t *harnessTest)
 	defer shutdownAndAssert(net, t, charlie)
 
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
-	err = net.SendCoins(ctxt, btcutil.SatoshiPerBitcoin, charlie)
+	err = net.SendCoins(ctxt, dcrutil.AtomsPerCoin, charlie)
 	if err != nil {
 		t.Fatalf("unable to send coins to charlie: %v", err)
 	}
@@ -4438,7 +4438,7 @@ func testUnannouncedChannels(net *lntest.NetworkHarness, t *harnessTest) {
 func testPrivateChannels(net *lntest.NetworkHarness, t *harnessTest) {
 	ctxb := context.Background()
 
-	const chanAmt = btcutil.Amount(100000)
+	const chanAmt = dcrutil.Amount(100000)
 	var networkChans []*lnrpc.ChannelPoint
 
 	// We create the following topology:
@@ -4487,7 +4487,7 @@ func testPrivateChannels(net *lntest.NetworkHarness, t *harnessTest) {
 		t.Fatalf("unable to connect dave to alice: %v", err)
 	}
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
-	err = net.SendCoins(ctxt, btcutil.SatoshiPerBitcoin, dave)
+	err = net.SendCoins(ctxt, dcrutil.AtomsPerCoin, dave)
 	if err != nil {
 		t.Fatalf("unable to send coins to dave: %v", err)
 	}
@@ -4525,7 +4525,7 @@ func testPrivateChannels(net *lntest.NetworkHarness, t *harnessTest) {
 		t.Fatalf("unable to connect carol to dave: %v", err)
 	}
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
-	err = net.SendCoins(ctxt, btcutil.SatoshiPerBitcoin, carol)
+	err = net.SendCoins(ctxt, dcrutil.AtomsPerCoin, carol)
 	if err != nil {
 		t.Fatalf("unable to send coins to carol: %v", err)
 	}
@@ -4798,7 +4798,7 @@ func testPrivateChannels(net *lntest.NetworkHarness, t *harnessTest) {
 func testInvoiceRoutingHints(net *lntest.NetworkHarness, t *harnessTest) {
 	ctxb := context.Background()
 
-	const chanAmt = btcutil.Amount(100000)
+	const chanAmt = dcrutil.Amount(100000)
 
 	// Throughout this test, we'll be opening a channel between Alice and
 	// several other parties.
@@ -5024,7 +5024,7 @@ func testMultiHopOverPrivateChannels(net *lntest.NetworkHarness, t *harnessTest)
 	// intended. To do so, we'll create the following topology:
 	//         private        public           private
 	// Alice <--100k--> Bob <--100k--> Carol <--100k--> Dave
-	const chanAmt = btcutil.Amount(100000)
+	const chanAmt = dcrutil.Amount(100000)
 
 	// First, we'll open a private channel between Alice and Bob with Alice
 	// being the funder.
@@ -5130,7 +5130,7 @@ func testMultiHopOverPrivateChannels(net *lntest.NetworkHarness, t *harnessTest)
 		t.Fatalf("unable to connect carol to dave: %v", err)
 	}
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
-	err = net.SendCoins(ctxt, btcutil.SatoshiPerBitcoin, carol)
+	err = net.SendCoins(ctxt, dcrutil.AtomsPerCoin, carol)
 	if err != nil {
 		t.Fatalf("unable to send coins to carol: %v", err)
 	}
@@ -5246,7 +5246,7 @@ func testMultiHopOverPrivateChannels(net *lntest.NetworkHarness, t *harnessTest)
 func testInvoiceSubscriptions(net *lntest.NetworkHarness, t *harnessTest) {
 	ctxb := context.Background()
 
-	const chanAmt = btcutil.Amount(500000)
+	const chanAmt = dcrutil.Amount(500000)
 
 	// Open a channel with 500k satoshis between Alice and Bob with Alice
 	// being the sole funder of the channel.
@@ -5526,7 +5526,7 @@ func testMaxPendingChannels(net *lntest.NetworkHarness, t *harnessTest) {
 	}
 
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
-	carolBalance := btcutil.Amount(maxPendingChannels) * amount
+	carolBalance := dcrutil.Amount(maxPendingChannels) * amount
 	if err := net.SendCoins(ctxt, carolBalance, carol); err != nil {
 		t.Fatalf("unable to send coins to carol: %v", err)
 	}
@@ -6162,14 +6162,14 @@ func testRevokedCloseRetribution(net *lntest.NetworkHarness, t *harnessTest) {
 	// Before we make a channel, we'll load up Carol with some coins sent
 	// directly from the miner.
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
-	err = net.SendCoins(ctxt, btcutil.SatoshiPerBitcoin, carol)
+	err = net.SendCoins(ctxt, dcrutil.AtomsPerCoin, carol)
 	if err != nil {
 		t.Fatalf("unable to send coins to carol: %v", err)
 	}
 
 	// In order to test Carol's response to an uncooperative channel
 	// closure by Bob, we'll first open up a channel between them with a
-	// 0.5 BTC value.
+	// 0.5 DCR value.
 	ctxt, _ = context.WithTimeout(ctxb, channelOpenTimeout)
 	chanPoint := openChannelAndAssert(
 		ctxt, t, net, carol, net.Bob,
@@ -6426,14 +6426,14 @@ func testRevokedCloseRetributionZeroValueRemoteOutput(net *lntest.NetworkHarness
 	// Before we make a channel, we'll load up Dave with some coins sent
 	// directly from the miner.
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
-	err = net.SendCoins(ctxt, btcutil.SatoshiPerBitcoin, dave)
+	err = net.SendCoins(ctxt, dcrutil.AtomsPerCoin, dave)
 	if err != nil {
 		t.Fatalf("unable to send coins to dave: %v", err)
 	}
 
 	// In order to test Dave's response to an uncooperative channel
 	// closure by Carol, we'll first open up a channel between them with a
-	// 0.5 BTC value.
+	// 0.5 DCR value.
 	ctxt, _ = context.WithTimeout(ctxb, channelOpenTimeout)
 	chanPoint := openChannelAndAssert(
 		ctxt, t, net, dave, carol,
@@ -6677,7 +6677,7 @@ func testRevokedCloseRetributionRemoteHodl(net *lntest.NetworkHarness,
 	// Before we make a channel, we'll load up Dave with some coins sent
 	// directly from the miner.
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
-	err = net.SendCoins(ctxt, btcutil.SatoshiPerBitcoin, dave)
+	err = net.SendCoins(ctxt, dcrutil.AtomsPerCoin, dave)
 	if err != nil {
 		t.Fatalf("unable to send coins to dave: %v", err)
 	}
@@ -7111,7 +7111,7 @@ func testDataLossProtection(net *lntest.NetworkHarness, t *harnessTest) {
 	// Before we make a channel, we'll load up Carol with some coins sent
 	// directly from the miner.
 	ctxt, _ := context.WithTimeout(ctxb, defaultTimeout)
-	err = net.SendCoins(ctxt, btcutil.SatoshiPerBitcoin, carol)
+	err = net.SendCoins(ctxt, dcrutil.AtomsPerCoin, carol)
 	if err != nil {
 		t.Fatalf("unable to send coins to carol: %v", err)
 	}
@@ -7132,7 +7132,7 @@ func testDataLossProtection(net *lntest.NetworkHarness, t *harnessTest) {
 				node.Name(), err)
 		}
 
-		// We'll first open up a channel between them with a 0.5 BTC
+		// We'll first open up a channel between them with a 0.5 DCR
 		// value.
 		ctxt, _ := context.WithTimeout(ctxb, channelOpenTimeout)
 		chanPoint := openChannelAndAssert(
@@ -7515,7 +7515,7 @@ func testHtlcErrorPropagation(net *lntest.NetworkHarness, t *harnessTest) {
 	// multi-hop payment.
 	const chanAmt = maxBtcFundingAmount
 
-	// First establish a channel with a capacity of 0.5 BTC between Alice
+	// First establish a channel with a capacity of 0.5 DCR between Alice
 	// and Bob.
 	ctxt, _ := context.WithTimeout(ctxb, channelOpenTimeout)
 	chanPointAlice := openChannelAndAssert(
@@ -7934,7 +7934,7 @@ func testGraphTopologyNotifications(net *lntest.NetworkHarness, t *harnessTest) 
 				if chanUpdate.Capacity != int64(chanAmt) {
 					t.Fatalf("channel capacities mismatch:"+
 						" expected %v, got %v", chanAmt,
-						btcutil.Amount(chanUpdate.Capacity))
+						dcrutil.Amount(chanUpdate.Capacity))
 				}
 				numChannelUpds++
 			}
@@ -8090,7 +8090,7 @@ out:
 				if chanUpdate.Capacity != int64(chanAmt) {
 					t.Fatalf("channel capacities mismatch:"+
 						" expected %v, got %v", chanAmt,
-						btcutil.Amount(chanUpdate.Capacity))
+						dcrutil.Amount(chanUpdate.Capacity))
 				}
 				numChannelUpds++
 			}
@@ -8207,7 +8207,7 @@ func testNodeSignVerify(net *lntest.NetworkHarness, t *harnessTest) {
 	ctxb := context.Background()
 
 	chanAmt := maxBtcFundingAmount
-	pushAmt := btcutil.Amount(100000)
+	pushAmt := dcrutil.Amount(100000)
 
 	// Create a channel between alice and bob.
 	ctxt, _ := context.WithTimeout(ctxb, channelOpenTimeout)
@@ -8296,7 +8296,7 @@ func testAsyncPayments(net *lntest.NetworkHarness, t *harnessTest) {
 	// amount of payments, between Alice and Bob, at the end of the test
 	// Alice should send all money from her side to Bob.
 	ctxt, _ := context.WithTimeout(ctxb, channelOpenTimeout)
-	channelCapacity := btcutil.Amount(paymentAmt * 2000)
+	channelCapacity := dcrutil.Amount(paymentAmt * 2000)
 	chanPoint := openChannelAndAssert(
 		ctxt, t, net, net.Alice, net.Bob,
 		lntest.OpenChannelParams{
@@ -8313,7 +8313,7 @@ func testAsyncPayments(net *lntest.NetworkHarness, t *harnessTest) {
 	// Calculate the number of invoices. We will deplete the channel
 	// all the way down to the channel reserve.
 	chanReserve := channelCapacity / 100
-	availableBalance := btcutil.Amount(info.LocalBalance) - chanReserve
+	availableBalance := dcrutil.Amount(info.LocalBalance) - chanReserve
 	numInvoices := int(availableBalance / paymentAmt)
 
 	bobAmt := int64(numInvoices * paymentAmt)
@@ -8863,8 +8863,8 @@ func testMultiHopHtlcLocalTimeout(net *lntest.NetworkHarness, t *harnessTest) {
 	// to Carol. The first HTLC will be universally considered "dust",
 	// while the second will be a proper fully valued HTLC.
 	const (
-		dustHtlcAmt    = btcutil.Amount(100)
-		htlcAmt        = btcutil.Amount(30000)
+		dustHtlcAmt    = dcrutil.Amount(100)
+		htlcAmt        = dcrutil.Amount(30000)
 		finalCltvDelta = 40
 	)
 
@@ -9333,7 +9333,7 @@ func testMultiHopLocalForceCloseOnChainHtlcTimeout(net *lntest.NetworkHarness,
 	// opens up the base for out tests.
 	const (
 		finalCltvDelta = 40
-		htlcAmt        = btcutil.Amount(30000)
+		htlcAmt        = dcrutil.Amount(30000)
 	)
 	ctx, cancel := context.WithCancel(ctxb)
 	defer cancel()
@@ -9594,7 +9594,7 @@ func testMultiHopRemoteForceCloseOnChainHtlcTimeout(net *lntest.NetworkHarness,
 	// opens up the base for out tests.
 	const (
 		finalCltvDelta = 40
-		htlcAmt        = btcutil.Amount(30000)
+		htlcAmt        = dcrutil.Amount(30000)
 	)
 
 	ctx, cancel := context.WithCancel(ctxb)
@@ -10403,8 +10403,8 @@ func testMultiHopHtlcRemoteChainClaim(net *lntest.NetworkHarness, t *harnessTest
 func testSwitchCircuitPersistence(net *lntest.NetworkHarness, t *harnessTest) {
 	ctxb := context.Background()
 
-	const chanAmt = btcutil.Amount(1000000)
-	const pushAmt = btcutil.Amount(900000)
+	const chanAmt = dcrutil.Amount(1000000)
+	const pushAmt = dcrutil.Amount(900000)
 	var networkChans []*lnrpc.ChannelPoint
 
 	// Open a channel with 100k satoshis between Alice and Bob with Alice
@@ -10450,7 +10450,7 @@ func testSwitchCircuitPersistence(net *lntest.NetworkHarness, t *harnessTest) {
 		t.Fatalf("unable to connect dave to alice: %v", err)
 	}
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
-	err = net.SendCoins(ctxt, btcutil.SatoshiPerBitcoin, dave)
+	err = net.SendCoins(ctxt, dcrutil.AtomsPerCoin, dave)
 	if err != nil {
 		t.Fatalf("unable to send coins to dave: %v", err)
 	}
@@ -10490,7 +10490,7 @@ func testSwitchCircuitPersistence(net *lntest.NetworkHarness, t *harnessTest) {
 		t.Fatalf("unable to connect carol to dave: %v", err)
 	}
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
-	err = net.SendCoins(ctxt, btcutil.SatoshiPerBitcoin, carol)
+	err = net.SendCoins(ctxt, dcrutil.AtomsPerCoin, carol)
 	if err != nil {
 		t.Fatalf("unable to send coins to carol: %v", err)
 	}
@@ -10743,8 +10743,8 @@ func testSwitchCircuitPersistence(net *lntest.NetworkHarness, t *harnessTest) {
 func testSwitchOfflineDelivery(net *lntest.NetworkHarness, t *harnessTest) {
 	ctxb := context.Background()
 
-	const chanAmt = btcutil.Amount(1000000)
-	const pushAmt = btcutil.Amount(900000)
+	const chanAmt = dcrutil.Amount(1000000)
+	const pushAmt = dcrutil.Amount(900000)
 	var networkChans []*lnrpc.ChannelPoint
 
 	// Open a channel with 100k satoshis between Alice and Bob with Alice
@@ -10790,7 +10790,7 @@ func testSwitchOfflineDelivery(net *lntest.NetworkHarness, t *harnessTest) {
 		t.Fatalf("unable to connect dave to alice: %v", err)
 	}
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
-	err = net.SendCoins(ctxt, btcutil.SatoshiPerBitcoin, dave)
+	err = net.SendCoins(ctxt, dcrutil.AtomsPerCoin, dave)
 	if err != nil {
 		t.Fatalf("unable to send coins to dave: %v", err)
 	}
@@ -10830,7 +10830,7 @@ func testSwitchOfflineDelivery(net *lntest.NetworkHarness, t *harnessTest) {
 		t.Fatalf("unable to connect carol to dave: %v", err)
 	}
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
-	err = net.SendCoins(ctxt, btcutil.SatoshiPerBitcoin, carol)
+	err = net.SendCoins(ctxt, dcrutil.AtomsPerCoin, carol)
 	if err != nil {
 		t.Fatalf("unable to send coins to carol: %v", err)
 	}
@@ -11090,8 +11090,8 @@ func testSwitchOfflineDelivery(net *lntest.NetworkHarness, t *harnessTest) {
 func testSwitchOfflineDeliveryPersistence(net *lntest.NetworkHarness, t *harnessTest) {
 	ctxb := context.Background()
 
-	const chanAmt = btcutil.Amount(1000000)
-	const pushAmt = btcutil.Amount(900000)
+	const chanAmt = dcrutil.Amount(1000000)
+	const pushAmt = dcrutil.Amount(900000)
 	var networkChans []*lnrpc.ChannelPoint
 
 	// Open a channel with 100k satoshis between Alice and Bob with Alice
@@ -11137,7 +11137,7 @@ func testSwitchOfflineDeliveryPersistence(net *lntest.NetworkHarness, t *harness
 		t.Fatalf("unable to connect dave to alice: %v", err)
 	}
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
-	err = net.SendCoins(ctxt, btcutil.SatoshiPerBitcoin, dave)
+	err = net.SendCoins(ctxt, dcrutil.AtomsPerCoin, dave)
 	if err != nil {
 		t.Fatalf("unable to send coins to dave: %v", err)
 	}
@@ -11178,7 +11178,7 @@ func testSwitchOfflineDeliveryPersistence(net *lntest.NetworkHarness, t *harness
 		t.Fatalf("unable to connect carol to dave: %v", err)
 	}
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
-	err = net.SendCoins(ctxt, btcutil.SatoshiPerBitcoin, carol)
+	err = net.SendCoins(ctxt, dcrutil.AtomsPerCoin, carol)
 	if err != nil {
 		t.Fatalf("unable to send coins to carol: %v", err)
 	}
@@ -11444,8 +11444,8 @@ func testSwitchOfflineDeliveryOutgoingOffline(
 	net *lntest.NetworkHarness, t *harnessTest) {
 	ctxb := context.Background()
 
-	const chanAmt = btcutil.Amount(1000000)
-	const pushAmt = btcutil.Amount(900000)
+	const chanAmt = dcrutil.Amount(1000000)
+	const pushAmt = dcrutil.Amount(900000)
 	var networkChans []*lnrpc.ChannelPoint
 
 	// Open a channel with 100k satoshis between Alice and Bob with Alice
@@ -11491,7 +11491,7 @@ func testSwitchOfflineDeliveryOutgoingOffline(
 		t.Fatalf("unable to connect dave to alice: %v", err)
 	}
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
-	err = net.SendCoins(ctxt, btcutil.SatoshiPerBitcoin, dave)
+	err = net.SendCoins(ctxt, dcrutil.AtomsPerCoin, dave)
 	if err != nil {
 		t.Fatalf("unable to send coins to dave: %v", err)
 	}
@@ -11529,7 +11529,7 @@ func testSwitchOfflineDeliveryOutgoingOffline(
 		t.Fatalf("unable to connect carol to dave: %v", err)
 	}
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
-	err = net.SendCoins(ctxt, btcutil.SatoshiPerBitcoin, carol)
+	err = net.SendCoins(ctxt, dcrutil.AtomsPerCoin, carol)
 	if err != nil {
 		t.Fatalf("unable to send coins to carol: %v", err)
 	}
@@ -11746,7 +11746,7 @@ func computeFee(baseFee, feeRate, amt lnwire.MilliSatoshi) lnwire.MilliSatoshi {
 func testQueryRoutes(net *lntest.NetworkHarness, t *harnessTest) {
 	ctxb := context.Background()
 
-	const chanAmt = btcutil.Amount(100000)
+	const chanAmt = dcrutil.Amount(100000)
 	var networkChans []*lnrpc.ChannelPoint
 
 	// Open a channel between Alice and Bob.
@@ -11771,7 +11771,7 @@ func testQueryRoutes(net *lntest.NetworkHarness, t *harnessTest) {
 		t.Fatalf("unable to connect carol to bob: %v", err)
 	}
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
-	err = net.SendCoins(ctxt, btcutil.SatoshiPerBitcoin, net.Bob)
+	err = net.SendCoins(ctxt, dcrutil.AtomsPerCoin, net.Bob)
 	if err != nil {
 		t.Fatalf("unable to send coins to bob: %v", err)
 	}
@@ -11796,7 +11796,7 @@ func testQueryRoutes(net *lntest.NetworkHarness, t *harnessTest) {
 		t.Fatalf("unable to connect dave to carol: %v", err)
 	}
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
-	err = net.SendCoins(ctxt, btcutil.SatoshiPerBitcoin, carol)
+	err = net.SendCoins(ctxt, dcrutil.AtomsPerCoin, carol)
 	if err != nil {
 		t.Fatalf("unable to send coins to carol: %v", err)
 	}
@@ -11952,7 +11952,7 @@ func testRouteFeeCutoff(net *lntest.NetworkHarness, t *harnessTest) {
 	// Alice will attempt to send payments to Dave that should not incur a
 	// fee greater than the fee limit expressed as a percentage of the
 	// amount and as a fixed amount of satoshis.
-	const chanAmt = btcutil.Amount(100000)
+	const chanAmt = dcrutil.Amount(100000)
 
 	// Open a channel between Alice and Bob.
 	ctxt, _ := context.WithTimeout(ctxb, channelOpenTimeout)
@@ -11976,7 +11976,7 @@ func testRouteFeeCutoff(net *lntest.NetworkHarness, t *harnessTest) {
 		t.Fatalf("unable to connect carol to alice: %v", err)
 	}
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
-	err = net.SendCoins(ctxt, btcutil.SatoshiPerBitcoin, carol)
+	err = net.SendCoins(ctxt, dcrutil.AtomsPerCoin, carol)
 	if err != nil {
 		t.Fatalf("unable to send coins to carol: %v", err)
 	}
@@ -12268,7 +12268,7 @@ func testSendUpdateDisableChannel(net *lntest.NetworkHarness, t *harnessTest) {
 
 	// Give Eve some coins.
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
-	err = net.SendCoins(ctxt, btcutil.SatoshiPerBitcoin, eve)
+	err = net.SendCoins(ctxt, dcrutil.AtomsPerCoin, eve)
 	if err != nil {
 		t.Fatalf("unable to send coins to eve: %v", err)
 	}
@@ -12399,7 +12399,7 @@ func testAbandonChannel(net *lntest.NetworkHarness, t *harnessTest) {
 	// First establish a channel between Alice and Bob.
 	channelParam := lntest.OpenChannelParams{
 		Amt:     maxBtcFundingAmount,
-		PushAmt: btcutil.Amount(100000),
+		PushAmt: dcrutil.Amount(100000),
 	}
 
 	ctxt, _ := context.WithTimeout(ctxb, channelOpenTimeout)
@@ -12717,7 +12717,7 @@ func TestLightningNetworkDaemon(t *testing.T) {
 
 	var lndHarness *lntest.NetworkHarness
 
-	// First create an instance of the btcd's rpctest.Harness. This will be
+	// First create an instance of the dcrd's rpctest.Harness. This will be
 	// used to fund the wallets of the nodes within the test network and to
 	// drive blockchain related events within the network. Revert the default
 	// setting of accepting non-standard transactions on simnet to reject them.
@@ -12731,21 +12731,21 @@ func TestLightningNetworkDaemon(t *testing.T) {
 		"--logdir=" + logDir,
 	}
 	handlers := &rpcclient.NotificationHandlers{
-		OnTxAccepted: func(hash *chainhash.Hash, amt btcutil.Amount) {
+		OnTxAccepted: func(hash *chainhash.Hash, amt dcrutil.Amount) {
 			lndHarness.OnTxAccepted(hash)
 		},
 	}
-	btcdHarness, err := rpctest.New(harnessNetParams, handlers, args)
+	dcrdHarness, err := rpctest.New(harnessNetParams, handlers, args)
 	if err != nil {
 		ht.Fatalf("unable to create mining node: %v", err)
 	}
 	defer func() {
-		btcdHarness.TearDown()
+		dcrdHarness.TearDown()
 
 		// After shutting down the chain backend, we'll make a copy of
 		// the log file before deleting the temporary log dir.
-		logFile := logDir + "/" + harnessNetParams.Name + "/btcd.log"
-		err := lntest.CopyFile("./output_btcd_chainbackend.log",
+		logFile := logDir + "/" + harnessNetParams.Name + "/dcrd.log"
+		err := lntest.CopyFile("./output_dcrd_chainbackend.log",
 			logFile)
 		if err != nil {
 			fmt.Printf("unable to copy file: %v\n", err)
@@ -12757,7 +12757,7 @@ func TestLightningNetworkDaemon(t *testing.T) {
 
 	// First create the network harness to gain access to its
 	// 'OnTxAccepted' call back.
-	lndHarness, err = lntest.NewNetworkHarness(btcdHarness)
+	lndHarness, err = lntest.NewNetworkHarness(dcrdHarness)
 	if err != nil {
 		ht.Fatalf("unable to create lightning network harness: %v", err)
 	}
@@ -12779,21 +12779,21 @@ func TestLightningNetworkDaemon(t *testing.T) {
 		}
 	}()
 
-	if err := btcdHarness.SetUp(true, 50); err != nil {
+	if err := dcrdHarness.SetUp(true, 50); err != nil {
 		ht.Fatalf("unable to set up mining node: %v", err)
 	}
-	if err := btcdHarness.Node.NotifyNewTransactions(false); err != nil {
+	if err := dcrdHarness.Node.NotifyNewTransactions(false); err != nil {
 		ht.Fatalf("unable to request transaction notifications: %v", err)
 	}
 
 	// Next mine enough blocks in order for segwit and the CSV package
 	// soft-fork to activate on SimNet.
 	numBlocks := chaincfg.SimNetParams.MinerConfirmationWindow * 2
-	if _, err := btcdHarness.Node.Generate(numBlocks); err != nil {
+	if _, err := dcrdHarness.Node.Generate(numBlocks); err != nil {
 		ht.Fatalf("unable to generate blocks: %v", err)
 	}
 
-	// With the btcd harness created, we can now complete the
+	// With the dcrd harness created, we can now complete the
 	// initialization of the network. args - list of lnd arguments,
 	// example: "--debuglevel=debug"
 	// TODO(roasbeef): create master balanced channel with all the monies?

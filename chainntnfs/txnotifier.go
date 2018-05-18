@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/wire"
 )
 
 var (
@@ -895,7 +895,7 @@ func (n *TxNotifier) dispatchSpendDetails(ntfn *SpendNtfn, details *SpendDetail)
 // clients, NotifyHeight must be called with the same block height in order to
 // maintain correctness.
 func (n *TxNotifier) ConnectTip(blockHash *chainhash.Hash, blockHeight uint32,
-	txns []*btcutil.Tx) error {
+	txns []*dcrutil.Tx) error {
 
 	select {
 	case <-n.quit:

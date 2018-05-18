@@ -5,7 +5,7 @@ import (
 	"net"
 	"testing"
 
-	"github.com/lightningnetwork/lnd/tor"
+	"github.com/decred/dcrlnd/tor"
 )
 
 type unknownAddrType struct{}

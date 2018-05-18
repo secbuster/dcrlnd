@@ -4,7 +4,7 @@ import "google/api/annotations.proto";
 
 package lnrpc;
 
-option go_package = "github.com/lightningnetwork/lnd/lnrpc";
+option go_package = "github.com/decred/dcrlnd/lnrpc";
 
 /**
  * Comments in this file will be directly parsed into the API
@@ -1159,7 +1159,7 @@ message GetInfoResponse {
 }
 
 message Chain {
-    /// The blockchain the node is on (eg bitcoin, litecoin)
+    /// The blockchain the node is on (eg decred)
     string chain = 1 [json_name = "chain"];
 
     /// The network the node is on (eg regtest, testnet, mainnet)

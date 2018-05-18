@@ -6,13 +6,13 @@ import (
 	"io"
 	"net"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
-	"github.com/lightningnetwork/lnd/keychain"
-	"github.com/lightningnetwork/lnd/lnwire"
-	"github.com/lightningnetwork/lnd/shachain"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/keychain"
+	"github.com/decred/dcrlnd/lnwire"
+	"github.com/decred/dcrlnd/shachain"
 )
 
 // outPointSize is the size of a serialized outpoint on disk.
@@ -122,7 +122,7 @@ func WriteElement(w io.Writer, element interface{}) error {
 			return err
 		}
 
-	case btcutil.Amount:
+	case dcrutil.Amount:
 		if err := binary.Write(w, byteOrder, uint64(e)); err != nil {
 			return err
 		}
@@ -132,7 +132,7 @@ func WriteElement(w io.Writer, element interface{}) error {
 			return err
 		}
 
-	case *btcec.PublicKey:
+	case *secp256k1.PublicKey:
 		b := e.SerializeCompressed()
 		if _, err := w.Write(b); err != nil {
 			return err
@@ -278,13 +278,13 @@ func ReadElement(r io.Reader, element interface{}) error {
 			return err
 		}
 
-	case *btcutil.Amount:
+	case *dcrutil.Amount:
 		var a uint64
 		if err := binary.Read(r, byteOrder, &a); err != nil {
 			return err
 		}
 
-		*e = btcutil.Amount(a)
+		*e = dcrutil.Amount(a)
 
 	case *lnwire.MilliSatoshi:
 		var a uint64
@@ -294,13 +294,13 @@ func ReadElement(r io.Reader, element interface{}) error {
 
 		*e = lnwire.MilliSatoshi(a)
 
-	case **btcec.PublicKey:
-		var b [btcec.PubKeyBytesLenCompressed]byte
+	case **secp256k1.PublicKey:
+		var b [secp256k1.PubKeyBytesLenCompressed]byte
 		if _, err := io.ReadFull(r, b[:]); err != nil {
 			return err
 		}
 
-		pubKey, err := btcec.ParsePubKey(b[:], btcec.S256())
+		pubKey, err := secp256k1.ParsePubKey(b[:])
 		if err != nil {
 			return err
 		}
@@ -329,7 +329,7 @@ func ReadElement(r io.Reader, element interface{}) error {
 		*e = store
 
 	case **wire.MsgTx:
-		tx := wire.NewMsgTx(2)
+		tx := wire.NewMsgTx()
 		if err := tx.Deserialize(r); err != nil {
 			return err
 		}

@@ -12,13 +12,13 @@ import (
 	"net"
 	"time"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcd/txscript"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
 	"github.com/coreos/bbolt"
-	"github.com/lightningnetwork/lnd/lnwire"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/txscript"
+	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/lnwire"
 )
 
 var (
@@ -383,7 +383,7 @@ func addLightningNode(tx *bbolt.Tx, node *LightningNode) error {
 
 // LookupAlias attempts to return the alias as advertised by the target node.
 // TODO(roasbeef): currently assumes that aliases are unique...
-func (c *ChannelGraph) LookupAlias(pub *btcec.PublicKey) (string, error) {
+func (c *ChannelGraph) LookupAlias(pub *secp256k1.PublicKey) (string, error) {
 	var alias string
 
 	err := c.db.View(func(tx *bbolt.Tx) error {
@@ -417,7 +417,7 @@ func (c *ChannelGraph) LookupAlias(pub *btcec.PublicKey) (string, error) {
 
 // DeleteLightningNode starts a new database transaction to remove a vertex/node
 // from the database according to the node's public key.
-func (c *ChannelGraph) DeleteLightningNode(nodePub *btcec.PublicKey) error {
+func (c *ChannelGraph) DeleteLightningNode(nodePub *secp256k1.PublicKey) error {
 	// TODO(roasbeef): ensure dangling edges are removed...
 	return c.db.Update(func(tx *bbolt.Tx) error {
 		nodes := tx.Bucket(nodeBucket)
@@ -1697,7 +1697,7 @@ func updateEdgePolicy(edges, edgeIndex, nodes *bbolt.Bucket,
 type LightningNode struct {
 	// PubKeyBytes is the raw bytes of the public key of the target node.
 	PubKeyBytes [33]byte
-	pubKey      *btcec.PublicKey
+	pubKey      *secp256k1.PublicKey
 
 	// HaveNodeAnnouncement indicates whether we received a node
 	// announcement for this particular node. If true, the remaining fields
@@ -1746,12 +1746,12 @@ type LightningNode struct {
 //
 // NOTE: By having this method to access an attribute, we ensure we only need
 // to fully deserialize the pubkey if absolutely necessary.
-func (l *LightningNode) PubKey() (*btcec.PublicKey, error) {
+func (l *LightningNode) PubKey() (*secp256k1.PublicKey, error) {
 	if l.pubKey != nil {
 		return l.pubKey, nil
 	}
 
-	key, err := btcec.ParsePubKey(l.PubKeyBytes[:], btcec.S256())
+	key, err := secp256k1.ParsePubKey(l.PubKeyBytes[:], secp256k1.S256())
 	if err != nil {
 		return nil, err
 	}
@@ -1766,13 +1766,13 @@ func (l *LightningNode) PubKey() (*btcec.PublicKey, error) {
 //
 // NOTE: By having this method to access an attribute, we ensure we only need
 // to fully deserialize the signature if absolutely necessary.
-func (l *LightningNode) AuthSig() (*btcec.Signature, error) {
-	return btcec.ParseSignature(l.AuthSigBytes, btcec.S256())
+func (l *LightningNode) AuthSig() (*secp256k1.Signature, error) {
+	return secp256k1.ParseSignature(l.AuthSigBytes, secp256k1.S256())
 }
 
 // AddPubKey is a setter-link method that can be used to swap out the public
 // key for a node.
-func (l *LightningNode) AddPubKey(key *btcec.PublicKey) {
+func (l *LightningNode) AddPubKey(key *secp256k1.PublicKey) {
 	l.pubKey = key
 	copy(l.PubKeyBytes[:], key.SerializeCompressed())
 }
@@ -1858,7 +1858,7 @@ func (l *LightningNode) isPublic(tx *bbolt.Tx, sourcePubKey []byte) (bool, error
 // FetchLightningNode attempts to look up a target node by its identity public
 // key. If the node isn't found in the database, then ErrGraphNodeNotFound is
 // returned.
-func (c *ChannelGraph) FetchLightningNode(pub *btcec.PublicKey) (*LightningNode, error) {
+func (c *ChannelGraph) FetchLightningNode(pub *secp256k1.PublicKey) (*LightningNode, error) {
 	var node *LightningNode
 	nodePub := pub.SerializeCompressed()
 	err := c.db.View(func(tx *bbolt.Tx) error {
@@ -2064,19 +2064,19 @@ type ChannelEdgeInfo struct {
 
 	// NodeKey1Bytes is the raw public key of the first node.
 	NodeKey1Bytes [33]byte
-	nodeKey1      *btcec.PublicKey
+	nodeKey1      *secp256k1.PublicKey
 
 	// NodeKey2Bytes is the raw public key of the first node.
 	NodeKey2Bytes [33]byte
-	nodeKey2      *btcec.PublicKey
+	nodeKey2      *secp256k1.PublicKey
 
 	// BitcoinKey1Bytes is the raw public key of the first node.
 	BitcoinKey1Bytes [33]byte
-	bitcoinKey1      *btcec.PublicKey
+	bitcoinKey1      *secp256k1.PublicKey
 
 	// BitcoinKey2Bytes is the raw public key of the first node.
 	BitcoinKey2Bytes [33]byte
-	bitcoinKey2      *btcec.PublicKey
+	bitcoinKey2      *secp256k1.PublicKey
 
 	// Features is an opaque byte slice that encodes the set of channel
 	// specific features that this channel edge supports.
@@ -2093,7 +2093,7 @@ type ChannelEdgeInfo struct {
 
 	// Capacity is the total capacity of the channel, this is determined by
 	// the value output in the outpoint that created this channel.
-	Capacity btcutil.Amount
+	Capacity dcrutil.Amount
 
 	// ExtraOpaqueData is the set of data that was appended to this
 	// message, some of which we may not actually know how to iterate or
@@ -2109,7 +2109,7 @@ type ChannelEdgeInfo struct {
 // AddNodeKeys is a setter-like method that can be used to replace the set of
 // keys for the target ChannelEdgeInfo.
 func (c *ChannelEdgeInfo) AddNodeKeys(nodeKey1, nodeKey2, bitcoinKey1,
-	bitcoinKey2 *btcec.PublicKey) {
+	bitcoinKey2 *secp256k1.PublicKey) {
 
 	c.nodeKey1 = nodeKey1
 	copy(c.NodeKey1Bytes[:], c.nodeKey1.SerializeCompressed())
@@ -2131,12 +2131,12 @@ func (c *ChannelEdgeInfo) AddNodeKeys(nodeKey1, nodeKey2, bitcoinKey1,
 //
 // NOTE: By having this method to access an attribute, we ensure we only need
 // to fully deserialize the pubkey if absolutely necessary.
-func (c *ChannelEdgeInfo) NodeKey1() (*btcec.PublicKey, error) {
+func (c *ChannelEdgeInfo) NodeKey1() (*secp256k1.PublicKey, error) {
 	if c.nodeKey1 != nil {
 		return c.nodeKey1, nil
 	}
 
-	key, err := btcec.ParsePubKey(c.NodeKey1Bytes[:], btcec.S256())
+	key, err := secp256k1.ParsePubKey(c.NodeKey1Bytes[:], secp256k1.S256())
 	if err != nil {
 		return nil, err
 	}
@@ -2153,12 +2153,12 @@ func (c *ChannelEdgeInfo) NodeKey1() (*btcec.PublicKey, error) {
 //
 // NOTE: By having this method to access an attribute, we ensure we only need
 // to fully deserialize the pubkey if absolutely necessary.
-func (c *ChannelEdgeInfo) NodeKey2() (*btcec.PublicKey, error) {
+func (c *ChannelEdgeInfo) NodeKey2() (*secp256k1.PublicKey, error) {
 	if c.nodeKey2 != nil {
 		return c.nodeKey2, nil
 	}
 
-	key, err := btcec.ParsePubKey(c.NodeKey2Bytes[:], btcec.S256())
+	key, err := secp256k1.ParsePubKey(c.NodeKey2Bytes[:], secp256k1.S256())
 	if err != nil {
 		return nil, err
 	}
@@ -2173,12 +2173,12 @@ func (c *ChannelEdgeInfo) NodeKey2() (*btcec.PublicKey, error) {
 //
 // NOTE: By having this method to access an attribute, we ensure we only need
 // to fully deserialize the pubkey if absolutely necessary.
-func (c *ChannelEdgeInfo) BitcoinKey1() (*btcec.PublicKey, error) {
+func (c *ChannelEdgeInfo) BitcoinKey1() (*secp256k1.PublicKey, error) {
 	if c.bitcoinKey1 != nil {
 		return c.bitcoinKey1, nil
 	}
 
-	key, err := btcec.ParsePubKey(c.BitcoinKey1Bytes[:], btcec.S256())
+	key, err := secp256k1.ParsePubKey(c.BitcoinKey1Bytes[:], secp256k1.S256())
 	if err != nil {
 		return nil, err
 	}
@@ -2193,12 +2193,12 @@ func (c *ChannelEdgeInfo) BitcoinKey1() (*btcec.PublicKey, error) {
 //
 // NOTE: By having this method to access an attribute, we ensure we only need
 // to fully deserialize the pubkey if absolutely necessary.
-func (c *ChannelEdgeInfo) BitcoinKey2() (*btcec.PublicKey, error) {
+func (c *ChannelEdgeInfo) BitcoinKey2() (*secp256k1.PublicKey, error) {
 	if c.bitcoinKey2 != nil {
 		return c.bitcoinKey2, nil
 	}
 
-	key, err := btcec.ParsePubKey(c.BitcoinKey2Bytes[:], btcec.S256())
+	key, err := secp256k1.ParsePubKey(c.BitcoinKey2Bytes[:], secp256k1.S256())
 	if err != nil {
 		return nil, err
 	}
@@ -2280,28 +2280,28 @@ func (c *ChannelEdgeInfo) FetchOtherNode(tx *bbolt.Tx, thisNodeKey []byte) (*Lig
 // features.
 type ChannelAuthProof struct {
 	// nodeSig1 is a cached instance of the first node signature.
-	nodeSig1 *btcec.Signature
+	nodeSig1 *secp256k1.Signature
 
 	// NodeSig1Bytes are the raw bytes of the first node signature encoded
 	// in DER format.
 	NodeSig1Bytes []byte
 
 	// nodeSig2 is a cached instance of the second node signature.
-	nodeSig2 *btcec.Signature
+	nodeSig2 *secp256k1.Signature
 
 	// NodeSig2Bytes are the raw bytes of the second node signature
 	// encoded in DER format.
 	NodeSig2Bytes []byte
 
 	// bitcoinSig1 is a cached instance of the first bitcoin signature.
-	bitcoinSig1 *btcec.Signature
+	bitcoinSig1 *secp256k1.Signature
 
 	// BitcoinSig1Bytes are the raw bytes of the first bitcoin signature
 	// encoded in DER format.
 	BitcoinSig1Bytes []byte
 
 	// bitcoinSig2 is a cached instance of the second bitcoin signature.
-	bitcoinSig2 *btcec.Signature
+	bitcoinSig2 *secp256k1.Signature
 
 	// BitcoinSig2Bytes are the raw bytes of the second bitcoin signature
 	// encoded in DER format.
@@ -2314,12 +2314,12 @@ type ChannelAuthProof struct {
 //
 // NOTE: By having this method to access an attribute, we ensure we only need
 // to fully deserialize the signature if absolutely necessary.
-func (c *ChannelAuthProof) Node1Sig() (*btcec.Signature, error) {
+func (c *ChannelAuthProof) Node1Sig() (*secp256k1.Signature, error) {
 	if c.nodeSig1 != nil {
 		return c.nodeSig1, nil
 	}
 
-	sig, err := btcec.ParseSignature(c.NodeSig1Bytes, btcec.S256())
+	sig, err := secp256k1.ParseSignature(c.NodeSig1Bytes, secp256k1.S256())
 	if err != nil {
 		return nil, err
 	}
@@ -2335,12 +2335,12 @@ func (c *ChannelAuthProof) Node1Sig() (*btcec.Signature, error) {
 //
 // NOTE: By having this method to access an attribute, we ensure we only need
 // to fully deserialize the signature if absolutely necessary.
-func (c *ChannelAuthProof) Node2Sig() (*btcec.Signature, error) {
+func (c *ChannelAuthProof) Node2Sig() (*secp256k1.Signature, error) {
 	if c.nodeSig2 != nil {
 		return c.nodeSig2, nil
 	}
 
-	sig, err := btcec.ParseSignature(c.NodeSig2Bytes, btcec.S256())
+	sig, err := secp256k1.ParseSignature(c.NodeSig2Bytes, secp256k1.S256())
 	if err != nil {
 		return nil, err
 	}
@@ -2355,12 +2355,12 @@ func (c *ChannelAuthProof) Node2Sig() (*btcec.Signature, error) {
 //
 // NOTE: By having this method to access an attribute, we ensure we only need
 // to fully deserialize the signature if absolutely necessary.
-func (c *ChannelAuthProof) BitcoinSig1() (*btcec.Signature, error) {
+func (c *ChannelAuthProof) BitcoinSig1() (*secp256k1.Signature, error) {
 	if c.bitcoinSig1 != nil {
 		return c.bitcoinSig1, nil
 	}
 
-	sig, err := btcec.ParseSignature(c.BitcoinSig1Bytes, btcec.S256())
+	sig, err := secp256k1.ParseSignature(c.BitcoinSig1Bytes, secp256k1.S256())
 	if err != nil {
 		return nil, err
 	}
@@ -2375,12 +2375,12 @@ func (c *ChannelAuthProof) BitcoinSig1() (*btcec.Signature, error) {
 //
 // NOTE: By having this method to access an attribute, we ensure we only need
 // to fully deserialize the signature if absolutely necessary.
-func (c *ChannelAuthProof) BitcoinSig2() (*btcec.Signature, error) {
+func (c *ChannelAuthProof) BitcoinSig2() (*secp256k1.Signature, error) {
 	if c.bitcoinSig2 != nil {
 		return c.bitcoinSig2, nil
 	}
 
-	sig, err := btcec.ParseSignature(c.BitcoinSig2Bytes, btcec.S256())
+	sig, err := secp256k1.ParseSignature(c.BitcoinSig2Bytes, secp256k1.S256())
 	if err != nil {
 		return nil, err
 	}
@@ -2411,7 +2411,7 @@ type ChannelEdgePolicy struct {
 	SigBytes []byte
 
 	// sig is a cached fully parsed signature.
-	sig *btcec.Signature
+	sig *secp256k1.Signature
 
 	// ChannelID is the unique channel ID for the channel. The first 3
 	// bytes are the block height, the next 3 the index within the block,
@@ -2463,12 +2463,12 @@ type ChannelEdgePolicy struct {
 //
 // NOTE: By having this method to access an attribute, we ensure we only need
 // to fully deserialize the signature if absolutely necessary.
-func (c *ChannelEdgePolicy) Signature() (*btcec.Signature, error) {
+func (c *ChannelEdgePolicy) Signature() (*secp256k1.Signature, error) {
 	if c.sig != nil {
 		return c.sig, nil
 	}
 
-	sig, err := btcec.ParseSignature(c.SigBytes, btcec.S256())
+	sig, err := secp256k1.ParseSignature(c.SigBytes, secp256k1.S256())
 	if err != nil {
 		return nil, err
 	}

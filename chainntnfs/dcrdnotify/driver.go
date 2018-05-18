@@ -1,15 +1,15 @@
-package btcdnotify
+package dcrdnotify
 
 import (
 	"errors"
 	"fmt"
 
-	"github.com/btcsuite/btcd/rpcclient"
-	"github.com/lightningnetwork/lnd/chainntnfs"
+	"github.com/decred/dcrd/rpcclient"
+	"github.com/decred/dcrlnd/chainntnfs"
 )
 
 // createNewNotifier creates a new instance of the ChainNotifier interface
-// implemented by BtcdNotifier.
+// implemented by DcrdNotifier.
 func createNewNotifier(args ...interface{}) (chainntnfs.ChainNotifier, error) {
 	if len(args) != 3 {
 		return nil, fmt.Errorf("incorrect number of arguments to "+
@@ -18,26 +18,26 @@ func createNewNotifier(args ...interface{}) (chainntnfs.ChainNotifier, error) {
 
 	config, ok := args[0].(*rpcclient.ConnConfig)
 	if !ok {
-		return nil, errors.New("first argument to btcdnotifier.New " +
+		return nil, errors.New("first argument to dcrdnotifier.New " +
 			"is incorrect, expected a *rpcclient.ConnConfig")
 	}
 
 	spendHintCache, ok := args[1].(chainntnfs.SpendHintCache)
 	if !ok {
-		return nil, errors.New("second argument to btcdnotifier.New " +
+		return nil, errors.New("second argument to dcrdnotifier.New " +
 			"is incorrect, expected a chainntnfs.SpendHintCache")
 	}
 
 	confirmHintCache, ok := args[2].(chainntnfs.ConfirmHintCache)
 	if !ok {
-		return nil, errors.New("third argument to btcdnotifier.New " +
+		return nil, errors.New("third argument to dcrdnotifier.New " +
 			"is incorrect, expected a chainntnfs.ConfirmHintCache")
 	}
 
 	return New(config, spendHintCache, confirmHintCache)
 }
 
-// init registers a driver for the BtcdNotifier concrete implementation of the
+// init registers a driver for the DcrdNotifier concrete implementation of the
 // chainntnfs.ChainNotifier interface.
 func init() {
 	// Register the driver.

@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/btcsuite/btcutil"
-	"github.com/lightningnetwork/lnd/lnwire"
+	"github.com/decred/dcrlnd/lnwire"
+	"github.com/decred/dcrutil"
 )
 
 func TestOpenWithCreate(t *testing.T) {
@@ -110,7 +110,7 @@ func TestFetchClosedChannelForID(t *testing.T) {
 		closeSummary := &ChannelCloseSummary{
 			ChanPoint:      state.FundingOutpoint,
 			RemotePub:      state.IdentityPub,
-			SettledBalance: btcutil.Amount(500 + i),
+			SettledBalance: dcrutil.Amount(500 + i),
 		}
 		if err := state.CloseChannel(closeSummary); err != nil {
 			t.Fatalf("unable to close channel: %v", err)
@@ -131,9 +131,9 @@ func TestFetchClosedChannelForID(t *testing.T) {
 
 		// Make sure we retrieved the correct one by checking the
 		// SettledBalance.
-		if fetchedSummary.SettledBalance != btcutil.Amount(500+i) {
+		if fetchedSummary.SettledBalance != dcrutil.Amount(500+i) {
 			t.Fatalf("summaries don't match: expected %v got %v",
-				btcutil.Amount(500+i),
+				dcrutil.Amount(500+i),
 				fetchedSummary.SettledBalance)
 		}
 	}

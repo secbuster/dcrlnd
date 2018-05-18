@@ -5,8 +5,8 @@ import (
 	"net"
 	"time"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/lightningnetwork/lnd/watchtower/wtdb"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrlnd/watchtower/wtdb"
 )
 
 // Interface represents a simple, listen-only service that accepts watchtower
@@ -41,7 +41,7 @@ type Peer interface {
 	SetReadDeadline(time.Time) error
 
 	// RemotePub returns the client's public key.
-	RemotePub() *btcec.PublicKey
+	RemotePub() *secp256k1.PublicKey
 
 	// RemoteAddr returns the client's network address.
 	RemoteAddr() net.Addr

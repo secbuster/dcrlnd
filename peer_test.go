@@ -6,12 +6,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
-	"github.com/lightningnetwork/lnd/chainntnfs"
-	"github.com/lightningnetwork/lnd/htlcswitch"
-	"github.com/lightningnetwork/lnd/lnwallet"
-	"github.com/lightningnetwork/lnd/lnwire"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/chainntnfs"
+	"github.com/decred/dcrlnd/htlcswitch"
+	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwire"
 )
 
 // TestPeerChannelClosureAcceptFeeResponder tests the shutdown responder's
@@ -271,7 +271,7 @@ func TestPeerChannelClosureFeeNegotiationsResponder(t *testing.T) {
 
 	// We don't agree with the fee, and will send back one that's 2.5x.
 	preferredRespFee := responderClosingSigned.FeeSatoshis
-	increasedFee := btcutil.Amount(float64(preferredRespFee) * 2.5)
+	increasedFee := dcrutil.Amount(float64(preferredRespFee) * 2.5)
 	initiatorSig, _, _, err := initiatorChan.CreateCloseProposal(
 		increasedFee, dummyDeliveryScript, respDeliveryScript,
 	)
@@ -315,7 +315,7 @@ func TestPeerChannelClosureFeeNegotiationsResponder(t *testing.T) {
 	lastFeeResponder := peerFee
 
 	// We try negotiating a 2.1x fee, which should also be rejected.
-	increasedFee = btcutil.Amount(float64(preferredRespFee) * 2.1)
+	increasedFee = dcrutil.Amount(float64(preferredRespFee) * 2.1)
 	initiatorSig, _, _, err = initiatorChan.CreateCloseProposal(
 		increasedFee, dummyDeliveryScript, respDeliveryScript,
 	)
@@ -452,7 +452,7 @@ func TestPeerChannelClosureFeeNegotiationsInitiator(t *testing.T) {
 		t.Fatalf("unable to query fee estimator: %v", err)
 	}
 	initiatorIdealFee := responderChan.CalcFee(initiatorIdealFeeRate)
-	increasedFee := btcutil.Amount(float64(initiatorIdealFee) * 2.5)
+	increasedFee := dcrutil.Amount(float64(initiatorIdealFee) * 2.5)
 	closeSig, _, _, err := responderChan.CreateCloseProposal(
 		increasedFee, dummyDeliveryScript, initiatorDeliveryScript,
 	)
@@ -517,7 +517,7 @@ func TestPeerChannelClosureFeeNegotiationsInitiator(t *testing.T) {
 	lastFeeSent = closingSignedMsg.FeeSatoshis
 
 	// We try negotiating a 2.1x fee, which should also be rejected.
-	increasedFee = btcutil.Amount(float64(initiatorIdealFee) * 2.1)
+	increasedFee = dcrutil.Amount(float64(initiatorIdealFee) * 2.1)
 	responderSig, _, _, err := responderChan.CreateCloseProposal(
 		increasedFee, dummyDeliveryScript, initiatorDeliveryScript,
 	)

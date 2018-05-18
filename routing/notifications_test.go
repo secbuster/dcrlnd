@@ -10,15 +10,16 @@ import (
 
 	prand "math/rand"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/channeldb"
+
+	//"github.com/decred/dcrlnd/lnwallet" // TODO(decred): Uncomment...
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrlnd/lnwire"
+	"github.com/decred/dcrlnd/routing/chainview"
 	"github.com/go-errors/errors"
-	"github.com/lightningnetwork/lnd/channeldb"
-	"github.com/lightningnetwork/lnd/lnwallet"
-	"github.com/lightningnetwork/lnd/lnwire"
-	"github.com/lightningnetwork/lnd/routing/chainview"
 )
 
 var (
@@ -37,17 +38,17 @@ var (
 
 	testTime = time.Date(2018, time.January, 9, 14, 00, 00, 0, time.UTC)
 
-	priv1, _    = btcec.NewPrivateKey(btcec.S256())
+	priv1, _    = secp256k1.GeneratePrivateKey()
 	bitcoinKey1 = priv1.PubKey()
 
-	priv2, _    = btcec.NewPrivateKey(btcec.S256())
+	priv2, _    = secp256k1.GeneratePrivateKey()
 	bitcoinKey2 = priv2.PubKey()
 )
 
 func createTestNode() (*channeldb.LightningNode, error) {
 	updateTime := prand.Int63()
 
-	priv, err := btcec.NewPrivateKey(btcec.S256())
+	priv, err := secp256k1.GeneratePrivateKey()
 	if err != nil {
 		return nil, errors.Errorf("unable create private key: %v", err)
 	}
@@ -83,7 +84,7 @@ func randEdgePolicy(chanID *lnwire.ShortChannelID,
 }
 
 func createChannelEdge(ctx *testCtx, bitcoinKey1, bitcoinKey2 []byte,
-	chanValue btcutil.Amount, fundingHeight uint32) (*wire.MsgTx, *wire.OutPoint,
+	chanValue dcrutil.Amount, fundingHeight uint32) (*wire.MsgTx, *wire.OutPoint,
 	*lnwire.ShortChannelID, error) {
 
 	fundingTx := wire.NewMsgTx(2)

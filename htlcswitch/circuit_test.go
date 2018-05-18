@@ -6,13 +6,13 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/btcsuite/btcd/btcec"
-	bitcoinCfg "github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcutil"
-	"github.com/lightningnetwork/lightning-onion"
-	"github.com/lightningnetwork/lnd/channeldb"
-	"github.com/lightningnetwork/lnd/htlcswitch"
-	"github.com/lightningnetwork/lnd/lnwire"
+	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/htlcswitch"
+	"github.com/decred/dcrlnd/lnwire"
+	"github.com/lightningnetwork/lightning-onion" // TODO(decred): ok?
 )
 
 var (
@@ -22,11 +22,11 @@ var (
 
 	// sphinxPrivKey is the private key given to freshly created sphinx
 	// routers.
-	sphinxPrivKey *btcec.PrivateKey
+	sphinxPrivKey *secp256k1.PrivateKey
 
 	// testEphemeralKey is the ephemeral key that will be extracted to
 	// create onion obfuscators.
-	testEphemeralKey *btcec.PublicKey
+	testEphemeralKey *secp256k1.PublicKey
 
 	// testExtracter is a precomputed extraction of testEphemeralKey, using
 	// the sphinxPrivKey.
@@ -36,13 +36,13 @@ var (
 func init() {
 	// Generate a fresh key for our sphinx router.
 	var err error
-	sphinxPrivKey, err = btcec.NewPrivateKey(btcec.S256())
+	sphinxPrivKey, err = secp256k1.GeneratePrivateKey()
 	if err != nil {
 		panic(err)
 	}
 
 	// And another, whose public key will serve as the test ephemeral key.
-	testEphemeralPriv, err := btcec.NewPrivateKey(btcec.S256())
+	testEphemeralPriv, err := secp256k1.GeneratePrivateKey()
 	if err != nil {
 		panic(err)
 	}
@@ -124,8 +124,8 @@ func TestCircuitMapInit(t *testing.T) {
 
 var halfCircuitTests = []struct {
 	hash      [32]byte
-	inValue   btcutil.Amount
-	outValue  btcutil.Amount
+	inValue   dcrutil.Amount
+	outValue  dcrutil.Amount
 	chanID    lnwire.ShortChannelID
 	htlcID    uint64
 	encrypter htlcswitch.ErrorEncrypter

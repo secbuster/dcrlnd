@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/lightningnetwork/lnd/lnwallet"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/lnwallet"
 )
 
 // WriteElement is a one-stop shop to write the big endian representation of
@@ -78,7 +78,7 @@ func WriteElement(w io.Writer, element interface{}) error {
 			return err
 		}
 
-	case *btcec.PublicKey:
+	case *secp256k1.PublicKey:
 		if e == nil {
 			return fmt.Errorf("cannot write nil pubkey")
 		}
@@ -177,13 +177,13 @@ func ReadElement(r io.Reader, element interface{}) error {
 		}
 		*e = ErrorCode(binary.BigEndian.Uint16(b[:]))
 
-	case **btcec.PublicKey:
-		var b [btcec.PubKeyBytesLenCompressed]byte
+	case **secp256k1.PublicKey:
+		var b [secp256k1.PubKeyBytesLenCompressed]byte
 		if _, err := io.ReadFull(r, b[:]); err != nil {
 			return err
 		}
 
-		pubKey, err := btcec.ParsePubKey(b[:], btcec.S256())
+		pubKey, err := secp256k1.ParsePubKey(b[:])
 		if err != nil {
 			return err
 		}

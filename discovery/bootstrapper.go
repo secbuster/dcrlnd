@@ -12,13 +12,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcutil/bech32"
-	"github.com/davecgh/go-spew/spew"
-	"github.com/lightningnetwork/lnd/autopilot"
-	"github.com/lightningnetwork/lnd/lnwire"
-	"github.com/lightningnetwork/lnd/tor"
 	"github.com/miekg/dns"
+
+	"github.com/davecgh/go-spew/spew"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrlnd/autopilot"
+	"github.com/decred/dcrlnd/lnwire"
+	"github.com/decred/dcrlnd/tor"
+	"github.com/roasbeef/btcutil/bech32" // TODO(decred): dcrutil...
 )
 
 func init() {
@@ -205,9 +206,7 @@ func (c *ChannelGraphBootstrapper) SampleNodeAddrs(numAddrs uint32,
 					return nil
 				}
 
-				nodePub, err := btcec.ParsePubKey(
-					nodePubKeyBytes[:], btcec.S256(),
-				)
+				nodePub, err := secp256k1.ParsePubKey(nodePubKeyBytes[:])
 				if err != nil {
 					return err
 				}
@@ -466,9 +465,8 @@ search:
 				if err != nil {
 					return nil, err
 				}
-				nodeKey, err := btcec.ParsePubKey(
-					nodeBytes, btcec.S256(),
-				)
+				nodeKey, err := secp256k1.ParsePubKey(
+					nodeBytes)
 				if err != nil {
 					return nil, err
 				}

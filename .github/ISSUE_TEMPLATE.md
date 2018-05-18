@@ -4,9 +4,9 @@ Describe your issue here.
 
 ### Your environment
 
-* version of `lnd`
+* version of `dcrlnd`
 * which operating system (`uname -a` on *Nix)
-* version of `btcd`, `bitcoind`, or other backend
+* version of `dcrd` or other backend
 * any other relevant environment details
 
 ### Steps to reproduce
