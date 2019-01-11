@@ -2,8 +2,8 @@ package lnwallet
 
 import (
 	"context"
+	"fmt"
 
-	"github.com/decred/dcrd/blockchain"
 	"github.com/decred/dcrd/dcrutil"
 	"github.com/decred/dcrd/rpcclient"
 )
@@ -25,7 +25,8 @@ func (s SatPerKVByte) FeeForVSize(vbytes int64) dcrutil.Amount {
 
 // FeePerKWeight converts the current fee rate from sat/kb to sat/kw.
 func (s SatPerKVByte) FeePerKWeight() SatPerKWeight {
-	return SatPerKWeight(s / blockchain.WitnessScaleFactor)
+	// TODO(decred) Remove as is unneeded
+	panic(fmt.Errorf("please remove"))
 }
 
 // SatPerKWeight represents a fee rate in sat/kw.
@@ -41,7 +42,7 @@ func (s SatPerKWeight) FeeForWeight(wu int64) dcrutil.Amount {
 
 // FeePerKVByte converts the current fee rate from sat/kw to sat/kb.
 func (s SatPerKWeight) FeePerKVByte() SatPerKVByte {
-	return SatPerKVByte(s * blockchain.WitnessScaleFactor)
+	panic(fmt.Errorf("Please Remove"))
 }
 
 // FeeEstimator provides the ability to estimate on-chain transaction fees for
@@ -90,6 +91,11 @@ func NewStaticFeeEstimator(feePerKW,
 		feePerKW: feePerKW,
 		relayFee: relayFee,
 	}
+}
+
+// TODO(decred) implement
+func (e StaticFeeEstimator) EstimateFeePerByte(numBlocks uint32) (dcrutil.Amount, error) {
+	panic(fmt.Errorf("Please implement"))
 }
 
 // TODO(decred): EstimateFeePerByte
@@ -259,16 +265,22 @@ func (b *DcrdFeeEstimator) RelayFeePerKW() SatPerKWeight {
 	return b.minFeePerKW
 }
 
+func (b DcrdFeeEstimator) EstimateFeePerByte(numBlocks uint32) (dcrutil.Amount, error) {
+	panic("implement")
+}
+
 // fetchEstimate returns a fee estimate for a transaction to be confirmed in
 // confTarget blocks. The estimate is returned in sat/kw.
 func (b *DcrdFeeEstimator) fetchEstimate(confTarget uint32) (SatPerKWeight, error) {
 	// TODO(decred): Implement fee estimation.
 	//
 	// First, we'll fetch the estimate for our confirmation target.
-	dcrPerKB, err := b.dcrdConn.EstimateFee(int64(confTarget))
-	if err != nil {
-		return 0, err
-	}
+	// dcrPerKB, err := b.dcrdConn.EstimateSmartFee(int64(confTarget),
+	// 	dcrjson.EstimateSmartFeeConservative)
+	// if err != nil {
+	// 	return 0, err
+	// }
+	dcrPerKB := float64(0)
 
 	// TODO(decred): Update for no weighting in dcr and atoms per byte
 	//

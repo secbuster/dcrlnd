@@ -6,10 +6,18 @@ import (
 
 	"github.com/decred/dcrd/chaincfg"
 	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/rpcclient"
 	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/lnwallet"
+
 	//"github.com/decred/dcrlnd/lnwallet" // TODO(decred): Finish
-	//"github.com/decred/dcrwallet/chain"
-	//"github.com/decred/dcrwallet/wallet"
+
+	// This is required to register bdb as a valid walletdb driver. In the
+	// init function of the package, it registers itself. The import is used
+	// to activate the side effects w/o actually binding the package name to
+	// a file-level variable.
+	"github.com/decred/dcrwallet/wallet"
+	_ "github.com/decred/dcrwallet/wallet/drivers/bdb"
 )
 
 var (
@@ -30,6 +38,8 @@ var (
 	// provided by having all public data in the wallet encrypted by a
 	// passphrase only known to them.
 	defaultPubPassphrase = []byte("public")
+
+	defaultAllowHighFees = false
 
 	walletDbName = "lnwallet.db"
 )
@@ -62,15 +72,22 @@ type Config struct {
 	// created. It is used to bound rescans for used addresses.
 	Birthday time.Time
 
+	// FeeEstimator is an instance of the fee estimator interface which
+	// will be used by the wallet to dynamically set transaction fees when
+	// crafting transactions.
+	FeeEstimator lnwallet.FeeEstimator
+
 	// RecoveryWindow specifies the address look-ahead for which to scan
 	// when restoring a wallet. The recovery window will apply to all
 	// default BIP44 derivation paths.
 	RecoveryWindow uint32
 
-	// ChainSource is the primary chain interface. This is used to operate
-	// the wallet and do things such as rescanning, sending transactions,
-	// notifications for received funds, etc.
-	ChainSource chain.Interface
+	// ChainSource is an rpc client that is able to connect to a running
+	// instance of dcrd.
+	//
+	// TODO(matheusd): possibly use a NetworkBackend instead of rpcclient in
+	// order to be able to connect directly to the network via SPV.
+	ChainSource *rpcclient.Client
 
 	// FeeEstimator is an instance of the fee estimator interface which
 	// will be used by the wallet to dynamically set transaction fees when
@@ -79,9 +96,6 @@ type Config struct {
 
 	// NetParams is the net parameters for the target chain.
 	NetParams *chaincfg.Params
-
-	// CoinType specifies the BIP 44 coin type to be used for derivation.
-	CoinType uint32
 
 	// Wallet is an unlocked wallet instance that is set if the
 	// UnlockerService has already opened and unlocked the wallet. If this
@@ -95,15 +109,11 @@ type Config struct {
 // files.
 func NetworkDir(dataDir string, chainParams *chaincfg.Params) string {
 	netname := chainParams.Name
-
-	// For now, we must always name the testnet data directory as "testnet"
-	// and not "testnet3" or any other version, as the chaincfg testnet3
-	// parameters will likely be switched to being named "testnet3" in the
-	// future.  This is done to future proof that change, and an upgrade
-	// plan to move the testnet3 data directory can be worked out later.
-	if chainParams.Net == wire.TestNet3 {
-		netname = "testnet"
+	switch chainParams.Net {
+	case 0x48e7a065: // testnet2
+		netname = "testnet2"
+	case wire.TestNet3:
+		netname = "testnet3"
 	}
-
 	return filepath.Join(dataDir, netname)
 }

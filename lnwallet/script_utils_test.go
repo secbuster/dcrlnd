@@ -28,6 +28,9 @@ import (
 func TestCommitmentSpendValidation(t *testing.T) {
 	t.Parallel()
 
+	const channelBalance = dcrutil.Amount(1 * 10e8)
+	const csvTimeout = uint32(5)
+
 	// We generate a fake output, and the corresponding txin. This output
 	// doesn't need to exist, as we'll only be validating spending from the
 	// transaction that references this.
@@ -39,10 +42,7 @@ func TestCommitmentSpendValidation(t *testing.T) {
 		Hash:  *txid,
 		Index: 50,
 	}
-	fakeFundingTxIn := wire.NewTxIn(fundingOut, 0, nil) // TODO(decred): Need correct input value
-
-	const channelBalance = dcrutil.Amount(1 * 10e8)
-	const csvTimeout = uint32(5)
+	fakeFundingTxIn := wire.NewTxIn(fundingOut, int64(channelBalance), nil)
 
 	// We also set up set some resources for the commitment transaction.
 	// Each side currently has 1 DCR within the channel, with a total
@@ -91,11 +91,11 @@ func TestCommitmentSpendValidation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to create target output: %v", err)
 	}
-	sweepTx := wire.NewMsgTx(2)
+	sweepTx := wire.NewMsgTx()
 	sweepTx.AddTxIn(wire.NewTxIn(&wire.OutPoint{
 		Hash:  commitmentTx.TxHash(),
 		Index: 0,
-	}, 0, nil)) // TODO(decred): Need correct input value
+	}, delayOutput.Value, nil))
 	sweepTx.AddTxOut(&wire.TxOut{
 		PkScript: targetOutput,
 		Value:    0.5 * 10e8,
@@ -127,8 +127,7 @@ func TestCommitmentSpendValidation(t *testing.T) {
 	}
 	sweepTx.TxIn[0].Witness = aliceWitnessSpend
 	vm, err := txscript.NewEngine(delayOutput.PkScript,
-		sweepTx, 0, txscript.StandardVerifyFlags, nil,
-		nil, int64(channelBalance))
+		sweepTx, 0, scriptFlagsForTest, delayOutput.Version, nil)
 	if err != nil {
 		t.Fatalf("unable to create engine: %v", err)
 	}
@@ -160,8 +159,7 @@ func TestCommitmentSpendValidation(t *testing.T) {
 	}
 	sweepTx.TxIn[0].Witness = bobWitnessSpend
 	vm, err = txscript.NewEngine(delayOutput.PkScript,
-		sweepTx, 0, txscript.StandardVerifyFlags, nil,
-		nil, int64(channelBalance))
+		sweepTx, 0, scriptFlagsForTest, delayOutput.Version, nil)
 	if err != nil {
 		t.Fatalf("unable to create engine: %v", err)
 	}
@@ -205,8 +203,7 @@ func TestCommitmentSpendValidation(t *testing.T) {
 	}
 	sweepTx.TxIn[0].Witness = bobRegularSpend
 	vm, err = txscript.NewEngine(regularOutput.PkScript,
-		sweepTx, 0, txscript.StandardVerifyFlags, nil,
-		nil, int64(channelBalance))
+		sweepTx, 0, scriptFlagsForTest, regularOutput.Version, nil)
 	if err != nil {
 		t.Fatalf("unable to create engine: %v", err)
 	}
@@ -357,8 +354,9 @@ func TestHTLCSenderSpendValidation(t *testing.T) {
 	htlcOutput := &wire.TxOut{
 		Value:    int64(paymentAmt),
 		PkScript: htlcPkScript,
+		Version:  txscript.DefaultScriptVersion,
 	}
-	senderCommitTx := wire.NewMsgTx(2)
+	senderCommitTx := wire.NewMsgTx()
 	senderCommitTx.AddTxIn(fakeFundingTxIn)
 	senderCommitTx.AddTxOut(htlcOutput)
 
@@ -367,15 +365,14 @@ func TestHTLCSenderSpendValidation(t *testing.T) {
 		Index: 0,
 	}
 
-	sweepTx := wire.NewMsgTx(2)
-	sweepTx.AddTxIn(wire.NewTxIn(prevOut, 0, nil)) // TODO(decred): Need correct input value
+	sweepTx := wire.NewMsgTx()
+	sweepTx.AddTxIn(wire.NewTxIn(prevOut, htlcOutput.Value, nil))
 	sweepTx.AddTxOut(
 		&wire.TxOut{
 			PkScript: []byte("doesn't matter"),
 			Value:    1 * 10e8,
 		},
 	)
-
 	bobCommitTweak := SingleTweakBytes(commitPoint, bobKeyPub)
 	aliceCommitTweak := SingleTweakBytes(commitPoint, aliceKeyPub)
 
@@ -498,8 +495,7 @@ func TestHTLCSenderSpendValidation(t *testing.T) {
 		sweepTx.TxIn[0].Witness = testCase.witness()
 
 		vm, err := txscript.NewEngine(htlcPkScript,
-			sweepTx, 0, txscript.StandardVerifyFlags, nil,
-			nil, int64(paymentAmt))
+			sweepTx, 0, scriptFlagsForTest, htlcOutput.Version, nil)
 		if err != nil {
 			t.Fatalf("unable to create engine: %v", err)
 		}
@@ -604,9 +600,10 @@ func TestHTLCReceiverSpendValidation(t *testing.T) {
 	htlcOutput := &wire.TxOut{
 		Value:    int64(paymentAmt),
 		PkScript: htlcWitnessScript,
+		Version:  txscript.DefaultScriptVersion,
 	}
 
-	receiverCommitTx := wire.NewMsgTx(2)
+	receiverCommitTx := wire.NewMsgTx()
 	receiverCommitTx.AddTxIn(fakeFundingTxIn)
 	receiverCommitTx.AddTxOut(htlcOutput)
 
@@ -615,7 +612,7 @@ func TestHTLCReceiverSpendValidation(t *testing.T) {
 		Index: 0,
 	}
 
-	sweepTx := wire.NewMsgTx(2)
+	sweepTx := wire.NewMsgTx()
 	sweepTx.AddTxIn(&wire.TxIn{
 		PreviousOutPoint: *prevOut,
 	})
@@ -762,8 +759,8 @@ func TestHTLCReceiverSpendValidation(t *testing.T) {
 		sweepTx.TxIn[0].Witness = testCase.witness()
 
 		vm, err := txscript.NewEngine(htlcPkScript,
-			sweepTx, 0, txscript.StandardVerifyFlags, nil,
-			nil, int64(paymentAmt))
+			sweepTx, 0, scriptFlagsForTest, txscript.DefaultScriptVersion,
+			nil)
 		if err != nil {
 			t.Fatalf("unable to create engine: %v", err)
 		}
@@ -830,7 +827,7 @@ func TestSecondLevelHtlcSpends(t *testing.T) {
 		Hash:  *txid,
 		Index: 0,
 	}
-	sweepTx := wire.NewMsgTx(2)
+	sweepTx := wire.NewMsgTx()
 	sweepTx.AddTxIn(wire.NewTxIn(htlcOutPoint, 0, nil)) // TODO(decred): Need correct input value
 	sweepTx.AddTxOut(
 		&wire.TxOut{
@@ -983,8 +980,7 @@ func TestSecondLevelHtlcSpends(t *testing.T) {
 		sweepTx.TxIn[0].Witness = testCase.witness()
 
 		vm, err := txscript.NewEngine(htlcPkScript,
-			sweepTx, 0, txscript.StandardVerifyFlags, nil,
-			nil, int64(htlcAmt))
+			sweepTx, 0, scriptFlagsForTest, txscript.DefaultScriptVersion, nil)
 		if err != nil {
 			t.Fatalf("unable to create engine: %v", err)
 		}
@@ -1061,7 +1057,7 @@ func TestCommitTxStateHint(t *testing.T) {
 	timeYesterday := uint32(time.Now().Unix() - 24*60*60)
 
 	for _, test := range stateHintTests {
-		commitTx := wire.NewMsgTx(2)
+		commitTx := wire.NewMsgTx()
 
 		// Add supplied number of inputs to the commitment transaction.
 		for i := 0; i < test.inputs; i++ {
@@ -1176,34 +1172,4 @@ func TestSpecificationKeyDerivation(t *testing.T) {
 			"expected %v, got %v", expectedRevocationPrivKeyHex,
 			actualRevocationPrivKeyHex)
 	}
-}
-
-// pubkeyFromHex parses a Bitcoin public key from a hex encoded string.
-func pubkeyFromHex(keyHex string) (*secp256k1.PublicKey, error) {
-	bytes, err := hex.DecodeString(keyHex)
-	if err != nil {
-		return nil, err
-	}
-	return secp256k1.ParsePubKey(bytes)
-}
-
-// privkeyFromHex parses a Bitcoin private key from a hex encoded string.
-func privkeyFromHex(keyHex string) (*secp256k1.PrivateKey, error) {
-	bytes, err := hex.DecodeString(keyHex)
-	if err != nil {
-		return nil, err
-	}
-	key, _ := secp256k1.PrivKeyFromBytes(bytes)
-	return key, nil
-
-}
-
-// pubkeyToHex serializes a Bitcoin public key to a hex encoded string.
-func pubkeyToHex(key *secp256k1.PublicKey) string {
-	return hex.EncodeToString(key.SerializeCompressed())
-}
-
-// privkeyFromHex serializes a Bitcoin private key to a hex encoded string.
-func privkeyToHex(key *secp256k1.PrivateKey) string {
-	return hex.EncodeToString(key.Serialize())
 }

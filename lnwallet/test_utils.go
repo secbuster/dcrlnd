@@ -188,7 +188,7 @@ func CreateTestChannels() (*LightningChannel, *LightningChannel, func(), error) 
 		},
 	}
 
-	bobRoot, err := chainhash.NewHash(bobKeys[0].Serialize())
+	bobRoot, err := shachain.NewHash(bobKeys[0].Serialize())
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -199,7 +199,7 @@ func CreateTestChannels() (*LightningChannel, *LightningChannel, func(), error) 
 	}
 	bobCommitPoint := ComputeCommitmentPoint(bobFirstRevoke[:])
 
-	aliceRoot, err := chainhash.NewHash(aliceKeys[0].Serialize())
+	aliceRoot, err := shachain.NewHash(aliceKeys[0].Serialize())
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -212,7 +212,7 @@ func CreateTestChannels() (*LightningChannel, *LightningChannel, func(), error) 
 
 	aliceCommitTx, bobCommitTx, err := CreateCommitmentTxns(channelBal,
 		channelBal, &aliceCfg, &bobCfg, aliceCommitPoint, bobCommitPoint,
-		*fundingTxIn)
+		*fundingTxIn, &chaincfg.RegNetParams)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -412,9 +412,8 @@ func (m *mockSigner) SignOutputRaw(tx *wire.MsgTx, signDesc *SignDescriptor) ([]
 		return nil, fmt.Errorf("Mock signer does not have key")
 	}
 
-	sig, err := txscript.RawTxInWitnessSignature(tx, signDesc.SigHashes,
-		signDesc.InputIndex, signDesc.Output.Value, signDesc.WitnessScript,
-		txscript.SigHashAll, privKey)
+	sig, err := txscript.RawTxInSignature(tx, signDesc.InputIndex,
+		signDesc.WitnessScript, txscript.SigHashAll, privKey)
 	if err != nil {
 		return nil, err
 	}
@@ -424,7 +423,7 @@ func (m *mockSigner) SignOutputRaw(tx *wire.MsgTx, signDesc *SignDescriptor) ([]
 
 func (m *mockSigner) ComputeInputScript(tx *wire.MsgTx, signDesc *SignDescriptor) (*InputScript, error) {
 	scriptType, addresses, _, err := txscript.ExtractPkScriptAddrs(
-		signDesc.Output.PkScript, m.netParams)
+		signDesc.Output.Version, signDesc.Output.PkScript, m.netParams)
 	if err != nil {
 		return nil, err
 	}
@@ -445,23 +444,6 @@ func (m *mockSigner) ComputeInputScript(tx *wire.MsgTx, signDesc *SignDescriptor
 		}
 
 		return &InputScript{ScriptSig: scriptSig}, nil
-
-	case txscript.WitnessV0PubKeyHashTy:
-		privKey := m.findKey(addresses[0].ScriptAddress(), signDesc.SingleTweak,
-			signDesc.DoubleTweak)
-		if privKey == nil {
-			return nil, fmt.Errorf("Mock signer does not have key for "+
-				"address %v", addresses[0])
-		}
-
-		witnessScript, err := txscript.WitnessSignature(tx, signDesc.SigHashes,
-			signDesc.InputIndex, signDesc.Output.Value,
-			signDesc.Output.PkScript, txscript.SigHashAll, privKey, true)
-		if err != nil {
-			return nil, err
-		}
-
-		return &InputScript{Witness: witnessScript}, nil
 
 	default:
 		return nil, fmt.Errorf("Unexpected script type: %v", scriptType)

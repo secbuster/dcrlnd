@@ -11,14 +11,21 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/decred/dcrd/blockchain"
-	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrd/dcrutil"
 	"github.com/decred/dcrd/txscript"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/lnwire"
+)
+
+var (
+	// TODO(matheusd) Are these all?
+	scriptFlagsForTest = txscript.ScriptDiscourageUpgradableNops |
+		txscript.ScriptVerifyCleanStack |
+		txscript.ScriptVerifyCheckLockTimeVerify |
+		txscript.ScriptVerifyCheckSequenceVerify |
+		txscript.ScriptVerifySHA256
 )
 
 // forceStateTransition executes the necessary interaction between the two
@@ -395,6 +402,7 @@ func TestCheckCommitTxSize(t *testing.T) {
 		// Due to variable size of the signatures (70-73) in
 		// witness script actual size of commitment transaction might
 		// be lower on 6 weight.
+		// TODO(matheusd) review the error limit
 		BaseCommitmentTxSizeEstimationError := 6
 
 		commitTx, err := channel.getSignedCommitTx()
@@ -402,7 +410,7 @@ func TestCheckCommitTxSize(t *testing.T) {
 			t.Fatalf("unable to initiate alice force close: %v", err)
 		}
 
-		actualCost := blockchain.GetTransactionWeight(dcrutil.NewTx(commitTx))
+		actualCost := int64(commitTx.SerializeSize())
 		estimatedCost := estimateCommitTxWeight(count, false)
 
 		diff := int(estimatedCost - actualCost)
@@ -651,14 +659,14 @@ func TestForceClose(t *testing.T) {
 	htlcResolution := closeSummary.HtlcResolutions.OutgoingHTLCs[0]
 	outHtlcIndex := htlcResolution.SignedTimeoutTx.TxIn[0].PreviousOutPoint.Index
 	senderHtlcPkScript := closeSummary.CloseTx.TxOut[outHtlcIndex].PkScript
+	senderHtlcScriptVersion := closeSummary.CloseTx.TxOut[outHtlcIndex].Version
 
 	// First, verify that the second level transaction can properly spend
 	// the multi-sig clause within the output on the commitment transaction
 	// that produces this HTLC.
 	timeoutTx := htlcResolution.SignedTimeoutTx
-	vm, err := txscript.NewEngine(senderHtlcPkScript,
-		timeoutTx, 0, txscript.StandardVerifyFlags, nil,
-		nil, int64(htlcAmount.ToSatoshis()))
+	vm, err := txscript.NewEngine(senderHtlcPkScript, timeoutTx, 0,
+		scriptFlagsForTest, senderHtlcScriptVersion, nil)
 	if err != nil {
 		t.Fatalf("unable to create engine: %v", err)
 	}
@@ -668,12 +676,13 @@ func TestForceClose(t *testing.T) {
 
 	// Next, we'll ensure that we can spend the output of the second level
 	// transaction given a properly crafted sweep transaction.
-	sweepTx := wire.NewMsgTx(2)
+	sweepTx := wire.NewMsgTx()
 	sweepTx.AddTxIn(&wire.TxIn{
 		PreviousOutPoint: wire.OutPoint{
 			Hash:  htlcResolution.SignedTimeoutTx.TxHash(),
 			Index: 0,
 		},
+		ValueIn: timeoutTx.TxOut[0].Value,
 	})
 	sweepTx.AddTxOut(&wire.TxOut{
 		PkScript: senderHtlcPkScript,
@@ -692,8 +701,8 @@ func TestForceClose(t *testing.T) {
 	// validate given the information within the htlc resolution struct.
 	vm, err = txscript.NewEngine(
 		htlcResolution.SweepSignDesc.Output.PkScript,
-		sweepTx, 0, txscript.StandardVerifyFlags, nil,
-		nil, htlcResolution.SweepSignDesc.Output.Value,
+		sweepTx, 0, scriptFlagsForTest,
+		htlcResolution.SweepSignDesc.Output.Version, nil,
 	)
 	if err != nil {
 		t.Fatalf("unable to create engine: %v", err)
@@ -716,13 +725,13 @@ func TestForceClose(t *testing.T) {
 	inHtlcResolution := closeSummary.HtlcResolutions.IncomingHTLCs[0]
 	inHtlcIndex := inHtlcResolution.SignedSuccessTx.TxIn[0].PreviousOutPoint.Index
 	receiverHtlcScript := closeSummary.CloseTx.TxOut[inHtlcIndex].PkScript
+	receiverHtlcScriptVersion := closeSummary.CloseTx.TxOut[inHtlcIndex].Version
 
 	// With the original pkscript located, we'll now verify that the second
 	// level transaction can spend from the multi-sig out.
 	successTx := inHtlcResolution.SignedSuccessTx
 	vm, err = txscript.NewEngine(receiverHtlcScript,
-		successTx, 0, txscript.StandardVerifyFlags, nil,
-		nil, int64(htlcAmount.ToSatoshis()))
+		successTx, 0, scriptFlagsForTest, receiverHtlcScriptVersion, nil)
 	if err != nil {
 		t.Fatalf("unable to create engine: %v", err)
 	}
@@ -732,7 +741,7 @@ func TestForceClose(t *testing.T) {
 
 	// Finally, we'll construct a transaction to spend the produced
 	// second-level output with the attached SignDescriptor.
-	sweepTx = wire.NewMsgTx(2)
+	sweepTx = wire.NewMsgTx()
 	sweepTx.AddTxIn(&wire.TxIn{
 		PreviousOutPoint: inHtlcResolution.ClaimOutpoint,
 	})
@@ -752,8 +761,8 @@ func TestForceClose(t *testing.T) {
 	// should validate without any issues.
 	vm, err = txscript.NewEngine(
 		inHtlcResolution.SweepSignDesc.Output.PkScript,
-		sweepTx, 0, txscript.StandardVerifyFlags, nil,
-		nil, inHtlcResolution.SweepSignDesc.Output.Value,
+		sweepTx, 0, scriptFlagsForTest,
+		inHtlcResolution.SweepSignDesc.Output.Version, nil,
 	)
 	if err != nil {
 		t.Fatalf("unable to create engine: %v", err)
@@ -4642,7 +4651,7 @@ func TestChannelUnilateralCloseHtlcResolution(t *testing.T) {
 	// First, we'll ensure that Alice can directly spend the outgoing HTLC
 	// given a transaction with the proper lock time set.
 	receiverHtlcScript := closeTx.TxOut[outHtlcResolution.ClaimOutpoint.Index].PkScript
-	sweepTx := wire.NewMsgTx(2)
+	sweepTx := wire.NewMsgTx()
 	sweepTx.AddTxIn(&wire.TxIn{
 		PreviousOutPoint: outHtlcResolution.ClaimOutpoint,
 	})
@@ -4651,9 +4660,6 @@ func TestChannelUnilateralCloseHtlcResolution(t *testing.T) {
 		Value:    outHtlcResolution.SweepSignDesc.Output.Value,
 	})
 	outHtlcResolution.SweepSignDesc.InputIndex = 0
-	outHtlcResolution.SweepSignDesc.SigHashes = txscript.NewTxSigHashes(
-		sweepTx,
-	)
 	sweepTx.LockTime = outHtlcResolution.Expiry
 
 	// With the transaction constructed, we'll generate a witness that
@@ -4667,8 +4673,8 @@ func TestChannelUnilateralCloseHtlcResolution(t *testing.T) {
 	}
 	vm, err := txscript.NewEngine(
 		outHtlcResolution.SweepSignDesc.Output.PkScript,
-		sweepTx, 0, txscript.StandardVerifyFlags, nil,
-		nil, outHtlcResolution.SweepSignDesc.Output.Value,
+		sweepTx, 0, scriptFlagsForTest,
+		outHtlcResolution.SweepSignDesc.Output.Version, nil,
 	)
 	if err != nil {
 		t.Fatalf("unable to create engine: %v", err)
@@ -4680,7 +4686,7 @@ func TestChannelUnilateralCloseHtlcResolution(t *testing.T) {
 	// Next, we'll ensure that we're able to sweep the incoming HTLC with a
 	// similar sweep transaction, this time using the payment pre-image.
 	senderHtlcScript := closeTx.TxOut[inHtlcResolution.ClaimOutpoint.Index].PkScript
-	sweepTx = wire.NewMsgTx(2)
+	sweepTx = wire.NewMsgTx()
 	sweepTx.AddTxIn(&wire.TxIn{
 		PreviousOutPoint: inHtlcResolution.ClaimOutpoint,
 	})
@@ -4689,9 +4695,6 @@ func TestChannelUnilateralCloseHtlcResolution(t *testing.T) {
 		Value:    inHtlcResolution.SweepSignDesc.Output.Value,
 	})
 	inHtlcResolution.SweepSignDesc.InputIndex = 0
-	inHtlcResolution.SweepSignDesc.SigHashes = txscript.NewTxSigHashes(
-		sweepTx,
-	)
 	sweepTx.TxIn[0].Witness, err = SenderHtlcSpendRedeem(
 		aliceChannel.Signer, &inHtlcResolution.SweepSignDesc,
 		sweepTx, preimageBob[:],
@@ -4705,8 +4708,8 @@ func TestChannelUnilateralCloseHtlcResolution(t *testing.T) {
 	// can properly sweep the output.
 	vm, err = txscript.NewEngine(
 		inHtlcResolution.SweepSignDesc.Output.PkScript,
-		sweepTx, 0, txscript.StandardVerifyFlags, nil,
-		nil, inHtlcResolution.SweepSignDesc.Output.Value,
+		sweepTx, 0, scriptFlagsForTest,
+		inHtlcResolution.SweepSignDesc.Output.Version, nil,
 	)
 	if err != nil {
 		t.Fatalf("unable to create engine: %v", err)
@@ -4814,7 +4817,7 @@ func TestChannelUnilateralClosePendingCommit(t *testing.T) {
 
 	// Finally, we'll ensure that we're able to properly sweep our output
 	// from using the materials within the unilateral close summary.
-	sweepTx := wire.NewMsgTx(2)
+	sweepTx := wire.NewMsgTx()
 	sweepTx.AddTxIn(&wire.TxIn{
 		PreviousOutPoint: aliceCloseSummary.CommitResolution.SelfOutPoint,
 	})
@@ -4822,7 +4825,6 @@ func TestChannelUnilateralClosePendingCommit(t *testing.T) {
 		PkScript: testHdSeed[:],
 		Value:    aliceSignDesc.Output.Value,
 	})
-	aliceSignDesc.SigHashes = txscript.NewTxSigHashes(sweepTx)
 	sweepTx.TxIn[0].Witness, err = CommitSpendNoDelay(
 		aliceChannel.Signer, &aliceSignDesc, sweepTx,
 	)
@@ -4834,8 +4836,7 @@ func TestChannelUnilateralClosePendingCommit(t *testing.T) {
 	// be fully valid.
 	vm, err := txscript.NewEngine(
 		aliceSignDesc.Output.PkScript,
-		sweepTx, 0, txscript.StandardVerifyFlags, nil,
-		nil, aliceSignDesc.Output.Value,
+		sweepTx, 0, scriptFlagsForTest, aliceSignDesc.Output.Version, nil,
 	)
 	if err != nil {
 		t.Fatalf("unable to create engine: %v", err)

@@ -4,11 +4,16 @@ import (
 	"fmt"
 
 	"github.com/decred/dcrlnd/lnwallet"
-	"github.com/decred/dcrwallet/chain"
 )
 
 const (
 	walletType = "dcrwallet"
+)
+
+var (
+	// We currently only support full chain sync (no spv), so hardcode
+	// the available backends.
+	availableBackends = []string{"dcrd"}
 )
 
 // createNewWallet creates a new instance of DcrWallet given the proper list of
@@ -37,7 +42,7 @@ func init() {
 	driver := &lnwallet.WalletDriver{
 		WalletType: walletType,
 		New:        createNewWallet,
-		BackEnds:   chain.BackEnds,
+		BackEnds:   func() []string { return availableBackends },
 	}
 
 	if err := lnwallet.RegisterWallet(driver); err != nil {

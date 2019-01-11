@@ -547,7 +547,7 @@ func (l *LightningWallet) handleFundingReserveRequest(req *InitFundingReserveMsg
 
 	// Once we have the root, we can then generate our shachain producer
 	// and from that generate the per-commitment point.
-	revRoot, err := chainhash.NewHash(revocationRoot.Serialize())
+	revRoot, err := shachain.NewHash(revocationRoot.Serialize())
 	if err != nil {
 		req.err <- err
 		req.resp <- nil
@@ -955,6 +955,8 @@ func (l *LightningWallet) handleFundingCounterPartySigs(msg *addCounterPartySigs
 	//inputScripts := msg.theirFundingInputScripts // TODO(jrick): Port
 	fundingTx := res.fundingTx
 	// TODO(decred): Port
+	// *FundingInputScripts.ScriptSig will have been filled by
+	// txscript.SignatureScript
 	/*
 		sigIndex := 0
 		for i, txin := range fundingTx.TxIn {
@@ -1113,7 +1115,8 @@ func (l *LightningWallet) handleSingleFunderSigs(req *addSingleFunderSigsMsg) {
 
 	chanState := pendingReservation.partialState
 	chanState.FundingOutpoint = *req.fundingOutpoint
-	fundingTxIn := wire.NewTxIn(req.fundingOutpoint, 0, nil) // TODO(decred): Need correct input value
+	fundingTxIn := wire.NewTxIn(req.fundingOutpoint, int64(chanState.Capacity),
+		nil)
 
 	// Now that we have the funding outpoint, we can generate both versions
 	// of the commitment transaction, and generate a signature for the
@@ -1295,7 +1298,7 @@ func (l *LightningWallet) selectCoinsAndChange(feeRate SatPerKWeight,
 
 		// Empty sig script, we'll actually sign if this reservation is
 		// queued up to be completed (the other side accepts).
-		contribution.Inputs[i] = wire.NewTxIn(outpoint, 0, nil) // TODO(decred): Need correct input value
+		contribution.Inputs[i] = wire.NewTxIn(outpoint, int64(coin.Value), nil)
 	}
 
 	// Record any change output(s) generated as a result of the coin

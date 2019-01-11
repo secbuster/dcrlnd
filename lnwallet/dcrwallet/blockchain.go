@@ -26,7 +26,8 @@ var (
 //
 // This method is a part of the lnwallet.BlockChainIO interface.
 func (b *DcrWallet) GetBestBlock() (*chainhash.Hash, int32, error) {
-	return b.chain.GetBestBlock()
+	hash, height, err := b.chain.GetBestBlock()
+	return hash, int32(height), err
 }
 
 // GetUtxo returns the original output referenced by the passed outpoint that
@@ -43,7 +44,7 @@ func (b *DcrWallet) GetUtxo(op *wire.OutPoint, pkScript []byte,
 		return nil, ErrOutputSpent
 	}
 
-	pkScript, err := hex.DecodeString(txout.ScriptPubKey.Hex)
+	pkScript, err = hex.DecodeString(txout.ScriptPubKey.Hex)
 	if err != nil {
 		return nil, err
 	}

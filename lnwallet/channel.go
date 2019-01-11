@@ -11,6 +11,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 
 	"github.com/decred/dcrd/blockchain"
+	"github.com/decred/dcrd/chaincfg"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrd/dcrutil"
@@ -1356,6 +1357,8 @@ type LightningChannel struct {
 	// channel.
 	RemoteFundingKey *secp256k1.PublicKey
 
+	netParams *chaincfg.Params
+
 	sync.RWMutex
 }
 
@@ -1396,6 +1399,9 @@ func NewLightningChannel(signer Signer, pCache PreimageCache,
 		Capacity:          state.Capacity,
 		LocalFundingKey:   state.LocalChanCfg.MultiSigKey.PubKey,
 		RemoteFundingKey:  state.RemoteChanCfg.MultiSigKey.PubKey,
+
+		// TODO(decred) This needs to be fed in NewLightingChannel
+		netParams: &chaincfg.SimNetParams,
 	}
 
 	// With the main channel struct reconstructed, we'll now restore the
@@ -2410,7 +2416,7 @@ func (lc *LightningChannel) createCommitmentTx(c *commitment,
 	// Next, we'll ensure that we don't accidentally create a commitment
 	// transaction which would be invalid by consensus.
 	uTx := dcrutil.NewTx(commitTx)
-	if err := blockchain.CheckTransactionSanity(uTx); err != nil {
+	if err := blockchain.CheckTransactionSanity(uTx.MsgTx(), lc.netParams); err != nil {
 		return err
 	}
 
@@ -5430,13 +5436,14 @@ func newIncomingHtlcResolution(signer Signer, localChanCfg *channeldb.ChannelCon
 
 	// Next, we'll construct the full witness needed to satisfy the input
 	// of the success transaction.
+	// TODO(decred) convert to ScriptSig instead of TxWitness
 	successWitness, err := receiverHtlcSpendRedeem(
 		htlc.Signature, preimage[:], signer, &successSignDesc, successTx,
 	)
 	if err != nil {
 		return nil, err
 	}
-	successTx.TxIn[0].Witness = successWitness
+	successTx.TxIn[0].SignatureScript = successWitness[0]
 
 	// Finally, we'll generate the script that the second-level transaction
 	// creates so we can generate the proper signDesc to sweep it after the

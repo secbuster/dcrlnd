@@ -2,12 +2,14 @@ package dcrwallet
 
 import (
 	"bytes"
+	"context"
 	"encoding/hex"
 	"fmt"
-	"math"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/decred/dcrd/rpcclient"
 
 	"github.com/decred/dcrd/chaincfg"
 	"github.com/decred/dcrd/chaincfg/chainhash"
@@ -15,31 +17,18 @@ import (
 	"github.com/decred/dcrd/txscript"
 	"github.com/decred/dcrd/wire"
 
-	//"github.com/decred/dcrwallet/chain" // TODO(decred): Uncomment
-	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lnwallet"
+
+	"github.com/decred/dcrwallet/chain"
+	walletloader "github.com/decred/dcrwallet/loader"
 	base "github.com/decred/dcrwallet/wallet"
+	"github.com/decred/dcrwallet/wallet/txrules"
 	"github.com/decred/dcrwallet/wallet/udb"
-	"github.com/decred/dcrwallet/wallet/walletdb"
 )
 
 const (
 	defaultAccount = uint32(udb.DefaultAccountNum)
-)
-
-var (
-	// waddrmgrNamespaceKey is the namespace key that the waddrmgr state is
-	// stored within the top-level waleltdb buckets of dcrwallet.
-	waddrmgrNamespaceKey = []byte("waddrmgr")
-
-	// lightningAddrSchema is the scope addr schema for all keys that we
-	// derive. We'll treat them all as p2wkh addresses, as atm we must
-	// specify a particular type.
-	lightningAddrSchema = waddrmgr.ScopeAddrSchema{
-		ExternalAddrType: waddrmgr.WitnessPubKey,
-		InternalAddrType: waddrmgr.WitnessPubKey,
-	}
 )
 
 // DcrWallet is an implementation of the lnwallet.WalletController interface
@@ -50,18 +39,19 @@ type DcrWallet struct {
 	// wallet is an active instance of dcrwallet.
 	wallet *base.Wallet
 
-	db walletdb.DB
-
 	cfg *Config
 
 	netParams *chaincfg.Params
-
-	chainKeyScope waddrmgr.KeyScope
 
 	// utxoCache is a cache used to speed up repeated calls to
 	// FetchInputInfo.
 	utxoCache map[wire.OutPoint]*wire.TxOut
 	cacheMtx  sync.RWMutex
+
+	chain            *rpcclient.Client
+	walletNetBackend base.NetworkBackend
+
+	keyring keychain.SecretKeyRing
 }
 
 // A compile time check to ensure that DcrWallet implements the
@@ -74,60 +64,39 @@ func New(cfg Config) (*DcrWallet, error) {
 	// Ensure the wallet exists or create it when the create flag is set.
 	netDir := NetworkDir(cfg.DataDir, cfg.NetParams)
 
-	// Create the key scope for the coin type being managed by this wallet.
-	chainKeyScope := waddrmgr.KeyScope{
-		Purpose: keychain.BIP0043Purpose,
-		Coin:    cfg.CoinType,
+	loader := walletloader.NewLoader(cfg.NetParams, netDir,
+		&walletloader.StakeOptions{}, base.DefaultGapLimit, false,
+		txrules.DefaultRelayFeePerKb.ToCoin(), base.DefaultAccountGapLimit)
+	walletExists, err := loader.WalletExists()
+	if err != nil {
+		return nil, err
 	}
 
-	// Maybe the wallet has already been opened and unlocked by the
-	// WalletUnlocker. So if we get a non-nil value from the config,
-	// we assume everything is in order.
-	var wallet = cfg.Wallet
-	if wallet == nil {
-		// No ready wallet was passed, so try to open an existing one.
-		var pubPass []byte
-		if cfg.PublicPass == nil {
-			pubPass = defaultPubPassphrase
-		} else {
-			pubPass = cfg.PublicPass
-		}
-		loader := base.NewLoader(cfg.NetParams, netDir,
-			cfg.RecoveryWindow)
-		walletExists, err := loader.WalletExists()
+	var wallet *base.Wallet
+	if !walletExists {
+		// Wallet has never been created, perform initial set up.
+		wallet, err = loader.CreateNewWallet(cfg.PublicPass, cfg.PrivatePass,
+			cfg.HdSeed)
 		if err != nil {
 			return nil, err
 		}
-
-		if !walletExists {
-			// Wallet has never been created, perform initial
-			// set up.
-			wallet, err = loader.CreateNewWallet(
-				pubPass, cfg.PrivatePass, cfg.HdSeed,
-				cfg.Birthday,
-			)
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			// Wallet has been created and been initialized at
-			// this point, open it along with all the required DB
-			// namespaces, and the DB itself.
-			wallet, err = loader.OpenExistingWallet(pubPass, false)
-			if err != nil {
-				return nil, err
-			}
+	} else {
+		// Wallet has been created and been initialized at this point,
+		// open it along with all the required DB namepsaces, and the
+		// DB itself.
+		wallet, err = loader.OpenExistingWallet(cfg.PublicPass)
+		if err != nil {
+			return nil, err
 		}
 	}
 
 	return &DcrWallet{
-		cfg:           &cfg,
-		wallet:        wallet,
-		db:            wallet.Database(),
-		chain:         cfg.ChainSource,
-		netParams:     cfg.NetParams,
-		chainKeyScope: chainKeyScope,
-		utxoCache:     make(map[wire.OutPoint]*wire.TxOut),
+		cfg:       &cfg,
+		wallet:    wallet,
+		chain:     cfg.ChainSource,
+		netParams: cfg.NetParams,
+		utxoCache: make(map[wire.OutPoint]*wire.TxOut),
+		keyring:   keychain.NewWalletKeyRing(wallet),
 	}, nil
 }
 
@@ -136,7 +105,8 @@ func New(cfg Config) (*DcrWallet, error) {
 // This is a part of the WalletController interface.
 func (b *DcrWallet) BackEnd() string {
 	if b.chain != nil {
-		return b.chain.BackEnd()
+		// This package only supports full node backends for the moment
+		return "dcrd"
 	}
 
 	return ""
@@ -160,27 +130,11 @@ func (b *DcrWallet) Start() error {
 	if err := b.wallet.Unlock(b.cfg.PrivatePass, nil); err != nil {
 		return err
 	}
-	_, err := b.wallet.Manager.FetchScopedKeyManager(b.chainKeyScope)
-	if err != nil {
-		// If the scope hasn't yet been created (it wouldn't been
-		// loaded by default if it was), then we'll manually create the
-		// scope for the first time ourselves.
-		err := walletdb.Update(b.db, func(tx walletdb.ReadWriteTx) error {
-			addrmgrNs := tx.ReadWriteBucket(waddrmgrNamespaceKey)
-
-			_, err := b.wallet.Manager.NewScopedKeyManager(
-				addrmgrNs, b.chainKeyScope, lightningAddrSchema,
-			)
-			return err
-		})
-		if err != nil {
-			return err
-		}
-	}
 
 	// Establish an RPC connection in addition to starting the goroutines
 	// in the underlying wallet.
-	if err := b.chain.Start(); err != nil {
+	err := b.chain.Connect(context.TODO(), true)
+	if err != nil && err != rpcclient.ErrClientAlreadyConnected {
 		return err
 	}
 
@@ -189,7 +143,8 @@ func (b *DcrWallet) Start() error {
 
 	// Pass the rpc client into the wallet so it can sync up to the
 	// current main chain.
-	b.wallet.SynchronizeRPC(b.chain)
+	b.walletNetBackend = chain.BackendFromRPCClient(b.chain)
+	b.wallet.SetNetworkBackend(b.walletNetBackend)
 
 	return nil
 }
@@ -203,7 +158,7 @@ func (b *DcrWallet) Stop() error {
 
 	b.wallet.WaitForShutdown()
 
-	b.chain.Stop()
+	b.chain.Disconnect()
 
 	return nil
 }
@@ -214,19 +169,15 @@ func (b *DcrWallet) Stop() error {
 // final sum.
 //
 // This is a part of the WalletController interface.
+//
+// TODO(matheusd) Remove witness argument, given that's not applicable to decred
 func (b *DcrWallet) ConfirmedBalance(confs int32) (dcrutil.Amount, error) {
-	var balance dcrutil.Amount
-
-	witnessOutputs, err := b.ListUnspentWitness(confs, math.MaxInt32)
+	balances, err := b.wallet.CalculateAccountBalance(defaultAccount, confs)
 	if err != nil {
 		return 0, err
 	}
 
-	for _, witnessOutput := range witnessOutputs {
-		balance += witnessOutput.Value
-	}
-
-	return balance, nil
+	return balances.Spendable, nil
 }
 
 // NewAddress returns the next external or internal address for the wallet
@@ -236,22 +187,22 @@ func (b *DcrWallet) ConfirmedBalance(confs int32) (dcrutil.Amount, error) {
 //
 // This is a part of the WalletController interface.
 func (b *DcrWallet) NewAddress(t lnwallet.AddressType, change bool) (dcrutil.Address, error) {
-	var keyScope waddrmgr.KeyScope
 
 	switch t {
-	case lnwallet.WitnessPubKey:
-		keyScope = waddrmgr.KeyScopeBIP0084
+	// lnwallet.{WitnessPubKey,PubKeyHash} are both as p2pkh in decred
+	case lnwallet.WitnessPubKey: // nop
 	case lnwallet.NestedWitnessPubKey:
-		keyScope = waddrmgr.KeyScopeBIP0049Plus
+		// TODO(matheusd) this is likely to be changed to a p2sh
+		panic("Decide what to do")
 	default:
 		return nil, fmt.Errorf("unknown address type")
 	}
 
 	if change {
-		return b.wallet.NewChangeAddress(defaultAccount, keyScope)
+		return b.wallet.NewInternalAddress(defaultAccount)
 	}
 
-	return b.wallet.NewAddress(defaultAccount, keyScope)
+	return b.wallet.NewExternalAddress(defaultAccount)
 }
 
 // IsOurAddress checks if the passed address belongs to this wallet
@@ -274,7 +225,25 @@ func (b *DcrWallet) SendOutputs(outputs []*wire.TxOut,
 	// SendOutputs.
 	feeSatPerKB := dcrutil.Amount(feeRate.FeePerKVByte())
 
-	return b.wallet.SendOutputs(outputs, defaultAccount, 1, feeSatPerKB)
+	// Ensure we haven't changed the default relay fee.
+	// TODO(decred) Potentially change to a construct/sign/publish cycle or
+	// add the fee as a parameter so that we don't risk changing the default
+	// fee rate.
+	oldRelayFee := b.wallet.RelayFee()
+	b.wallet.SetRelayFee(feeSatPerKB)
+	defer b.wallet.SetRelayFee(oldRelayFee)
+
+	txHash, err := b.wallet.SendOutputs(outputs, defaultAccount, 1)
+	if err != nil {
+		return nil, err
+	}
+
+	txs, _, err := b.wallet.GetTransactionsByHashes([]*chainhash.Hash{txHash})
+	if err != nil {
+		return nil, err
+	}
+
+	return txs[0], nil
 }
 
 // LockOutpoint marks an outpoint as locked meaning it will no longer be deemed
@@ -307,8 +276,7 @@ func (b *DcrWallet) ListUnspentWitness(minConfs, maxConfs int32) (
 		return nil, err
 	}
 
-	// Next, we'll run through all the regular outputs, only saving those
-	// which are p2wkh outputs or a p2wsh output nested within a p2sh output.
+	// Convert the dcrjson formatted unspents into lnwallet.Utxo's
 	witnessOutputs := make([]*lnwallet.Utxo, 0, len(unspentOutputs))
 	for _, output := range unspentOutputs {
 		pkScript, err := hex.DecodeString(output.ScriptPubKey)
@@ -317,13 +285,15 @@ func (b *DcrWallet) ListUnspentWitness(minConfs, maxConfs int32) (
 		}
 
 		var addressType lnwallet.AddressType
-		if txscript.IsPayToWitnessPubKeyHash(pkScript) {
-			addressType = lnwallet.WitnessPubKey
-		} else if txscript.IsPayToScriptHash(pkScript) {
+		if txscript.IsPayToScriptHash(pkScript) {
 			// TODO(roasbeef): This assumes all p2sh outputs returned by the
 			// wallet are nested p2pkh. We can't check the redeem script because
 			// the dcrwallet service does not include it.
+			//
+			// TODO(matheusd) decide on what to do with nested pk types
 			addressType = lnwallet.NestedWitnessPubKey
+		} else if txscript.IsPayToScriptHash(pkScript) {
+			addressType = lnwallet.WitnessPubKey
 		}
 
 		if addressType == lnwallet.WitnessPubKey ||
@@ -366,38 +336,41 @@ func (b *DcrWallet) ListUnspentWitness(minConfs, maxConfs int32) (
 // published to the network (either in the mempool or chain) no error
 // will be returned.
 func (b *DcrWallet) PublishTransaction(tx *wire.MsgTx) error {
-	if err := b.wallet.PublishTransaction(tx); err != nil {
-		switch b.chain.(type) {
-		case *chain.RPCClient:
-			if strings.Contains(err.Error(), "already have") {
-				// Transaction was already in the mempool, do
-				// not treat as an error. We do this to mimic
-				// the behaviour of bitcoind, which will not
-				// return an error if a transaction in the
-				// mempool is sent again using the
-				// sendrawtransaction RPC call.
-				return nil
-			}
-			if strings.Contains(err.Error(), "already exists") {
-				// Transaction was already mined, we don't
-				// consider this an error.
-				return nil
-			}
-			if strings.Contains(err.Error(), "already spent") {
-				// Output was already spent.
-				return lnwallet.ErrDoubleSpend
-			}
-			if strings.Contains(err.Error(), "already been spent") {
-				// Output was already spent.
-				return lnwallet.ErrDoubleSpend
-			}
-			if strings.Contains(err.Error(), "orphan transaction") {
-				// Transaction is spending either output that
-				// is missing or already spent.
-				return lnwallet.ErrDoubleSpend
-			}
+	serTx, err := tx.Bytes()
+	if err != nil {
+		return err
+	}
 
-		default:
+	_, err = b.wallet.PublishTransaction(tx, serTx, b.walletNetBackend)
+	if err != nil {
+		// TODO(decred): review if the string messages are correct. Possible
+		// convert from checking the message to checking the op.
+		if strings.Contains(err.Error(), "already have") {
+			// Transaction was already in the mempool, do
+			// not treat as an error. We do this to mimic
+			// the behaviour of bitcoind, which will not
+			// return an error if a transaction in the
+			// mempool is sent again using the
+			// sendrawtransaction RPC call.
+			return nil
+		}
+		if strings.Contains(err.Error(), "already exists") {
+			// Transaction was already mined, we don't
+			// consider this an error.
+			return nil
+		}
+		if strings.Contains(err.Error(), "already spent") {
+			// Output was already spent.
+			return lnwallet.ErrDoubleSpend
+		}
+		if strings.Contains(err.Error(), "already been spent") {
+			// Output was already spent.
+			return lnwallet.ErrDoubleSpend
+		}
+		if strings.Contains(err.Error(), "orphan transaction") {
+			// Transaction is spending either output that
+			// is missing or already spent.
+			return lnwallet.ErrDoubleSpend
 		}
 		return err
 	}
@@ -428,9 +401,13 @@ func extractBalanceDelta(
 // information about mined transactions to a TransactionDetail.
 func minedTransactionsToDetails(
 	currentHeight int32,
-	block base.Block,
+	block *base.Block,
 	chainParams *chaincfg.Params,
 ) ([]*lnwallet.TransactionDetail, error) {
+
+	if block.Header == nil {
+		return nil, fmt.Errorf("cannot use minedTransactionsToDetails with mempoool")
+	}
 
 	details := make([]*lnwallet.TransactionDetail, 0, len(block.Transactions))
 	for _, tx := range block.Transactions {
@@ -453,12 +430,13 @@ func minedTransactionsToDetails(
 			destAddresses = append(destAddresses, outAddresses...)
 		}
 
+		blockHash := block.Header.BlockHash()
 		txDetail := &lnwallet.TransactionDetail{
 			Hash:             *tx.Hash,
-			NumConfirmations: currentHeight - block.Height + 1,
-			BlockHash:        block.Hash,
-			BlockHeight:      block.Height,
-			Timestamp:        block.Timestamp,
+			NumConfirmations: currentHeight - int32(block.Header.Height) + 1,
+			BlockHash:        &blockHash,
+			BlockHeight:      int32(block.Header.Height),
+			Timestamp:        block.Header.Timestamp.Unix(),
 			TotalFees:        int64(tx.Fee),
 			DestAddresses:    destAddresses,
 		}
@@ -509,40 +487,42 @@ func unminedTransactionsToDetail(
 func (b *DcrWallet) ListTransactionDetails() ([]*lnwallet.TransactionDetail, error) {
 	// Grab the best block the wallet knows of, we'll use this to calculate
 	// # of confirmations shortly below.
-	bestBlock := b.wallet.Manager.SyncedTo()
-	currentHeight := bestBlock.Height
+	_, currentHeight := b.wallet.MainChainTip()
 
-	// We'll attempt to find all unconfirmed transactions (height of -1),
-	// as well as all transactions that are known to have confirmed at this
-	// height.
+	// Iterating over transactions using the range 0..-1 goes through all mined
+	// transactions (in ascending order) then through unmined transactions.
 	start := base.NewBlockIdentifierFromHeight(0)
 	stop := base.NewBlockIdentifierFromHeight(-1)
-	txns, err := b.wallet.GetTransactions(start, stop, nil)
+
+	txDetails := make([]*lnwallet.TransactionDetail, 0)
+
+	rangeFn := func(block *base.Block) (bool, error) {
+		isMined := block.Header != nil
+		for _, tx := range block.Transactions {
+			if isMined {
+				details, err := minedTransactionsToDetails(currentHeight, block,
+					b.netParams)
+				if err != nil {
+					return true, err
+				}
+
+				txDetails = append(txDetails, details...)
+			} else {
+				detail, err := unminedTransactionsToDetail(tx)
+				if err != nil {
+					return true, err
+				}
+
+				txDetails = append(txDetails, detail)
+			}
+		}
+
+		return false, nil
+	}
+
+	err := b.wallet.GetTransactions(rangeFn, start, stop)
 	if err != nil {
 		return nil, err
-	}
-
-	txDetails := make([]*lnwallet.TransactionDetail, 0,
-		len(txns.MinedTransactions)+len(txns.UnminedTransactions))
-
-	// For both confirmed and unconfirmed transactions, create a
-	// TransactionDetail which re-packages the data returned by the base
-	// wallet.
-	for _, blockPackage := range txns.MinedTransactions {
-		details, err := minedTransactionsToDetails(currentHeight, blockPackage, b.netParams)
-		if err != nil {
-			return nil, err
-		}
-
-		txDetails = append(txDetails, details...)
-	}
-	for _, tx := range txns.UnminedTransactions {
-		detail, err := unminedTransactionsToDetail(tx)
-		if err != nil {
-			return nil, err
-		}
-
-		txDetails = append(txDetails, detail)
 	}
 
 	return txDetails, nil
@@ -598,13 +578,13 @@ out:
 		select {
 		case txNtfn := <-t.txClient.C:
 			// TODO(roasbeef): handle detached blocks
-			currentHeight := t.w.Manager.SyncedTo().Height
+			_, currentHeight := t.w.MainChainTip()
 
 			// Launch a goroutine to re-package and send
 			// notifications for any newly confirmed transactions.
 			go func() {
 				for _, block := range txNtfn.AttachedBlocks {
-					details, err := minedTransactionsToDetails(currentHeight, block, t.w.ChainParams())
+					details, err := minedTransactionsToDetails(currentHeight, &block, t.w.ChainParams())
 					if err != nil {
 						continue
 					}
@@ -672,40 +652,31 @@ func (b *DcrWallet) SubscribeTransactions() (lnwallet.TransactionSubscription, e
 // This is a part of the WalletController interface.
 func (b *DcrWallet) IsSynced() (bool, int64, error) {
 	// Grab the best chain state the wallet is currently aware of.
-	syncState := b.wallet.Manager.SyncedTo()
-
-	// We'll also extract the current best wallet timestamp so the caller
-	// can get an idea of where we are in the sync timeline.
-	bestTimestamp := syncState.Timestamp.Unix()
+	walletBestHash, walletBestHeight := b.wallet.MainChainTip()
+	walletBestHeader, err := b.wallet.BlockHeader(&walletBestHash)
+	if err != nil {
+		return false, 0, err
+	}
 
 	// Next, query the chain backend to grab the info about the tip of the
 	// main chain.
-	bestHash, bestHeight, err := b.cfg.ChainSource.GetBestBlock()
+	_, bestHeight, err := b.cfg.ChainSource.GetBestBlock()
 	if err != nil {
 		return false, 0, err
 	}
 
 	// If the wallet hasn't yet fully synced to the node's best chain tip,
 	// then we're not yet fully synced.
-	if syncState.Height < bestHeight || !b.wallet.ChainSynced() {
-		return false, bestTimestamp, nil
-	}
-
-	// If the wallet is on par with the current best chain tip, then we
-	// still may not yet be synced as the chain backend may still be
-	// catching up to the main chain. So we'll grab the block header in
-	// order to make a guess based on the current time stamp.
-	blockHeader, err := b.cfg.ChainSource.GetBlockHeader(bestHash)
-	if err != nil {
-		return false, 0, err
+	if int64(walletBestHeight) < bestHeight {
+		return false, walletBestHeader.Timestamp.Unix(), nil
 	}
 
 	// If the timestamp on the best header is more than 2 hours in the
 	// past, then we're not yet synced.
-	minus24Hours := time.Now().Add(-2 * time.Hour)
-	if blockHeader.Timestamp.Before(minus24Hours) {
-		return false, bestTimestamp, nil
+	minus2Hours := time.Now().Add(-2 * time.Hour)
+	if walletBestHeader.Timestamp.Before(minus2Hours) {
+		return false, walletBestHeader.Timestamp.Unix(), nil
 	}
 
-	return true, bestTimestamp, nil
+	return true, walletBestHeader.Timestamp.Unix(), nil
 }

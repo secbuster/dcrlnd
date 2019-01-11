@@ -6,10 +6,8 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io/ioutil"
-	"math/rand"
 	"net"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"reflect"
 	"runtime"
@@ -17,14 +15,16 @@ import (
 	"testing"
 	"time"
 
-	bolt "go.etcd.io/bbolt"
 	"github.com/davecgh/go-spew/spew"
+	"github.com/decred/dcrlnd/chainntnfs/dcrdnotify"
+	bolt "go.etcd.io/bbolt"
 
 	"github.com/decred/dcrwallet/chain"
-	"github.com/decred/dcrwallet/wallet/walletdb"
+	_ "github.com/decred/dcrwallet/wallet/drivers/bdb"
 
 	"github.com/decred/dcrd/chaincfg"
 	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrec"
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrd/dcrjson"
 	"github.com/decred/dcrd/dcrutil"
@@ -34,7 +34,6 @@ import (
 	"github.com/decred/dcrd/wire"
 
 	"github.com/decred/dcrlnd/chainntnfs"
-	"github.com/decred/dcrlnd/chainntnfs/dcrdnotify"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lnwallet"
@@ -81,8 +80,15 @@ var (
 		0x69, 0x49, 0x18, 0x83, 0x31, 0x98, 0x47, 0x53,
 	}
 
-	netParams = &chaincfg.RegressionNetParams
+	netParams = &chaincfg.RegNetParams
 	chainHash = netParams.GenesisHash
+
+	// TODO(matheusd) Are these all?
+	scriptFlagsForTest = txscript.ScriptDiscourageUpgradableNops |
+		txscript.ScriptVerifyCleanStack |
+		txscript.ScriptVerifyCheckLockTimeVerify |
+		txscript.ScriptVerifyCheckSequenceVerify |
+		txscript.ScriptVerifySHA256
 
 	_, alicePub = secp256k1.PrivKeyFromBytes(testHdSeed[:])
 	_, bobPub   = secp256k1.PrivKeyFromBytes(bobsPrivKey)
@@ -367,7 +373,7 @@ func createTestWallet(tempTestDir string, miningNode *rpctest.Harness,
 		FeeEstimator:     lnwallet.NewStaticFeeEstimator(2500, 0),
 		DefaultConstraints: channeldb.ChannelConstraints{
 			DustLimit:        500,
-			MaxPendingAmount: lnwire.NewMSatFromSatoshis(dcrutil.SatoshiPerBitcoin) * 100,
+			MaxPendingAmount: lnwire.NewMSatFromSatoshis(dcrutil.AtomsPerCoin) * 100,
 			ChanReserve:      100,
 			MinHTLC:          400,
 			MaxAcceptedHtlcs: 900,
@@ -403,9 +409,9 @@ func testDualFundingReservationWorkflow(miner *rpctest.Harness,
 	// In this scenario, we'll test a dual funder reservation, with each
 	// side putting in 10 DCR.
 
-	// Alice initiates a channel funded with 5 DCR for each side, so 10 DCR
-	// total. She also generates 2 DCR in change.
-	feePerKw, err := alice.Cfg.FeeEstimator.EstimateFeePerKW(1)
+	// Alice initiates a channel funded with 5 BTC for each side, so 10 BTC
+	// total. She also generates 2 BTC in change.
+	feePerWeight, err := alice.Cfg.FeeEstimator.EstimateFeePerByte(1)
 	if err != nil {
 		t.Fatalf("unable to query fee estimator: %v", err)
 	}
@@ -603,11 +609,9 @@ func testDualFundingReservationWorkflow(miner *rpctest.Harness,
 func testFundingTransactionLockedOutputs(miner *rpctest.Harness,
 	alice, _ *lnwallet.LightningWallet, t *testing.T) {
 
-	// Create a single channel asking for 16 DCR total.
-	fundingAmount, err := dcrutil.NewAmount(8)
-	if err != nil {
-		t.Fatalf("unable to create amt: %v", err)
-	}
+	// Create a single channel asking for 16 BTC total.
+	fundingAmount := dcrutil.Amount(8 * 1e8)
+	// TODO(decred) Switch to fee per KB
 	feePerKw, err := alice.Cfg.FeeEstimator.EstimateFeePerKW(1)
 	if err != nil {
 		t.Fatalf("unable to query fee estimator: %v", err)
@@ -1062,7 +1066,7 @@ func testListTransactionDetails(miner *rpctest.Harness,
 
 	// Create 5 new outputs spendable by the wallet.
 	const numTxns = 5
-	const outputAmt = dcrutil.SatoshiPerBitcoin
+	const outputAmt = dcrutil.AtomsPerCoin
 	txids := make(map[chainhash.Hash]struct{})
 	for i := 0; i < numTxns; i++ {
 		addr, err := alice.NewAddress(lnwallet.WitnessPubKey, false)
@@ -1153,7 +1157,8 @@ func testListTransactionDetails(miner *rpctest.Harness,
 
 			for _, txOut := range txOuts {
 				_, addrs, _, err :=
-					txscript.ExtractPkScriptAddrs(txOut.PkScript, &alice.Cfg.NetParams)
+					txscript.ExtractPkScriptAddrs(txOut.Version, txOut.PkScript,
+						&alice.Cfg.NetParams)
 				if err != nil {
 					t.Fatalf("err extract script addresses: %s", err)
 				}
@@ -1285,7 +1290,7 @@ func testTransactionSubscriptions(miner *rpctest.Harness,
 	defer txClient.Cancel()
 
 	const (
-		outputAmt = dcrutil.SatoshiPerBitcoin
+		outputAmt = dcrutil.AtomsPerCoin
 		numTxns   = 3
 	)
 	unconfirmedNtfns := make(chan struct{})
@@ -1797,8 +1802,8 @@ func testSignOutputUsingTweaks(r *rpctest.Harness,
 		// Using the given key for the current iteration, we'll
 		// generate a regular p2wkh from that.
 		pubkeyHash := dcrutil.Hash160(tweakedKey.SerializeCompressed())
-		keyAddr, err := dcrutil.NewAddressWitnessPubKeyHash(pubkeyHash,
-			&chaincfg.SimNetParams)
+		keyAddr, err := dcrutil.NewAddressPubKeyHash(pubkeyHash,
+			netParams, dcrec.STEcdsaSecp256k1)
 		if err != nil {
 			t.Fatalf("unable to create addr: %v", err)
 		}
@@ -1810,8 +1815,9 @@ func testSignOutputUsingTweaks(r *rpctest.Harness,
 		// With the script fully assembled, instruct the wallet to fund
 		// the output with a newly created transaction.
 		newOutput := &wire.TxOut{
-			Value:    dcrutil.SatoshiPerBitcoin,
+			Value:    dcrutil.AtomsPerCoin,
 			PkScript: keyScript,
+			Version:  txscript.DefaultScriptVersion,
 		}
 		tx, err := alice.SendOutputs([]*wire.TxOut{newOutput}, 2500)
 		if err != nil {
@@ -1833,16 +1839,18 @@ func testSignOutputUsingTweaks(r *rpctest.Harness,
 
 		// With the index located, we can create a transaction spending
 		// the referenced output.
-		sweepTx := wire.NewMsgTx(2)
+		sweepTx := wire.NewMsgTx()
 		sweepTx.AddTxIn(&wire.TxIn{
 			PreviousOutPoint: wire.OutPoint{
 				Hash:  txid,
 				Index: outputIndex,
+				Tree:  wire.TxTreeRegular,
 			},
 		})
 		sweepTx.AddTxOut(&wire.TxOut{
 			Value:    1000,
 			PkScript: keyScript,
+			Version:  txscript.DefaultScriptVersion,
 		})
 
 		// Now we can populate the sign descriptor which we'll use to
@@ -1884,8 +1892,7 @@ func testSignOutputUsingTweaks(r *rpctest.Harness,
 		// should succeed if the wallet was able to properly generate
 		// the proper private key.
 		vm, err := txscript.NewEngine(keyScript,
-			sweepTx, 0, txscript.StandardVerifyFlags, nil,
-			nil, int64(dcrutil.SatoshiPerBitcoin))
+			sweepTx, 0, scriptFlagsForTest, newOutput.Version, nil)
 		if err != nil {
 			t.Fatalf("unable to create engine: %v", err)
 		}
@@ -1982,7 +1989,7 @@ func testReorgWalletBalance(r *rpctest.Harness, w *lnwallet.LightningWallet,
 
 	// Step 2: connect the miner to the passed miner and wait for
 	// synchronization.
-	err = r2.Node.AddNode(r.P2PAddress(), rpcclient.ANAdd)
+	err = rpctest.ConnectNode(r2, r)
 	if err != nil {
 		t.Fatalf("unable to connect mining nodes together: %v", err)
 	}
@@ -1998,7 +2005,6 @@ func testReorgWalletBalance(r *rpctest.Harness, w *lnwallet.LightningWallet,
 		// Wait for disconnection
 		timeout := time.After(30 * time.Second)
 		stillConnected := true
-		var peers []dcrjson.GetPeerInfoResult
 		for stillConnected {
 			// Allow for timeout
 			time.Sleep(100 * time.Millisecond)
@@ -2007,21 +2013,15 @@ func testReorgWalletBalance(r *rpctest.Harness, w *lnwallet.LightningWallet,
 				t.Fatalf("timeout waiting for miner disconnect")
 			default:
 			}
-			err = r2.Node.AddNode(r.P2PAddress(), rpcclient.ANRemove)
+			err = rpctest.RemoveNode(r2, r)
 			if err != nil {
 				t.Fatalf("unable to disconnect mining nodes: %v",
 					err)
 			}
-			peers, err = r2.Node.GetPeerInfo()
+			stillConnected, err = rpctest.NodesConnected(r2, r, true)
 			if err != nil {
-				t.Fatalf("unable to get peer info: %v", err)
-			}
-			stillConnected = false
-			for _, peer := range peers {
-				if peer.Addr == r.P2PAddress() {
-					stillConnected = true
-					break
-				}
+				t.Fatalf("error checking node connectivity: %v",
+					err)
 			}
 		}
 		_, err = r.Node.Generate(2)
@@ -2036,7 +2036,7 @@ func testReorgWalletBalance(r *rpctest.Harness, w *lnwallet.LightningWallet,
 		}
 
 		// Step 5: Reconnect the miners and wait for them to synchronize.
-		err = r2.Node.AddNode(r.P2PAddress(), rpcclient.ANAdd)
+		err = rpctest.ConnectNode(r2, r)
 		if err != nil {
 			switch err := err.(type) {
 			case *dcrjson.RPCError:
@@ -2287,7 +2287,7 @@ func waitForWalletSync(r *rpctest.Harness, w *lnwallet.LightningWallet) error {
 		if err != nil {
 			return err
 		}
-		if knownHeight != bestHeight {
+		if int64(knownHeight) != bestHeight {
 			continue
 		}
 		if *knownHash != *bestHash {
@@ -2334,13 +2334,6 @@ func TestLightningWallet(t *testing.T) {
 		t.Fatalf("unable to set up mining node: %v", err)
 	}
 
-	// Next mine enough blocks in order for segwit and the CSV package
-	// soft-fork to activate on RegNet.
-	numBlocks := netParams.MinerConfirmationWindow * 2
-	if _, err := miningNode.Node.Generate(numBlocks); err != nil {
-		t.Fatalf("unable to generate blocks: %v", err)
-	}
-
 	rpcConfig := miningNode.RPCConfig()
 
 	tempDir, err := ioutil.TempDir("", "channeldb")
@@ -2379,7 +2372,6 @@ func runTests(t *testing.T, walletDriver *lnwallet.WalletDriver,
 	backEnd string, miningNode *rpctest.Harness,
 	rpcConfig rpcclient.ConnConfig,
 	chainNotifier *dcrdnotify.DcrdNotifier) {
-
 	var (
 		bio lnwallet.BlockChainIO
 
@@ -2410,7 +2402,7 @@ func runTests(t *testing.T, walletDriver *lnwallet.WalletDriver,
 	walletType := walletDriver.WalletType
 	switch walletType {
 	case "dcrwallet":
-		var aliceClient, bobClient chain.Interface
+		var aliceClient, bobClient *chain.RPCClient
 		switch backEnd {
 		case "dcrd":
 			feeEstimator, err = lnwallet.NewDcrdFeeEstimator(
@@ -2421,17 +2413,16 @@ func runTests(t *testing.T, walletDriver *lnwallet.WalletDriver,
 			}
 			aliceClient, err = chain.NewRPCClient(netParams,
 				rpcConfig.Host, rpcConfig.User, rpcConfig.Pass,
-				rpcConfig.Certificates, false, 20)
+				rpcConfig.Certificates, false)
 			if err != nil {
 				t.Fatalf("unable to make chain rpc: %v", err)
 			}
 			bobClient, err = chain.NewRPCClient(netParams,
 				rpcConfig.Host, rpcConfig.User, rpcConfig.Pass,
-				rpcConfig.Certificates, false, 20)
+				rpcConfig.Certificates, false)
 			if err != nil {
 				t.Fatalf("unable to make chain rpc: %v", err)
 			}
-
 		default:
 			t.Fatalf("unknown chain driver: %v", backEnd)
 		}
@@ -2446,7 +2437,7 @@ func runTests(t *testing.T, walletDriver *lnwallet.WalletDriver,
 			HdSeed:       aliceSeedBytes,
 			DataDir:      tempTestDirAlice,
 			NetParams:    netParams,
-			ChainSource:  aliceClient,
+			ChainSource:  aliceClient.Client,
 			FeeEstimator: feeEstimator,
 			CoinType:     keychain.CoinTypeTestnet,
 		}
@@ -2470,7 +2461,7 @@ func runTests(t *testing.T, walletDriver *lnwallet.WalletDriver,
 			HdSeed:       bobSeedBytes,
 			DataDir:      tempTestDirBob,
 			NetParams:    netParams,
-			ChainSource:  bobClient,
+			ChainSource:  bobClient.Client,
 			FeeEstimator: feeEstimator,
 			CoinType:     keychain.CoinTypeTestnet,
 		}

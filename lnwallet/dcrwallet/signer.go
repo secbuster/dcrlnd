@@ -1,16 +1,16 @@
 package dcrwallet
 
 import (
+	"fmt"
+
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrec/secp256k1"
-	"github.com/decred/dcrd/dcrutil"
 	"github.com/decred/dcrd/txscript"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lnwallet"
 	base "github.com/decred/dcrwallet/wallet"
 	"github.com/decred/dcrwallet/wallet/udb"
-	"github.com/decred/dcrwallet/wallet/walletdb"
 	"github.com/go-errors/errors"
 )
 
@@ -86,48 +86,7 @@ func (b *DcrWallet) fetchOutputAddr(scriptVersion uint16, script []byte) (udb.Ma
 // fetchPrivKey attempts to retrieve the raw private key corresponding to the
 // passed public key if populated, or the key descriptor path (if non-empty).
 func (b *DcrWallet) fetchPrivKey(keyDesc *keychain.KeyDescriptor) (*secp256k1.PrivateKey, error) {
-	// If the key locator within the descriptor *isn't* empty, then we can
-	// directly derive the keys raw.
-	if !keyDesc.KeyLocator.IsEmpty() {
-		// We'll assume the special lightning key scope in this case.
-		scopedMgr, err := b.wallet.Manager.FetchScopedKeyManager(
-			b.chainKeyScope,
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		var key *secp256k1.PrivateKey
-		err = walletdb.View(b.db, func(tx walletdb.ReadTx) error {
-			addrmgrNs := tx.ReadBucket(waddrmgrNamespaceKey)
-
-			path := udb.DerivationPath{
-				Account: uint32(keyDesc.Family),
-				Branch:  0,
-				Index:   uint32(keyDesc.Index),
-			}
-			addr, err := scopedMgr.DeriveFromKeyPath(addrmgrNs, path)
-			if err != nil {
-				return err
-			}
-
-			key, err = addr.(udb.ManagedPubKeyAddress).PrivKey()
-			return err
-		})
-		if err != nil {
-			return nil, err
-		}
-
-		return key, nil
-	}
-
-	hash160 := dcrutil.Hash160(keyDesc.PubKey.SerializeCompressed())
-	addr, err := dcrutil.NewAddressWitnessPubKeyHash(hash160, b.netParams)
-	if err != nil {
-		return nil, err
-	}
-
-	return b.wallet.PrivKeyForAddress(addr)
+	return b.keyring.DerivePrivKey(*keyDesc)
 }
 
 // maybeTweakPrivKey examines the single and double tweak parameters on the
@@ -179,11 +138,10 @@ func (b *DcrWallet) SignOutputRaw(tx *wire.MsgTx,
 	}
 
 	// TODO(roasbeef): generate sighash midstate if not present?
+	// TODO(decred): use cached prefix hash in signDesc.sigHashes
 
-	amt := signDesc.Output.Value
-	sig, err := txscript.RawTxInWitnessSignature(tx, signDesc.SigHashes,
-		signDesc.InputIndex, amt, witnessScript, signDesc.HashType,
-		privKey)
+	sig, err := txscript.RawTxInSignature(tx, signDesc.InputIndex,
+		witnessScript, signDesc.HashType, privKey)
 	if err != nil {
 		return nil, err
 	}
@@ -208,8 +166,13 @@ func (b *DcrWallet) ComputeInputScript(tx *wire.MsgTx,
 		return nil, err
 	}
 
-	pka := walletAddr.(udb.ManagedPubKeyAddress)
-	privKey, err := pka.PrivKey()
+	mpka, isMPKA := walletAddr.(udb.ManagedPubKeyAddress)
+	if !isMPKA {
+		return nil, fmt.Errorf("Address is not from a public key")
+	}
+
+	pubKey := mpka.PubKey().(*secp256k1.PublicKey)
+	privKey, err := b.fetchPrivKey(&keychain.KeyDescriptor{PubKey: pubKey})
 	if err != nil {
 		return nil, err
 	}
@@ -219,34 +182,37 @@ func (b *DcrWallet) ComputeInputScript(tx *wire.MsgTx,
 
 	switch {
 
+	// TODO(matheusd) decide what to do with this.
+
 	// If we're spending p2wkh output nested within a p2sh output, then
 	// we'll need to attach a sigScript in addition to witness data.
-	case pka.AddrType() == udb.NestedWitnessPubKey:
-		pubKey := privKey.PubKey()
-		pubKeyHash := dcrutil.Hash160(pubKey.SerializeCompressed())
+	// case pka.IsNestedWitness():
 
-		// Next, we'll generate a valid sigScript that will allow us to
-		// spend the p2sh output. The sigScript will contain only a
-		// single push of the p2wkh witness program corresponding to
-		// the matching public key of this address.
-		p2wkhAddr, err := dcrutil.NewAddressWitnessPubKeyHash(pubKeyHash,
-			b.netParams)
-		if err != nil {
-			return nil, err
-		}
-		witnessProgram, err = txscript.PayToAddrScript(p2wkhAddr)
-		if err != nil {
-			return nil, err
-		}
+	// pubKey := privKey.PubKey()
+	// pubKeyHash := dcrutil.Hash160(pubKey.SerializeCompressed())
 
-		bldr := txscript.NewScriptBuilder()
-		bldr.AddData(witnessProgram)
-		sigScript, err := bldr.Script()
-		if err != nil {
-			return nil, err
-		}
+	// // Next, we'll generate a valid sigScript that'll allow us to
+	// // spend the p2sh output. The sigScript will contain only a
+	// // single push of the p2wkh witness program corresponding to
+	// // the matching public key of this address.
+	// p2wkhAddr, err := dcrutil.NewAddressWitnessPubKeyHash(pubKeyHash,
+	// 	b.netParams)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// witnessProgram, err = txscript.PayToAddrScript(p2wkhAddr)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-		inputScript.ScriptSig = sigScript
+	// bldr := txscript.NewScriptBuilder()
+	// bldr.AddData(witnessProgram)
+	// sigScript, err := bldr.Script()
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	// inputScript.ScriptSig = sigScript
 
 	// Otherwise, this is a regular p2wkh output, so we include the
 	// witness program itself as the subscript to generate the proper
@@ -267,14 +233,13 @@ func (b *DcrWallet) ComputeInputScript(tx *wire.MsgTx,
 
 	// Generate a valid witness stack for the input.
 	// TODO(roasbeef): adhere to passed HashType
-	witnessScript, err := txscript.WitnessSignature(tx, signDesc.SigHashes,
-		signDesc.InputIndex, signDesc.Output.Value, witnessProgram,
-		signDesc.HashType, privKey, true)
+	scriptSig, err := txscript.SignatureScript(tx, signDesc.InputIndex,
+		witnessProgram, signDesc.HashType, privKey, true)
 	if err != nil {
 		return nil, err
 	}
 
-	inputScript.Witness = witnessScript
+	inputScript.ScriptSig = scriptSig
 
 	return inputScript, nil
 }
@@ -286,7 +251,7 @@ var _ lnwallet.Signer = (*DcrWallet)(nil)
 // SignMessage attempts to sign a target message with the private key that
 // corresponds to the passed public key. If the target private key is unable to
 // be found, then an error will be returned. The actual digest signed is the
-// double SHA-256 of the passed message.
+// chainhash (blake256r14) of the passed message.
 //
 // NOTE: This is a part of the MessageSigner interface.
 func (b *DcrWallet) SignMessage(pubKey *secp256k1.PublicKey,
@@ -302,7 +267,7 @@ func (b *DcrWallet) SignMessage(pubKey *secp256k1.PublicKey,
 	}
 
 	// Double hash and sign the data.
-	msgDigest := chainhash.DoubleHashB(msg)
+	msgDigest := chainhash.HashB(msg)
 	sign, err := privKey.Sign(msgDigest)
 	if err != nil {
 		return nil, errors.Errorf("unable sign the message: %v", err)

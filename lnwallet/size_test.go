@@ -3,13 +3,16 @@ package lnwallet_test
 import (
 	"testing"
 
-	"github.com/decred/dcrd/blockchain"
 	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/dcrec"
 	"github.com/decred/dcrd/dcrutil"
 	"github.com/decred/dcrd/txscript"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/lnwallet"
 )
+
+// TODO(matheusd) mocking just to make not complain
+type txWitnessToReplace [][]byte
 
 // TestTxWeightEstimator tests that transaction weight estimates are calculated
 // correctly by comparing against an actual (though invalid) transaction
@@ -18,7 +21,7 @@ func TestTxWeightEstimator(t *testing.T) {
 	netParams := &chaincfg.MainNetParams
 
 	p2pkhAddr, err := dcrutil.NewAddressPubKeyHash(
-		make([]byte, 20), netParams)
+		make([]byte, 20), netParams, dcrec.STEcdsaSecp256k1)
 	if err != nil {
 		t.Fatalf("Failed to generate address: %v", err)
 	}
@@ -27,21 +30,24 @@ func TestTxWeightEstimator(t *testing.T) {
 		t.Fatalf("Failed to generate scriptPubKey: %v", err)
 	}
 
-	p2wkhAddr, err := dcrutil.NewAddressWitnessPubKeyHash(
-		make([]byte, 20), netParams)
-	if err != nil {
-		t.Fatalf("Failed to generate address: %v", err)
-	}
+	// TODO(matheusd) probably remove these
+	p2wkhAddr := p2pkhAddr
+	// p2wkhAddr, err := dcrutil.NewAddressWitnessPubKeyHash(
+	// 	make([]byte, 20), netParams)
+	// if err != nil {
+	// 	t.Fatalf("Failed to generate address: %v", err)
+	// }
 	p2wkhScript, err := txscript.PayToAddrScript(p2wkhAddr)
 	if err != nil {
 		t.Fatalf("Failed to generate scriptPubKey: %v", err)
 	}
 
-	p2wshAddr, err := dcrutil.NewAddressWitnessScriptHash(
-		make([]byte, 32), netParams)
-	if err != nil {
-		t.Fatalf("Failed to generate address: %v", err)
-	}
+	p2wshAddr := p2wkhAddr
+	// p2wshAddr, err := dcrutil.NewAddressWitnessScriptHash(
+	// 	make([]byte, 32), netParams)
+	// if err != nil {
+	// 	t.Fatalf("Failed to generate address: %v", err)
+	// }
 	p2wshScript, err := txscript.PayToAddrScript(p2wshAddr)
 	if err != nil {
 		t.Fatalf("Failed to generate scriptPubKey: %v", err)
@@ -107,7 +113,7 @@ func TestTxWeightEstimator(t *testing.T) {
 
 	for i, test := range testCases {
 		var weightEstimate lnwallet.TxWeightEstimator
-		tx := wire.NewMsgTx(1)
+		tx := wire.NewMsgTx()
 
 		for j := 0; j < test.numP2PKHInputs; j++ {
 			weightEstimate.AddP2PKHInput()
@@ -127,14 +133,14 @@ func TestTxWeightEstimator(t *testing.T) {
 
 			signature := make([]byte, 73)
 			compressedPubKey := make([]byte, 33)
-			witness := TxWitness{signature, compressedPubKey}
+			witness := txWitnessToReplace{signature, compressedPubKey}
 			tx.AddTxIn(&wire.TxIn{Witness: witness})
 		}
 		for j := 0; j < test.numP2WSHInputs; j++ {
 			weightEstimate.AddWitnessInput(42)
 
 			witnessScript := make([]byte, 40)
-			witness := TxWitness{witnessScript}
+			witness := txWitnessToReplace{witnessScript}
 			tx.AddTxIn(&wire.TxIn{Witness: witness})
 		}
 		for j := 0; j < test.numNestedP2WKHInputs; j++ {
@@ -142,7 +148,7 @@ func TestTxWeightEstimator(t *testing.T) {
 
 			signature := make([]byte, 73)
 			compressedPubKey := make([]byte, 33)
-			witness := TxWitness{signature, compressedPubKey}
+			witness := txWitnessToReplace{signature, compressedPubKey}
 			scriptSig, err := txscript.NewScriptBuilder().AddData(p2wkhScript).
 				Script()
 			if err != nil {
@@ -155,7 +161,7 @@ func TestTxWeightEstimator(t *testing.T) {
 			weightEstimate.AddNestedP2WSHInput(42)
 
 			witnessScript := make([]byte, 40)
-			witness := TxWitness{witnessScript}
+			witness := txWitnessToReplace{witnessScript}
 			scriptSig, err := txscript.NewScriptBuilder().AddData(p2wshScript).
 				Script()
 			if err != nil {
@@ -181,7 +187,9 @@ func TestTxWeightEstimator(t *testing.T) {
 			tx.AddTxOut(&wire.TxOut{PkScript: p2shScript})
 		}
 
-		expectedWeight := blockchain.GetTransactionWeight(dcrutil.NewTx(tx))
+		// TODO(matheusd) weight to size
+		// expectedWeight := blockchain.GetTransactionWeight(dcrutil.NewTx(tx))
+		expectedWeight := tx.SerializeSize()
 		if weightEstimate.Weight() != int(expectedWeight) {
 			t.Errorf("Case %d: Got wrong weight: expected %d, got %d",
 				i, expectedWeight, weightEstimate.Weight())
