@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/decred/dcrd/dcrutil"
 	"github.com/decred/dcrlnd/lnwire"
-	"github.com/decred/dcrutil"
 )
 
 func TestOpenWithCreate(t *testing.T) {

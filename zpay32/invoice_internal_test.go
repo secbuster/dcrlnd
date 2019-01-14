@@ -10,9 +10,9 @@ import (
 	"github.com/btcsuite/btcutil/bech32"
 	"github.com/decred/dcrd/chaincfg"
 	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/dcrutil"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/routing"
-	"github.com/decred/dcrutil"
 )
 
 // TestDecodeAmount ensures that the amount string in the hrp of the Invoice
