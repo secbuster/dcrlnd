@@ -196,7 +196,6 @@ func (b *WalletKeyRing) DeriveKey(keyLoc KeyLocator) (KeyDescriptor, error) {
 // NOTE: This is part of the keychain.SecretKeyRing interface.
 func (b *WalletKeyRing) DerivePrivKey(keyDesc KeyDescriptor) (*secp256k1.PrivateKey, error) {
 	var (
-		key                           *secp256k1.PrivateKey
 		err                           error
 		famMasterPub, branchMasterPub *hdkeychain.ExtendedKey
 		addr                          dcrutil.Address
