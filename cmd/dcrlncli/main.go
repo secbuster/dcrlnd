@@ -44,7 +44,7 @@ var (
 )
 
 func fatal(err error) {
-	fmt.Fprintf(os.Stderr, "[lncli] %v\n", err)
+	fmt.Fprintf(os.Stderr, "[dcrlncli] %v\n", err)
 	os.Exit(1)
 }
 
@@ -167,11 +167,11 @@ func extractPathArgs(ctx *cli.Context) (string, string, error) {
 		return "", "", fmt.Errorf("unknown network: %v", network)
 	}
 
-	// We'll now fetch the lnddir so we can make a decision  on how to
+	// We'll now fetch the dcrlnddir so we can make a decision  on how to
 	// properly read the macaroons (if needed) and also the cert. This will
 	// either be the default, or will have been overwritten by the end
 	// user.
-	lndDir := cleanAndExpandPath(ctx.GlobalString("lnddir"))
+	lndDir := cleanAndExpandPath(ctx.GlobalString("dcrlnddir"))
 
 	// If the macaroon path as been manually provided, then we'll only
 	// target the specified file.
@@ -180,7 +180,7 @@ func extractPathArgs(ctx *cli.Context) (string, string, error) {
 		macPath = cleanAndExpandPath(ctx.GlobalString("macaroonpath"))
 	} else {
 		// Otherwise, we'll go into the path:
-		// lnddir/data/chain/<chain>/<network> in order to fetch the
+		// dcrlnddir/data/chain/<chain>/<network> in order to fetch the
 		// macaroon that we need.
 		macPath = filepath.Join(
 			lndDir, defaultDataDir, defaultChainSubDir, chain,
@@ -190,11 +190,11 @@ func extractPathArgs(ctx *cli.Context) (string, string, error) {
 
 	tlsCertPath := cleanAndExpandPath(ctx.GlobalString("tlscertpath"))
 
-	// If a custom lnd directory was set, we'll also check if custom paths
-	// for the TLS cert and macaroon file were set as well. If not, we'll
-	// override their paths so they can be found within the custom lnd
-	// directory set. This allows us to set a custom lnd directory, along
-	// with custom paths to the TLS cert and macaroon file.
+	// If a custom dcrlnd directory was set, we'll also check if custom
+	// paths for the TLS cert and macaroon file were set as well. If not,
+	// we'll override their paths so they can be found within the custom
+	// dcrlnd directory set. This allows us to set a custom lnd directory,
+	// along with custom paths to the TLS cert and macaroon file.
 	if lndDir != defaultLndDir {
 		tlsCertPath = filepath.Join(lndDir, defaultTLSCertFilename)
 	}
@@ -204,19 +204,19 @@ func extractPathArgs(ctx *cli.Context) (string, string, error) {
 
 func main() {
 	app := cli.NewApp()
-	app.Name = "lncli"
+	app.Name = "dcrlncli"
 	app.Version = build.Version()
-	app.Usage = "control plane for your Lightning Network Daemon (lnd)"
+	app.Usage = "control plane for your Decred Lightning Network Daemon (dcrlnd)"
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:  "rpcserver",
 			Value: defaultRPCHostPort,
-			Usage: "host:port of ln daemon",
+			Usage: "host:port of Decred LN daemon",
 		},
 		cli.StringFlag{
-			Name:  "lnddir",
+			Name:  "dcrlnddir",
 			Value: defaultLndDir,
-			Usage: "path to lnd's base directory",
+			Usage: "path to dcrlnd's base directory",
 		},
 		cli.StringFlag{
 			Name:  "tlscertpath",
@@ -224,13 +224,8 @@ func main() {
 			Usage: "path to TLS certificate",
 		},
 		cli.StringFlag{
-			Name:  "chain, c",
-			Usage: "the chain lnd is running on e.g. bitcoin",
-			Value: "bitcoin",
-		},
-		cli.StringFlag{
 			Name: "network, n",
-			Usage: "the network lnd is running on e.g. mainnet, " +
+			Usage: "the network drlnd is running on e.g. mainnet, " +
 				"testnet, etc.",
 			Value: "mainnet",
 		},

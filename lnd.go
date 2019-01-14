@@ -248,7 +248,7 @@ func lndMain() error {
 			return err
 		}
 
-		// Create macaroon files for lncli to use if they don't exist.
+		// Create macaroon files for dcrlncli to use if they don't exist.
 		if !fileExists(cfg.AdminMacPath) && !fileExists(cfg.ReadMacPath) &&
 			!fileExists(cfg.InvoiceMacPath) {
 
@@ -748,9 +748,9 @@ func waitForWalletPassword(grpcEndpoints, restEndpoints []net.Addr,
 	wg.Wait()
 
 	// Wait for user to provide the password.
-	ltndLog.Infof("Waiting for wallet encryption password. Use `lncli " +
-		"create` to create a wallet, `lncli unlock` to unlock an " +
-		"existing wallet, or `lncli changepassword` to change the " +
+	ltndLog.Infof("Waiting for wallet encryption password. Use `dcrlncli " +
+		"create` to create a wallet, `dcrlncli unlock` to unlock an " +
+		"existing wallet, or `dcrlncli changepassword` to change the " +
 		"password of an existing wallet and unlock it.")
 
 	// We currently don't distinguish between getting a password to be used

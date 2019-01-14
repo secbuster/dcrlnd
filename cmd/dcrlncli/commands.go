@@ -83,18 +83,18 @@ func actionDecorator(f func(*cli.Context) error) func(*cli.Context) error {
 				return fmt.Errorf("Wallet is already unlocked")
 			}
 
-			// lnd might be active, but not possible to contact
+			// dcrlnd might be active, but not possible to contact
 			// using RPC if the wallet is encrypted. If we get
-			// error code Unimplemented, it means that lnd is
+			// error code Unimplemented, it means that dcrlnd is
 			// running, but the RPC server is not active yet (only
 			// WalletUnlocker server active) and most likely this
 			// is because of an encrypted wallet.
 			if ok && s.Code() == codes.Unimplemented {
 				return fmt.Errorf("Wallet is encrypted. " +
-					"Please unlock using 'lncli unlock', " +
-					"or set password using 'lncli create'" +
+					"Please unlock using 'dcrlncli unlock', " +
+					"or set password using 'dcrlncli create'" +
 					" if this is the first time starting " +
-					"lnd.")
+					"dcrlnd.")
 			}
 			return err
 		}
@@ -400,7 +400,7 @@ func sendMany(ctx *cli.Context) error {
 var connectCommand = cli.Command{
 	Name:      "connect",
 	Category:  "Peers",
-	Usage:     "Connect to a remote lnd peer.",
+	Usage:     "Connect to a remote dcrlnd peer.",
 	ArgsUsage: "<pubkey>@host",
 	Flags: []cli.Flag{
 		cli.BoolFlag{
@@ -446,7 +446,7 @@ func connectPeer(ctx *cli.Context) error {
 var disconnectCommand = cli.Command{
 	Name:      "disconnect",
 	Category:  "Peers",
-	Usage:     "Disconnect a remote lnd peer identified by public key.",
+	Usage:     "Disconnect a remote dcrlnd peer identified by public key.",
 	ArgsUsage: "<pubkey>",
 	Flags: []cli.Flag{
 		cli.StringFlag{
@@ -1109,9 +1109,9 @@ var abandonChannelCommand = cli.Command{
 	Description: `
 	Removes all channel state from the database except for a close
 	summary. This method can be used to get rid of permanently unusable
-	channels due to bugs fixed in newer versions of lnd.
+	channels due to bugs fixed in newer versions of dcrlnd.
 
-	Only available when lnd is built in debug mode.
+	Only available when dcrlnd is built in debug mode.
 
 	To view which funding_txids/output_indexes can be used for this command,
 	see the channel_point values within the listchannels command output.
@@ -1223,15 +1223,15 @@ func listPeers(ctx *cli.Context) error {
 var createCommand = cli.Command{
 	Name:     "create",
 	Category: "Startup",
-	Usage:    "Initialize a wallet when starting lnd for the first time.",
+	Usage:    "Initialize a wallet when starting dcrlnd for the first time.",
 	Description: `
-	The create command is used to initialize an lnd wallet from scratch for
+	The create command is used to initialize an dcrlnd wallet from scratch for
 	the very first time. This is interactive command with one required
 	argument (the password), and one optional argument (the mnemonic
 	passphrase).
 
 	The first argument (the password) is required and MUST be greater than
-	8 characters. This will be used to encrypt the wallet within lnd. This
+	8 characters. This will be used to encrypt the wallet within dcrlnd. This
 	MUST be remembered as it will be required to fully start up the daemon.
 
 	The second argument is an optional 24-word mnemonic derived from BIP
@@ -1489,7 +1489,7 @@ mnemonicCheck:
 		return err
 	}
 
-	fmt.Println("\nlnd successfully initialized!")
+	fmt.Println("\ndcrlnd successfully initialized!")
 
 	return nil
 }
@@ -1499,8 +1499,8 @@ var unlockCommand = cli.Command{
 	Category: "Startup",
 	Usage:    "Unlock an encrypted wallet at startup.",
 	Description: `
-	The unlock command is used to decrypt lnd's wallet state in order to
-	start up. This command MUST be run after booting up lnd before it's
+	The unlock command is used to decrypt dcrlnd's wallet state in order to
+	start up. This command MUST be run after booting up dcrlnd before it's
 	able to carry out its duties. An exception is if a user is running with
 	--noseedbackup, then a default passphrase will be used.
 	`,
@@ -1555,7 +1555,7 @@ func unlock(ctx *cli.Context) error {
 		return err
 	}
 
-	fmt.Println("\nlnd successfully unlocked!")
+	fmt.Println("\ndcrlnd successfully unlocked!")
 
 	return nil
 }
@@ -1565,11 +1565,11 @@ var changePasswordCommand = cli.Command{
 	Category: "Startup",
 	Usage:    "Change an encrypted wallet's password at startup.",
 	Description: `
-	The changepassword command is used to Change lnd's encrypted wallet's
+	The changepassword command is used to Change dcrlnd's encrypted wallet's
 	password. It will automatically unlock the daemon if the password change
 	is successful.
 
-	If one did not specify a password for their wallet (running lnd with
+	If one did not specify a password for their wallet (running dcrlnd with
 	--noseedbackup), one must restart their daemon without
 	--noseedbackup and use this command. The "current password" field
 	should be left empty.
@@ -2218,17 +2218,17 @@ var sendToRouteCommand = cli.Command{
 	There are three ways to specify routes:
 	   * using the --routes parameter to manually specify a JSON encoded
 	     set of routes in the format of the return value of queryroutes:
-	         (lncli sendtoroute --payment_hash=<pay_hash> --routes=<route>)
+	         dcrlncli sendtoroute --payment_hash=<pay_hash> --routes=<route>
 
 	   * passing the routes as a positional argument:
-	         (lncli sendtoroute --payment_hash=pay_hash <route>)
+	         dcrlncli sendtoroute --payment_hash=pay_hash <route>
 
 	   * or reading in the routes from stdin, which can allow chaining the
 	     response from queryroutes, or even read in a file with a set of
 	     pre-computed routes:
-	         (lncli queryroutes --args.. | lncli sendtoroute --payment_hash= -
+	         dcrlncli queryroutes --args.. | drlncli sendtoroute --payment_hash= -
 
-	     notice the '-' at the end, which signals that lncli should read
+	     notice the '-' at the end, which signals that dcrlncli should read
 	     the route in from stdin
 	`,
 	Flags: []cli.Flag{
@@ -2552,7 +2552,7 @@ var listInvoicesCommand = cli.Command{
 	explicitly set the flag to false. If none of the parameters are
 	specified, then the last 100 invoices will be returned.
 
-	For example: if you have 200 invoices, "lncli listinvoices" will return
+	For example: if you have 200 invoices, "dcrlncli listinvoices" will return
 	the last 100 created. If you wish to retrieve the previous 100, the
 	first_offset_index of the response can be used as the index_offset of
 	the next listinvoices request.`,
