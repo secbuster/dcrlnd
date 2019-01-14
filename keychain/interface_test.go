@@ -14,9 +14,9 @@ import (
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrwallet/wallet"
 	"github.com/decred/dcrwallet/wallet/udb"
-	"github.com/decred/dcrwallet/walletdb"
+	"github.com/decred/dcrwallet/wallet/walletdb"
 
-	_ "github.com/decred/dcrwallet/walletdb/bdb" // Required in order to create the default database.
+	_ "github.com/decred/dcrwallet/wallet/drivers/bdb" // Required in order to create the default database.
 )
 
 // versionZeroKeyFamilies is a slice of all the known key families for first
