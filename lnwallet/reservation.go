@@ -4,10 +4,10 @@ import (
 	"net"
 	"sync"
 
-	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/lnwire"
 )
@@ -147,7 +147,6 @@ func NewChannelReservation(capacity, fundingAmt dcrutil.Amount,
 
 	commitFee := commitFeePerKw.FeeForWeight(CommitWeight)
 
->>>>>>> Initial Decred port.
 	fundingMSat := lnwire.NewMSatFromSatoshis(fundingAmt)
 	capacityMSat := lnwire.NewMSatFromSatoshis(capacity)
 	feeMSat := lnwire.NewMSatFromSatoshis(commitFee)

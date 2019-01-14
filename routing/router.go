@@ -18,8 +18,8 @@ import (
 	"github.com/decred/dcrlnd/multimutex"
 
 	//"github.com/decred/dcrlnd/htlcswitch" // TODO(decred): Uncomment.
-	//"github.com/decred/dcrlnd/lnwallet" // TODO(decred): Uncomment.
 	"github.com/decred/dcrd/dcrutil"
+	//"github.com/decred/dcrlnd/lnwallet" // TODO(decred): Uncomment.
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/routing/chainview"
 

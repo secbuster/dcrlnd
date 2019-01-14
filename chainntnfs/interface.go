@@ -386,7 +386,8 @@ func GetCommonBlockAncestorHeight(chainConn ChainConn, reorgHash,
 			chainHash, err)
 	}
 
-	return verboseHeader.Height, nil
+	// TODO(decred): Deal with block height differences
+	return int32(verboseHeader.Height), nil
 }
 
 // GetClientMissedBlocks uses a client's best block to determine what blocks

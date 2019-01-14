@@ -26,7 +26,7 @@ import (
 	"github.com/decred/dcrlnd/routing/chainview"
 	"github.com/decred/dcrwallet/chain"
 	"github.com/decred/dcrwallet/wallet"
-	"github.com/decred/dcrwallet/walletdb"
+	"github.com/decred/dcrwallet/wallet/walletdb"
 )
 
 const (

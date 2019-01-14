@@ -19,8 +19,7 @@ import (
 	"github.com/decred/dcrlnd/channeldb"
 
 	"github.com/decred/dcrwallet/chain"
-	"github.com/decred/dcrwallet/walletdb"
-	_ "github.com/decred/dcrwallet/walletdb/bdb" // Required to register the boltdb walletdb implementation.
+	"github.com/decred/dcrwallet/wallet/walletdb"
 )
 
 var (

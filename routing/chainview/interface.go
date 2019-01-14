@@ -43,7 +43,7 @@ type FilteredChainView interface {
 	// relevant notifications are dispatched, meaning blocks with a height
 	// lower than the best known height might be sent over the
 	// FilteredBlocks() channel.
-	UpdateFilter(ops []channeldb.EdgePoint, updateHeight uint32) error
+	UpdateFilter(ops []channeldb.EdgePoint, updateHeight int64) error
 
 	// FilterBlock takes a block hash, and returns a FilteredBlocks which
 	// is the result of applying the current registered UTXO sub-set on the

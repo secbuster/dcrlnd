@@ -21,8 +21,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 
 	"github.com/decred/dcrwallet/chain"
-	"github.com/decred/dcrwallet/walletdb"
-	_ "github.com/decred/dcrwallet/walletdb/bdb"
+	"github.com/decred/dcrwallet/wallet/walletdb"
 
 	"github.com/decred/dcrd/chaincfg"
 	"github.com/decred/dcrd/chaincfg/chainhash"

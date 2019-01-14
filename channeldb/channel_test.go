@@ -20,7 +20,6 @@ import (
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/shachain"
-	_ "github.com/decred/dcrwallet/walletdb/bdb"
 )
 
 var (

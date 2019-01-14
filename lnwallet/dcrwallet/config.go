@@ -7,17 +7,9 @@ import (
 	"github.com/decred/dcrd/chaincfg"
 	"github.com/decred/dcrd/dcrutil"
 	"github.com/decred/dcrd/wire"
-
 	//"github.com/decred/dcrlnd/lnwallet" // TODO(decred): Finish
-
 	//"github.com/decred/dcrwallet/chain"
 	//"github.com/decred/dcrwallet/wallet"
-
-	// This is required to register bdb as a valid walletdb driver. In the
-	// init function of the package, it registers itself. The import is used
-	// to activate the side effects w/o actually binding the package name to
-	// a file-level variable.
-	_ "github.com/decred/dcrwallet/walletdb/bdb"
 )
 
 var (

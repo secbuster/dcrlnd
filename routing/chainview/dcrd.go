@@ -8,11 +8,10 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/decred/dcrd/dcrjson"
 	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrjson"
 	"github.com/decred/dcrd/rpcclient"
 	"github.com/decred/dcrd/wire"
-	"github.com/decred/dcrd/dcrutil"
 	"github.com/decred/dcrlnd/channeldb"
 )
 
@@ -161,9 +160,12 @@ func (b *DcrdFilteredChainView) onBlockConnected(blockHeader []byte, txns [][]by
 
 	mtxs := make([]*wire.MsgTx, len(txns))
 	b.filterMtx.Lock()
-	for i, tx := range txns {
-		mtx := tx.MsgTx()
-		mtxs[i] = mtx
+	for i, txBytes := range txns {
+		if err := mtxs[i].FromBytes(txBytes); err != nil {
+			// TODO(davec): Log...
+			return
+		}
+	}
 
 	for _, mtx := range mtxs {
 		for _, txIn := range mtx.TxIn {
@@ -203,7 +205,6 @@ func (b *DcrdFilteredChainView) onBlockConnected(blockHeader []byte, txns [][]by
 // disconnected from the end of the main chain.
 func (b *DcrdFilteredChainView) onBlockDisconnected(blockHeader []byte) {
 	// TODO(decred): Finish
-
 	/*
 		log.Debugf("got disconnected block at height %d: %v", height,
 			header.BlockHash())
@@ -456,7 +457,7 @@ type filterUpdate struct {
 //
 // NOTE: This is part of the FilteredChainView interface.
 func (b *DcrdFilteredChainView) UpdateFilter(ops []channeldb.EdgePoint,
-	updateHeight uint32) error {
+	updateHeight int64) error {
 
 	newUtxos := make([]wire.OutPoint, len(ops))
 	for i, op := range ops {

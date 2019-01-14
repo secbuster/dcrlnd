@@ -1751,7 +1751,7 @@ func (l *LightningNode) PubKey() (*secp256k1.PublicKey, error) {
 		return l.pubKey, nil
 	}
 
-	key, err := secp256k1.ParsePubKey(l.PubKeyBytes[:], secp256k1.S256())
+	key, err := secp256k1.ParsePubKey(l.PubKeyBytes[:])
 	if err != nil {
 		return nil, err
 	}
@@ -1767,7 +1767,7 @@ func (l *LightningNode) PubKey() (*secp256k1.PublicKey, error) {
 // NOTE: By having this method to access an attribute, we ensure we only need
 // to fully deserialize the signature if absolutely necessary.
 func (l *LightningNode) AuthSig() (*secp256k1.Signature, error) {
-	return secp256k1.ParseSignature(l.AuthSigBytes, secp256k1.S256())
+	return secp256k1.ParseSignature(l.AuthSigBytes)
 }
 
 // AddPubKey is a setter-link method that can be used to swap out the public
@@ -2136,7 +2136,7 @@ func (c *ChannelEdgeInfo) NodeKey1() (*secp256k1.PublicKey, error) {
 		return c.nodeKey1, nil
 	}
 
-	key, err := secp256k1.ParsePubKey(c.NodeKey1Bytes[:], secp256k1.S256())
+	key, err := secp256k1.ParsePubKey(c.NodeKey1Bytes[:])
 	if err != nil {
 		return nil, err
 	}
@@ -2158,7 +2158,7 @@ func (c *ChannelEdgeInfo) NodeKey2() (*secp256k1.PublicKey, error) {
 		return c.nodeKey2, nil
 	}
 
-	key, err := secp256k1.ParsePubKey(c.NodeKey2Bytes[:], secp256k1.S256())
+	key, err := secp256k1.ParsePubKey(c.NodeKey2Bytes[:])
 	if err != nil {
 		return nil, err
 	}
@@ -2178,7 +2178,7 @@ func (c *ChannelEdgeInfo) BitcoinKey1() (*secp256k1.PublicKey, error) {
 		return c.bitcoinKey1, nil
 	}
 
-	key, err := secp256k1.ParsePubKey(c.BitcoinKey1Bytes[:], secp256k1.S256())
+	key, err := secp256k1.ParsePubKey(c.BitcoinKey1Bytes[:])
 	if err != nil {
 		return nil, err
 	}
@@ -2198,7 +2198,7 @@ func (c *ChannelEdgeInfo) BitcoinKey2() (*secp256k1.PublicKey, error) {
 		return c.bitcoinKey2, nil
 	}
 
-	key, err := secp256k1.ParsePubKey(c.BitcoinKey2Bytes[:], secp256k1.S256())
+	key, err := secp256k1.ParsePubKey(c.BitcoinKey2Bytes[:])
 	if err != nil {
 		return nil, err
 	}
@@ -2319,7 +2319,7 @@ func (c *ChannelAuthProof) Node1Sig() (*secp256k1.Signature, error) {
 		return c.nodeSig1, nil
 	}
 
-	sig, err := secp256k1.ParseSignature(c.NodeSig1Bytes, secp256k1.S256())
+	sig, err := secp256k1.ParseSignature(c.NodeSig1Bytes)
 	if err != nil {
 		return nil, err
 	}
@@ -2340,7 +2340,7 @@ func (c *ChannelAuthProof) Node2Sig() (*secp256k1.Signature, error) {
 		return c.nodeSig2, nil
 	}
 
-	sig, err := secp256k1.ParseSignature(c.NodeSig2Bytes, secp256k1.S256())
+	sig, err := secp256k1.ParseSignature(c.NodeSig2Bytes)
 	if err != nil {
 		return nil, err
 	}
@@ -2360,7 +2360,7 @@ func (c *ChannelAuthProof) BitcoinSig1() (*secp256k1.Signature, error) {
 		return c.bitcoinSig1, nil
 	}
 
-	sig, err := secp256k1.ParseSignature(c.BitcoinSig1Bytes, secp256k1.S256())
+	sig, err := secp256k1.ParseSignature(c.BitcoinSig1Bytes)
 	if err != nil {
 		return nil, err
 	}
@@ -2380,7 +2380,7 @@ func (c *ChannelAuthProof) BitcoinSig2() (*secp256k1.Signature, error) {
 		return c.bitcoinSig2, nil
 	}
 
-	sig, err := secp256k1.ParseSignature(c.BitcoinSig2Bytes, secp256k1.S256())
+	sig, err := secp256k1.ParseSignature(c.BitcoinSig2Bytes)
 	if err != nil {
 		return nil, err
 	}
@@ -2468,7 +2468,7 @@ func (c *ChannelEdgePolicy) Signature() (*secp256k1.Signature, error) {
 		return c.sig, nil
 	}
 
-	sig, err := secp256k1.ParseSignature(c.SigBytes, secp256k1.S256())
+	sig, err := secp256k1.ParseSignature(c.SigBytes)
 	if err != nil {
 		return nil, err
 	}

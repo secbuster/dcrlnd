@@ -10,7 +10,7 @@ import (
 	"github.com/decred/dcrlnd/lnwallet"
 	base "github.com/decred/dcrwallet/wallet"
 	"github.com/decred/dcrwallet/wallet/udb"
-	"github.com/decred/dcrwallet/walletdb"
+	"github.com/decred/dcrwallet/wallet/walletdb"
 	"github.com/go-errors/errors"
 )
 

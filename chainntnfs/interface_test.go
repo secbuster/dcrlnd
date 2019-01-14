@@ -22,14 +22,11 @@ import (
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/channeldb"
-	"github.com/decred/dcrwallet/walletdb"
+	"github.com/decred/dcrwallet/wallet/walletdb"
 
 	// Required to auto-register the dcrd backed ChainNotifier
 	// implementation.
 	_ "github.com/decred/dcrlnd/chainntnfs/dcrdnotify"
-
-	// Required to register the boltdb walletdb implementation.
-	_ "github.com/decred/dcrwallet/walletdb/bdb"
 )
 
 func testSingleConfirmationNotification(miner *rpctest.Harness,

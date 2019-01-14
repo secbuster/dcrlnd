@@ -78,7 +78,7 @@ func NewSigFromSignature(e *secp256k1.Signature) (Sig, error) {
 func (b *Sig) ToSignature() (*secp256k1.Signature, error) {
 	// Parse the signature with strict checks.
 	sigBytes := b.ToSignatureBytes()
-	sig, err := secp256k1.ParseDERSignature(sigBytes, secp256k1.S256())
+	sig, err := secp256k1.ParseDERSignature(sigBytes)
 	if err != nil {
 		return nil, err
 	}
