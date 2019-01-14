@@ -11,7 +11,7 @@ import (
 
 	"github.com/decred/dcrlnd/macaroons"
 
-	"github.com/decred/dcrwallet/snacl"
+	"github.com/decred/dcrlnd/internal/snacl"
 )
 
 func TestStore(t *testing.T) {
