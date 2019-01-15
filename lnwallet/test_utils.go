@@ -113,7 +113,7 @@ func CreateTestChannels() (*LightningChannel, *LightningChannel, func(), error) 
 		Hash:  chainhash.Hash(testHdSeed),
 		Index: 0,
 	}
-	fundingTxIn := wire.NewTxIn(prevOut, nil, nil)
+	fundingTxIn := wire.NewTxIn(prevOut, 0, nil) // TODO(decred): Need correct input value
 
 	// For each party, we'll create a distinct set of keys in order to
 	// emulate the typical set up with live channels.

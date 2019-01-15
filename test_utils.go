@@ -106,7 +106,7 @@ func createTestPeer(notifier chainntnfs.ChainNotifier,
 		Hash:  chainhash.Hash(testHdSeed),
 		Index: 0,
 	}
-	fundingTxIn := wire.NewTxIn(prevOut, nil, nil)
+	fundingTxIn := wire.NewTxIn(prevOut, 0, nil) // TODO(decred): Need correct input value
 
 	aliceCfg := channeldb.ChannelConfig{
 		ChannelConstraints: channeldb.ChannelConstraints{

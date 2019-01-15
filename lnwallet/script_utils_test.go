@@ -39,7 +39,7 @@ func TestCommitmentSpendValidation(t *testing.T) {
 		Hash:  *txid,
 		Index: 50,
 	}
-	fakeFundingTxIn := wire.NewTxIn(fundingOut, nil)
+	fakeFundingTxIn := wire.NewTxIn(fundingOut, 0, nil) // TODO(decred): Need correct input value
 
 	const channelBalance = dcrutil.Amount(1 * 10e8)
 	const csvTimeout = uint32(5)
@@ -95,7 +95,7 @@ func TestCommitmentSpendValidation(t *testing.T) {
 	sweepTx.AddTxIn(wire.NewTxIn(&wire.OutPoint{
 		Hash:  commitmentTx.TxHash(),
 		Index: 0,
-	}, nil))
+	}, 0, nil)) // TODO(decred): Need correct input value
 	sweepTx.AddTxOut(&wire.TxOut{
 		PkScript: targetOutput,
 		Value:    0.5 * 10e8,
@@ -315,7 +315,7 @@ func TestHTLCSenderSpendValidation(t *testing.T) {
 		Hash:  *txid,
 		Index: 50,
 	}
-	fakeFundingTxIn := wire.NewTxIn(fundingOut, nil)
+	fakeFundingTxIn := wire.NewTxIn(fundingOut, 0, nil) // TODO(decred): Need correct input value
 
 	// Next we'll the commitment secret for our commitment tx and also the
 	// revocation key that we'll use as well.
@@ -368,7 +368,7 @@ func TestHTLCSenderSpendValidation(t *testing.T) {
 	}
 
 	sweepTx := wire.NewMsgTx(2)
-	sweepTx.AddTxIn(wire.NewTxIn(prevOut, nil))
+	sweepTx.AddTxIn(wire.NewTxIn(prevOut, 0, nil)) // TODO(decred): Need correct input value
 	sweepTx.AddTxOut(
 		&wire.TxOut{
 			PkScript: []byte("doesn't matter"),
@@ -560,7 +560,7 @@ func TestHTLCReceiverSpendValidation(t *testing.T) {
 		Hash:  *txid,
 		Index: 50,
 	}
-	fakeFundingTxIn := wire.NewTxIn(fundingOut, nil)
+	fakeFundingTxIn := wire.NewTxIn(fundingOut, 0, nil) // TODO(decred): Need correct input value
 
 	// Next we'll the commitment secret for our commitment tx and also the
 	// revocation key that we'll use as well.
@@ -831,7 +831,7 @@ func TestSecondLevelHtlcSpends(t *testing.T) {
 		Index: 0,
 	}
 	sweepTx := wire.NewMsgTx(2)
-	sweepTx.AddTxIn(wire.NewTxIn(htlcOutPoint, nil))
+	sweepTx.AddTxIn(wire.NewTxIn(htlcOutPoint, 0, nil)) // TODO(decred): Need correct input value
 	sweepTx.AddTxOut(
 		&wire.TxOut{
 			PkScript: []byte("doesn't matter"),

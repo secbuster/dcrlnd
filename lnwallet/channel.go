@@ -2284,7 +2284,7 @@ func (lc *LightningChannel) fetchCommitmentView(remoteChain bool,
 }
 
 func (lc *LightningChannel) fundingTxIn() wire.TxIn {
-	return *wire.NewTxIn(&lc.channelState.FundingOutpoint, nil, nil)
+	return *wire.NewTxIn(&lc.channelState.FundingOutpoint, 0, nil) // TODO(decred): Need correct input value
 }
 
 // createCommitmentTx generates the unsigned commitment transaction for a

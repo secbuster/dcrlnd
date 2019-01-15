@@ -15,7 +15,6 @@ import (
 	"testing"
 	"time"
 
-	bolt "go.etcd.io/bbolt"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrd/dcrutil"
@@ -29,6 +28,7 @@ import (
 	"github.com/decred/dcrlnd/shachain"
 	"github.com/decred/dcrlnd/ticker"
 	"github.com/go-errors/errors"
+	bolt "go.etcd.io/bbolt"
 )
 
 var (
@@ -190,7 +190,7 @@ func createTestChannel(alicePrivKey, bobPrivKey []byte,
 		Hash:  chainhash.Hash(hash),
 		Index: 0,
 	}
-	fundingTxIn := wire.NewTxIn(prevOut, nil)
+	fundingTxIn := wire.NewTxIn(prevOut, 0, nil) // TODO(decred): Need correct input value
 
 	aliceCfg := channeldb.ChannelConfig{
 		ChannelConstraints: *aliceConstraints,

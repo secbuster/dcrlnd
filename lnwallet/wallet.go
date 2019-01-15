@@ -1112,7 +1112,7 @@ func (l *LightningWallet) handleSingleFunderSigs(req *addSingleFunderSigsMsg) {
 
 	chanState := pendingReservation.partialState
 	chanState.FundingOutpoint = *req.fundingOutpoint
-	fundingTxIn := wire.NewTxIn(req.fundingOutpoint, nil)
+	fundingTxIn := wire.NewTxIn(req.fundingOutpoint, 0, nil) // TODO(decred): Need correct input value
 
 	// Now that we have the funding outpoint, we can generate both versions
 	// of the commitment transaction, and generate a signature for the
@@ -1294,7 +1294,7 @@ func (l *LightningWallet) selectCoinsAndChange(feeRate SatPerKWeight,
 
 		// Empty sig script, we'll actually sign if this reservation is
 		// queued up to be completed (the other side accepts).
-		contribution.Inputs[i] = wire.NewTxIn(outpoint, nil)
+		contribution.Inputs[i] = wire.NewTxIn(outpoint, 0, nil) // TODO(decred): Need correct input value
 	}
 
 	// Record any change output(s) generated as a result of the coin
