@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/coreos/bbolt"
+	bolt "go.etcd.io/bbolt"
 	"github.com/decred/dcrd/dcrec/secp256k1"
 
 	"github.com/decred/dcrlnd/channeldb"
@@ -278,7 +278,7 @@ func generateBandwidthHints(sourceNode *channeldb.LightningNode,
 	// First, we'll collect the set of outbound edges from the target
 	// source node.
 	var localChans []*channeldb.ChannelEdgeInfo
-	err := sourceNode.ForEachChannel(nil, func(tx *bbolt.Tx,
+	err := sourceNode.ForEachChannel(nil, func(tx *bolt.Tx,
 		edgeInfo *channeldb.ChannelEdgeInfo,
 		_, _ *channeldb.ChannelEdgePolicy) error {
 

@@ -8,7 +8,7 @@ import (
 
 	"container/heap"
 
-	"github.com/coreos/bbolt"
+	bolt "go.etcd.io/bbolt"
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/lnwire"
@@ -418,7 +418,7 @@ func edgeWeight(lockedAmt lnwire.MilliSatoshi, fee lnwire.MilliSatoshi,
 type graphParams struct {
 	// tx can be set to an existing db transaction. If not set, a new
 	// transaction will be started.
-	tx *bbolt.Tx
+	tx *bolt.Tx
 
 	// graph is the ChannelGraph to be used during path finding.
 	graph *channeldb.ChannelGraph
@@ -489,7 +489,7 @@ func findPath(g *graphParams, r *restrictParams,
 	// also returns the source node, so there is no need to add the source
 	// node explicitly.
 	distance := make(map[Vertex]nodeWithDist)
-	if err := g.graph.ForEachNode(tx, func(_ *bbolt.Tx,
+	if err := g.graph.ForEachNode(tx, func(_ *bolt.Tx,
 		node *channeldb.LightningNode) error {
 		// TODO(roasbeef): with larger graph can just use disk seeks
 		// with a visited map
@@ -696,7 +696,7 @@ func findPath(g *graphParams, r *restrictParams,
 		// examine all the incoming edges (channels) from this node to
 		// further our graph traversal.
 		pivot := Vertex(bestNode.PubKeyBytes)
-		err := bestNode.ForEachChannel(tx, func(tx *bbolt.Tx,
+		err := bestNode.ForEachChannel(tx, func(tx *bolt.Tx,
 			edgeInfo *channeldb.ChannelEdgeInfo,
 			_, inEdge *channeldb.ChannelEdgePolicy) error {
 
@@ -799,7 +799,7 @@ func findPath(g *graphParams, r *restrictParams,
 // make our inner path finding algorithm aware of our k-shortest paths
 // algorithm, rather than attempting to use an unmodified path finding
 // algorithm in a block box manner.
-func findPaths(tx *bbolt.Tx, graph *channeldb.ChannelGraph,
+func findPaths(tx *bolt.Tx, graph *channeldb.ChannelGraph,
 	source *channeldb.LightningNode, target *secp256k1.PublicKey,
 	amt lnwire.MilliSatoshi, feeLimit lnwire.MilliSatoshi, numPaths uint32,
 	bandwidthHints map[uint64]lnwire.MilliSatoshi) ([][]*channeldb.ChannelEdgePolicy, error) {
