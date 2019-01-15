@@ -10,7 +10,7 @@ import (
 
 	prand "math/rand"
 
-	"github.com/coreos/bbolt"
+	bolt "go.etcd.io/bbolt"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrec/secp256k1"
@@ -95,7 +95,7 @@ var (
 	}
 )
 
-func makeTestDB() (*bbolt.DB, func(), error) {
+func makeTestDB() (*bolt.DB, func(), error) {
 	// First, create a temporary directory to be used for the duration of
 	// this test.
 	tempDirName, err := ioutil.TempDir("", "arblog")
@@ -103,7 +103,7 @@ func makeTestDB() (*bbolt.DB, func(), error) {
 		return nil, nil, err
 	}
 
-	db, err := bbolt.Open(tempDirName+"/test.db", 0600, nil)
+	db, err := bolt.Open(tempDirName+"/test.db", 0600, nil)
 	if err != nil {
 		return nil, nil, err
 	}
