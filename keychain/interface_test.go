@@ -44,7 +44,7 @@ func createTestWallet() (func(), *wallet.Wallet, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	loader := walletloader.NewLoader(&chaincfg.SimNetParams, tempDir,
+	loader := walletloader.NewLoader(&chaincfg.RegNetParams, tempDir,
 		&walletloader.StakeOptions{}, wallet.DefaultGapLimit, false,
 		txrules.DefaultRelayFeePerKb.ToCoin(), wallet.DefaultAccountGapLimit)
 

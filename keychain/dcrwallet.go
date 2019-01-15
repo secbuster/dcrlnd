@@ -4,7 +4,6 @@ import (
 	"crypto/sha256"
 	"fmt"
 
-	"github.com/decred/dcrd/dcrec"
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrd/dcrutil"
 	"github.com/decred/dcrd/hdkeychain"
@@ -78,7 +77,7 @@ func (b *WalletKeyRing) createAccountsUpTo(keyFam KeyFamily) error {
 		}
 	}
 
-	for i := uint32(maxExistAccount + 1); i < uint32(keyFam); i++ {
+	for i := uint32(maxExistAccount + 1); i <= uint32(keyFam); i++ {
 		_, err = b.wallet.NextAccount(fmt.Sprintf("%d", i))
 		if err != nil {
 			return err
@@ -103,13 +102,13 @@ func (b *WalletKeyRing) keyDescriptorForAddress(addr dcrutil.Address) (KeyDescri
 		return emptyKeyDesc, fmt.Errorf("Generated address is not a ManagedPubKeyAddress")
 	}
 
-	pubKey, is := pubAddrInfo.PubKey().(secp256k1.PublicKey)
+	pubKey, is := pubAddrInfo.PubKey().(*secp256k1.PublicKey)
 	if !is {
 		return emptyKeyDesc, fmt.Errorf("Generated address is not a secp256k1 address")
 	}
 
 	return KeyDescriptor{
-		PubKey: &pubKey,
+		PubKey: pubKey,
 		KeyLocator: KeyLocator{
 			Family: KeyFamily(pubAddrInfo.Account()),
 			Index:  pubAddrInfo.Index(),
@@ -128,6 +127,11 @@ func (b *WalletKeyRing) DeriveNextKey(keyFam KeyFamily) (KeyDescriptor, error) {
 		err          error
 		emptyKeyDesc KeyDescriptor
 	)
+
+	err = b.createAccountsUpTo(keyFam)
+	if err != nil {
+		return emptyKeyDesc, err
+	}
 
 	// TODO(decred) Confirm use of gapPolicyIgnore
 	addr, err = b.wallet.NewExternalAddress(uint32(keyFam), wallet.WithGapPolicyIgnore())
@@ -154,30 +158,34 @@ func (b *WalletKeyRing) DeriveNextKey(keyFam KeyFamily) (KeyDescriptor, error) {
 //
 // NOTE: This is part of the keychain.KeyRing interface.
 func (b *WalletKeyRing) DeriveKey(keyLoc KeyLocator) (KeyDescriptor, error) {
-	var (
-		emptyKeyDesc KeyDescriptor
-		err          error
-		addrs        []dcrutil.Address
-	)
+	var emptyKeyDesc KeyDescriptor
 
-	err = b.createAccountsUpTo(keyLoc.Family)
+	err := b.createAccountsUpTo(keyLoc.Family)
 	if err != nil {
 		return emptyKeyDesc, err
 	}
 
-	// TODO(matheusd) This is abusing the AccountBranchAddressRange to return
-	// an arbitrary address, given the wallet doesn't yet have a call for that.
-	// Implement a correct call on the wallet.
-	addrs, err = b.wallet.AccountBranchAddressRange(uint32(keyLoc.Family),
-		udb.ExternalBranch, keyLoc.Index, keyLoc.Index+1)
+	famMasterPub, err := b.wallet.MasterPubKey(uint32(keyLoc.Family))
 	if err != nil {
 		return emptyKeyDesc, err
 	}
-	if len(addrs) != 1 {
-		panic("really, fix the call.")
+	branchMasterPub, err := famMasterPub.Child(udb.ExternalBranch)
+	if err != nil {
+		return emptyKeyDesc, err
+	}
+	key, err := branchMasterPub.Child(keyLoc.Index)
+	if err != nil {
+		return emptyKeyDesc, err
+	}
+	pubKey, err := key.ECPubKey()
+	if err != nil {
+		return emptyKeyDesc, err
 	}
 
-	return b.keyDescriptorForAddress(addrs[0])
+	return KeyDescriptor{
+		KeyLocator: keyLoc,
+		PubKey:     pubKey,
+	}, nil
 }
 
 // DerivePrivKey attempts to derive the private key that corresponds to the
@@ -185,47 +193,40 @@ func (b *WalletKeyRing) DeriveKey(keyLoc KeyLocator) (KeyDescriptor, error) {
 //
 // NOTE: This is part of the keychain.SecretKeyRing interface.
 func (b *WalletKeyRing) DerivePrivKey(keyDesc KeyDescriptor) (*secp256k1.PrivateKey, error) {
-	var (
-		err                           error
-		famMasterPub, branchMasterPub *hdkeychain.ExtendedKey
-		addr                          dcrutil.Address
-		wif                           string
-	)
+
+	err := b.createAccountsUpTo(keyDesc.Family)
+	if err != nil {
+		return nil, err
+	}
+
+	// We'll grab the master pub key for the provided account (family) then
+	// manually derive the addresses here.
+	famMasterPriv, err := b.wallet.MasterPrivKey(uint32(keyDesc.Family))
+	if err != nil {
+		return nil, err
+	}
+	famBranchPriv, err := famMasterPriv.Child(udb.ExternalBranch)
+	if err != nil {
+		return nil, err
+	}
 
 	// If the public key isn't set or they have a non-zero index,
 	// then we know that the caller instead knows the derivation
 	// path for a key.
 	if keyDesc.PubKey == nil || keyDesc.Index > 0 {
-		keyDesc, err = b.DeriveKey(keyDesc.KeyLocator)
+		privKey, err := famBranchPriv.Child(keyDesc.Index)
 		if err != nil {
 			return nil, err
 		}
+		return privKey.ECPrivKey()
 	} else {
 		// If the public key isn't nil, then this indicates that we
 		// need to scan for the private key, assuming that we know the
 		// valid key family.
-		//
-		// We'll grab the master pub key for the provided account (family) then
-		// manually derive the addresses here.
-		famMasterPub, err = b.wallet.MasterPubKey(uint32(keyDesc.Family))
-		if err != nil {
-			return nil, err
-		}
-		branchMasterPub, err = famMasterPub.Child(udb.ExternalBranch)
-		if err != nil {
-			return nil, err
-		}
-
-		// We'll now iterate through our key range in an attempt to
-		// find the target public key.
-		// TODO(roasbeef): possibly move scanning into wallet to allow
-		// to be parallelized
-
-		found := false
 		for i := 0; i < MaxKeyRangeScan; i++ {
 			// Derive the next key in the range and fetch its
 			// managed address.
-			hdAddr, err := branchMasterPub.Child(uint32(i))
+			privKey, err := famBranchPriv.Child(uint32(i))
 			if err == hdkeychain.ErrInvalidChild {
 				continue
 			}
@@ -234,57 +235,19 @@ func (b *WalletKeyRing) DerivePrivKey(keyDesc KeyDescriptor) (*secp256k1.Private
 				return nil, err
 			}
 
-			pubKey, err := hdAddr.ECPubKey()
+			pubKey, err := privKey.ECPubKey()
 			if err != nil {
 				// simply skip invalid keys here
 				continue
 			}
 
 			if keyDesc.PubKey.IsEqual(pubKey) {
-				// We found the index of the address. Advance the wallet
-				// addresses for up to this index.
-				// This is only needed because dcrwallet does not have an
-				// api call to retrieve arbitrary private keys.
-				err = b.wallet.ExtendWatchedAddresses(uint32(keyDesc.Family),
-					udb.ExternalBranch, uint32(i))
-				if err != nil {
-					return nil, err
-				}
-
-				keyDesc.Index = uint32(i)
-				found = true
-				break
+				return privKey.ECPrivKey()
 			}
 		}
-
-		if !found {
-			return nil, ErrCannotDerivePrivKey
-		}
 	}
 
-	// So at this point, the wallet should have recorded the address of the
-	// given public key and we should have filled keyDesc.PubKey. Fetch the
-	// corresponding private key
-	//
-	// TODO(decred) This is abusing the DumpWIF endpoint. Please implement a
-	// proper PrivateKeyForAddress call.
-	addr, err = dcrutil.NewAddressPubKeyHash(dcrutil.Hash160(keyDesc.PubKey.Serialize()),
-		b.wallet.ChainParams(), dcrec.STEcdsaSecp256k1)
-	if err != nil {
-		return nil, err
-	}
-	wif, err = b.wallet.DumpWIFPrivateKey(addr)
-	if err != nil {
-		return nil, err
-	}
-
-	wifKey, err := dcrutil.DecodeWIF(wif)
-	if err != nil {
-		return nil, err
-	}
-
-	privKey := wifKey.PrivKey.(*secp256k1.PrivateKey)
-	return privKey, nil
+	return nil, ErrCannotDerivePrivKey
 }
 
 // ScalarMult performs a scalar multiplication (ECDH-like operation) between
