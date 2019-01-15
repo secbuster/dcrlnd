@@ -15,7 +15,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/coreos/bbolt"
+	bolt "go.etcd.io/bbolt"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrd/dcrutil"
@@ -411,7 +411,7 @@ func createTestChannel(alicePrivKey, bobPrivKey []byte,
 		aliceStoredChannels, err := dbAlice.FetchOpenChannels(aliceKeyPub)
 		switch err {
 		case nil:
-		case bbolt.ErrDatabaseNotOpen:
+		case bolt.ErrDatabaseNotOpen:
 			dbAlice, err = channeldb.Open(dbAlice.Path())
 			if err != nil {
 				return nil, nil, errors.Errorf("unable to reopen alice "+
@@ -451,7 +451,7 @@ func createTestChannel(alicePrivKey, bobPrivKey []byte,
 		bobStoredChannels, err := dbBob.FetchOpenChannels(bobKeyPub)
 		switch err {
 		case nil:
-		case bbolt.ErrDatabaseNotOpen:
+		case bolt.ErrDatabaseNotOpen:
 			dbBob, err = channeldb.Open(dbBob.Path())
 			if err != nil {
 				return nil, nil, errors.Errorf("unable to reopen bob "+

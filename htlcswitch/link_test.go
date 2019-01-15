@@ -15,7 +15,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/coreos/bbolt"
+	bolt "go.etcd.io/bbolt"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/go-errors/errors"
 
@@ -4806,32 +4806,32 @@ type mockPackager struct {
 	failLoadFwdPkgs bool
 }
 
-func (*mockPackager) AddFwdPkg(tx *bbolt.Tx, fwdPkg *channeldb.FwdPkg) error {
+func (*mockPackager) AddFwdPkg(tx *bolt.Tx, fwdPkg *channeldb.FwdPkg) error {
 	return nil
 }
 
-func (*mockPackager) SetFwdFilter(tx *bbolt.Tx, height uint64,
+func (*mockPackager) SetFwdFilter(tx *bolt.Tx, height uint64,
 	fwdFilter *channeldb.PkgFilter) error {
 	return nil
 }
 
-func (*mockPackager) AckAddHtlcs(tx *bbolt.Tx,
+func (*mockPackager) AckAddHtlcs(tx *bolt.Tx,
 	addRefs ...channeldb.AddRef) error {
 	return nil
 }
 
-func (m *mockPackager) LoadFwdPkgs(tx *bbolt.Tx) ([]*channeldb.FwdPkg, error) {
+func (m *mockPackager) LoadFwdPkgs(tx *bolt.Tx) ([]*channeldb.FwdPkg, error) {
 	if m.failLoadFwdPkgs {
 		return nil, fmt.Errorf("failing LoadFwdPkgs")
 	}
 	return nil, nil
 }
 
-func (*mockPackager) RemovePkg(tx *bbolt.Tx, height uint64) error {
+func (*mockPackager) RemovePkg(tx *bolt.Tx, height uint64) error {
 	return nil
 }
 
-func (*mockPackager) AckSettleFails(tx *bbolt.Tx,
+func (*mockPackager) AckSettleFails(tx *bolt.Tx,
 	settleFailRefs ...channeldb.SettleFailRef) error {
 	return nil
 }
