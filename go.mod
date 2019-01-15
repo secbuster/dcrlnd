@@ -34,7 +34,7 @@ require (
 	github.com/golang/protobuf v1.2.0
 	github.com/grpc-ecosystem/grpc-gateway v1.6.4
 	github.com/jackpal/gateway v1.0.5
-	github.com/jackpal/go-nat-pmp v1.0.1
+	github.com/jackpal/go-nat-pmp v0.0.0-20170405195558-28a68d0c24ad
 	github.com/jessevdk/go-flags v1.4.0
 	github.com/jrick/logrotate v1.0.0
 	github.com/juju/clock v0.0.0-20180808021310-bab88fc67299 // indirect
