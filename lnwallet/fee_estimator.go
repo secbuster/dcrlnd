@@ -52,7 +52,7 @@ type FeeEstimator interface {
 	// EstimateFeePerByte takes in a target for the number of blocks until
 	// an initial confirmation and returns the estimated fee expressed in
 	// atoms/byte.
-	EstimateFeePerByte(numBlocks uint32) (dcrutil.Amount, error)
+	EstimateFeePerKB(numBlocks uint32) (dcrutil.Amount, error)
 
 	// Start signals the FeeEstimator to start any processes or goroutines
 	// it needs to perform its duty.
@@ -94,7 +94,7 @@ func NewStaticFeeEstimator(feePerKW,
 }
 
 // TODO(decred) implement
-func (e StaticFeeEstimator) EstimateFeePerByte(numBlocks uint32) (dcrutil.Amount, error) {
+func (e StaticFeeEstimator) EstimateFeePerKB(numBlocks uint32) (dcrutil.Amount, error) {
 	panic(fmt.Errorf("Please implement"))
 }
 
@@ -265,7 +265,7 @@ func (b *DcrdFeeEstimator) RelayFeePerKW() SatPerKWeight {
 	return b.minFeePerKW
 }
 
-func (b DcrdFeeEstimator) EstimateFeePerByte(numBlocks uint32) (dcrutil.Amount, error) {
+func (b DcrdFeeEstimator) EstimateFeePerKB(numBlocks uint32) (dcrutil.Amount, error) {
 	panic("implement")
 }
 

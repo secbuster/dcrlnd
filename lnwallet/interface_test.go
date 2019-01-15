@@ -411,18 +411,20 @@ func testDualFundingReservationWorkflow(miner *rpctest.Harness,
 
 	// Alice initiates a channel funded with 5 BTC for each side, so 10 BTC
 	// total. She also generates 2 BTC in change.
-	feePerWeight, err := alice.Cfg.FeeEstimator.EstimateFeePerByte(1)
+	feePerKB, err := alice.Cfg.FeeEstimator.EstimateFeePerKB(1)
 	if err != nil {
 		t.Fatalf("unable to query fee estimator: %v", err)
 	}
+	_ = feePerKB
+	
 	aliceReq := &lnwallet.InitFundingReserveMsg{
 		ChainHash:       chainHash,
 		NodeID:          bobPub,
 		NodeAddr:        bobAddr,
 		FundingAmount:   fundingAmount,
 		Capacity:        fundingAmount * 2,
-		CommitFeePerKw:  feePerKw,
-		FundingFeePerKw: feePerKw,
+		CommitFeePerKw:  1, // TODO(decred) feePerKB
+		FundingFeePerKw: 1, // TODO(decred) feePerKB
 		PushMSat:        0,
 		Flags:           lnwire.FFAnnounceChannel,
 	}
@@ -460,8 +462,8 @@ func testDualFundingReservationWorkflow(miner *rpctest.Harness,
 		NodeAddr:        aliceAddr,
 		FundingAmount:   fundingAmount,
 		Capacity:        fundingAmount * 2,
-		CommitFeePerKw:  feePerKw,
-		FundingFeePerKw: feePerKw,
+		CommitFeePerKw:  1, // TODO(decred) feePerKB
+		FundingFeePerKw: 1, // TODO(decred) feePerKB
 		PushMSat:        0,
 		Flags:           lnwire.FFAnnounceChannel,
 	}
@@ -612,7 +614,8 @@ func testFundingTransactionLockedOutputs(miner *rpctest.Harness,
 	// Create a single channel asking for 16 BTC total.
 	fundingAmount := dcrutil.Amount(8 * 1e8)
 	// TODO(decred) Switch to fee per KB
-	feePerKw, err := alice.Cfg.FeeEstimator.EstimateFeePerKW(1)
+	feePerKB, err := alice.Cfg.FeeEstimator.EstimateFeePerKB(1)
+	_ = feePerKB
 	if err != nil {
 		t.Fatalf("unable to query fee estimator: %v", err)
 	}
@@ -622,8 +625,8 @@ func testFundingTransactionLockedOutputs(miner *rpctest.Harness,
 		NodeAddr:        bobAddr,
 		FundingAmount:   fundingAmount,
 		Capacity:        fundingAmount,
-		CommitFeePerKw:  feePerKw,
-		FundingFeePerKw: feePerKw,
+		CommitFeePerKw:  1, // TODO(decred) feePerKB
+		FundingFeePerKw: 1, // TODO(decred) feePerKB
 		PushMSat:        0,
 		Flags:           lnwire.FFAnnounceChannel,
 	}
@@ -644,8 +647,8 @@ func testFundingTransactionLockedOutputs(miner *rpctest.Harness,
 		NodeAddr:        bobAddr,
 		FundingAmount:   amt,
 		Capacity:        amt,
-		CommitFeePerKw:  feePerKw,
-		FundingFeePerKw: feePerKw,
+		CommitFeePerKw:  1, // TODO(decred) feePerKB
+		FundingFeePerKw: 1, // TODO(decred) feePerKB
 		PushMSat:        0,
 		Flags:           lnwire.FFAnnounceChannel,
 	}
@@ -664,7 +667,8 @@ func testFundingTransactionLockedOutputs(miner *rpctest.Harness,
 func testFundingCancellationNotEnoughFunds(miner *rpctest.Harness,
 	alice, _ *lnwallet.LightningWallet, t *testing.T) {
 
-	feePerKw, err := alice.Cfg.FeeEstimator.EstimateFeePerKW(1)
+	feePerKB, err := alice.Cfg.FeeEstimator.EstimateFeePerKB(1)
+	_ = feePerKB
 	if err != nil {
 		t.Fatalf("unable to query fee estimator: %v", err)
 	}
@@ -680,8 +684,8 @@ func testFundingCancellationNotEnoughFunds(miner *rpctest.Harness,
 		NodeAddr:        bobAddr,
 		FundingAmount:   fundingAmount,
 		Capacity:        fundingAmount,
-		CommitFeePerKw:  feePerKw,
-		FundingFeePerKw: feePerKw,
+		CommitFeePerKw:  1, // TODO(decred) feePerKB
+		FundingFeePerKw: 1, // TODO(decred) feePerKB
 		PushMSat:        0,
 		Flags:           lnwire.FFAnnounceChannel,
 	}
@@ -728,14 +732,17 @@ func testFundingCancellationNotEnoughFunds(miner *rpctest.Harness,
 func testCancelNonExistentReservation(miner *rpctest.Harness,
 	alice, _ *lnwallet.LightningWallet, t *testing.T) {
 
-	feePerKw, err := alice.Cfg.FeeEstimator.EstimateFeePerKW(1)
+	feePerKB, err := alice.Cfg.FeeEstimator.EstimateFeePerKB(1)
+	_ = feePerKB
 	if err != nil {
 		t.Fatalf("unable to query fee estimator: %v", err)
 	}
 
 	// Create our own reservation, give it some ID.
 	res, err := lnwallet.NewChannelReservation(
-		10000, 10000, feePerKw, alice, 22, 10, &testHdSeed,
+		10000, 10000,
+		1, // TODO(decred) feePerKB
+		alice, 22, 10, &testHdSeed,
 		lnwire.FFAnnounceChannel,
 	)
 	if err != nil {
@@ -761,6 +768,7 @@ func testReservationInitiatorBalanceBelowDustCancel(miner *rpctest.Harness,
 		t.Fatalf("unable to create amt: %v", err)
 	}
 
+	// TODO(decred) feePerKB
 	feePerKw := lnwallet.SatPerKWeight(
 		numBTC * numBTC * dcrutil.AtomsPerCoin,
 	)
@@ -841,7 +849,8 @@ func testSingleFunderReservationWorkflow(miner *rpctest.Harness,
 		t.Fatalf("unable to create amt: %v", err)
 	}
 	pushAmt := lnwire.NewMSatFromSatoshis(dcrutil.AtomsPerCoin)
-	feePerKw, err := alice.Cfg.FeeEstimator.EstimateFeePerKW(1)
+	feePerKB, err := alice.Cfg.FeeEstimator.EstimateFeePerKB(1)
+	_ = feePerKB
 	if err != nil {
 		t.Fatalf("unable to query fee estimator: %v", err)
 	}
@@ -851,8 +860,8 @@ func testSingleFunderReservationWorkflow(miner *rpctest.Harness,
 		NodeAddr:        bobAddr,
 		FundingAmount:   fundingAmt,
 		Capacity:        fundingAmt,
-		CommitFeePerKw:  feePerKw,
-		FundingFeePerKw: feePerKw,
+		CommitFeePerKw:  1, // TODO(decred) feePerKB
+		FundingFeePerKw: 1, // TODO(decred) feePerKB
 		PushMSat:        pushAmt,
 		Flags:           lnwire.FFAnnounceChannel,
 	}
@@ -890,8 +899,8 @@ func testSingleFunderReservationWorkflow(miner *rpctest.Harness,
 		NodeAddr:        aliceAddr,
 		FundingAmount:   0,
 		Capacity:        fundingAmt,
-		CommitFeePerKw:  feePerKw,
-		FundingFeePerKw: feePerKw,
+		CommitFeePerKw:  1, // TODO(decred) feePerKB
+		FundingFeePerKw: 1, // TODO(decred) feePerKB
 		PushMSat:        pushAmt,
 		Flags:           lnwire.FFAnnounceChannel,
 	}
@@ -1475,8 +1484,8 @@ func testPublishTransaction(r *rpctest.Harness,
 		t.Fatalf("unable to obtain public key: %v", err)
 	}
 	pubkeyHash := dcrutil.Hash160(pubKey.PubKey.SerializeCompressed())
-	keyAddr, err := dcrutil.NewAddressWitnessPubKeyHash(pubkeyHash,
-		&chaincfg.RegressionNetParams)
+	keyAddr, err := dcrutil.NewAddressPubKeyHash(pubkeyHash,
+		&chaincfg.RegNetParams, dcrec.STEcdsaSecp256k1)
 	if err != nil {
 		t.Fatalf("unable to create addr: %v", err)
 	}
@@ -1492,8 +1501,8 @@ func testPublishTransaction(r *rpctest.Harness,
 		txFee dcrutil.Amount) *wire.MsgTx {
 		// Create a script to pay to.
 		payToPubkeyHash := dcrutil.Hash160(payToPubKey.SerializeCompressed())
-		payToKeyAddr, err := dcrutil.NewAddressWitnessPubKeyHash(payToPubkeyHash,
-			&chaincfg.RegressionNetParams)
+		payToKeyAddr, err := dcrutil.NewAddressPubKeyHash(payToPubkeyHash,
+			&chaincfg.RegNetParams, dcrec.STEcdsaSecp256k1)
 		if err != nil {
 			t.Fatalf("unable to create addr: %v", err)
 		}
@@ -1513,7 +1522,7 @@ func testPublishTransaction(r *rpctest.Harness,
 
 		// With the index located, we can create a transaction spending
 		// the referenced output.
-		tx1 := wire.NewMsgTx(2)
+		tx1 := wire.NewMsgTx()
 		tx1.AddTxIn(&wire.TxIn{
 			PreviousOutPoint: wire.OutPoint{
 				Hash:  tx.TxHash(),
@@ -1555,8 +1564,7 @@ func testPublishTransaction(r *rpctest.Harness,
 		// should succeed if the wallet was able to properly generate
 		// the proper private key.
 		vm, err := txscript.NewEngine(keyScript,
-			tx1, 0, txscript.StandardVerifyFlags, nil,
-			nil, outputValue)
+			tx1, 0, scriptFlagsForTest, tx.TxOut[outputIndex].Version, nil)
 		if err != nil {
 			t.Fatalf("unable to create engine: %v", err)
 		}
@@ -2263,10 +2271,11 @@ func waitForMempoolTx(r *rpctest.Harness, txid *chainhash.Hash) error {
 
 func waitForWalletSync(r *rpctest.Harness, w *lnwallet.LightningWallet) error {
 	var (
-		synced                  bool
-		err                     error
-		bestHash, knownHash     *chainhash.Hash
-		bestHeight, knownHeight int32
+		synced              bool
+		err                 error
+		bestHash, knownHash *chainhash.Hash
+		knownHeight         int32
+		bestHeight          int64
 	)
 	timeout := time.After(10 * time.Second)
 	for !synced {
@@ -2439,16 +2448,14 @@ func runTests(t *testing.T, walletDriver *lnwallet.WalletDriver,
 			NetParams:    netParams,
 			ChainSource:  aliceClient.Client,
 			FeeEstimator: feeEstimator,
-			CoinType:     keychain.CoinTypeTestnet,
 		}
 		aliceWalletController, err = walletDriver.New(aliceWalletConfig)
 		if err != nil {
 			t.Fatalf("unable to create alice wallet: %v", err)
 		}
 		aliceSigner = aliceWalletController.(*dcrwallet.DcrWallet)
-		aliceKeyRing = keychain.NewBtcWalletKeyRing(
+		aliceKeyRing = keychain.NewWalletKeyRing(
 			aliceWalletController.(*dcrwallet.DcrWallet).InternalWallet(),
-			keychain.CoinTypeTestnet,
 		)
 
 		bobSeed := sha256.New()
@@ -2463,16 +2470,14 @@ func runTests(t *testing.T, walletDriver *lnwallet.WalletDriver,
 			NetParams:    netParams,
 			ChainSource:  bobClient.Client,
 			FeeEstimator: feeEstimator,
-			CoinType:     keychain.CoinTypeTestnet,
 		}
 		bobWalletController, err = walletDriver.New(bobWalletConfig)
 		if err != nil {
 			t.Fatalf("unable to create bob wallet: %v", err)
 		}
 		bobSigner = bobWalletController.(*dcrwallet.DcrWallet)
-		bobKeyRing = keychain.NewBtcWalletKeyRing(
-			bobSigner.InternalWallet(),
-			keychain.CoinTypeTestnet,
+		bobKeyRing = keychain.NewWalletKeyRing(
+			bobSigner.(*dcrwallet.DcrWallet).InternalWallet(),
 		)
 		bio = bobWalletController.(*dcrwallet.DcrWallet)
 
