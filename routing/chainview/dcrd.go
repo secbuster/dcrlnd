@@ -151,20 +151,21 @@ func (b *DcrdFilteredChainView) Stop() error {
 // main chain. Based on our current chain filter, the block may or may not
 // include any relevant transactions.
 func (b *DcrdFilteredChainView) onBlockConnected(blockHeader []byte, txns [][]byte) {
-	// TODO(decred): Finish...
 	var header wire.BlockHeader
 	if err := header.FromBytes(blockHeader); err != nil {
-		// TODO(decred): Log...
+		log.Warnf("Received block connected with malformed header: %v", err)
 		return
 	}
 
 	mtxs := make([]*wire.MsgTx, len(txns))
 	b.filterMtx.Lock()
 	for i, txBytes := range txns {
-		if err := mtxs[i].FromBytes(txBytes); err != nil {
-			// TODO(davec): Log...
+		var mtx wire.MsgTx
+		if err := mtx.FromBytes(txBytes); err != nil {
+			log.Warnf("Received block connected with malformed tx: %v", err)
 			return
 		}
+		mtxs[i] = &mtx
 	}
 
 	for _, mtx := range mtxs {
@@ -204,21 +205,24 @@ func (b *DcrdFilteredChainView) onBlockConnected(blockHeader []byte, txns [][]by
 // onBlockDisconnected is a callback which is executed once a block is
 // disconnected from the end of the main chain.
 func (b *DcrdFilteredChainView) onBlockDisconnected(blockHeader []byte) {
-	// TODO(decred): Finish
-	/*
-		log.Debugf("got disconnected block at height %d: %v", height,
-			header.BlockHash())
+	var header wire.BlockHeader
+	if err := header.FromBytes(blockHeader); err != nil {
+		log.Warnf("Received block disconnected with malformed header: %v", err)
+		return
+	}
 
-		filteredBlock := &FilteredBlock{
-			Hash:   header.BlockHash(),
-			Height: uint32(height),
-		}
+	log.Debugf("got disconnected block at height %d: %v", header.Height,
+		header.BlockHash())
 
-		b.blockQueue.Add(&blockEvent{
-			eventType: disconnected,
-			block:     filteredBlock,
-		})
-	*/
+	filteredBlock := &FilteredBlock{
+		Hash:   header.BlockHash(),
+		Height: int64(header.Height),
+	}
+
+	b.blockQueue.Add(&blockEvent{
+		eventType: disconnected,
+		block:     filteredBlock,
+	})
 }
 
 // filterBlockReq houses a request to manually filter a block specified by

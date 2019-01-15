@@ -17,9 +17,6 @@ import (
 	"github.com/decred/dcrd/txscript"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/channeldb"
-
-	"github.com/decred/dcrwallet/chain"
-	"github.com/decred/dcrwallet/wallet/walletdb"
 )
 
 var (
@@ -237,7 +234,7 @@ func testFilterBlockNotifications(node *rpctest.Harness,
 		{FundingPkScript: targetScript, OutPoint: *outPoint1},
 		{FundingPkScript: targetScript, OutPoint: *outPoint2},
 	}
-	err = chainView.UpdateFilter(filter, uint32(currentHeight))
+	err = chainView.UpdateFilter(filter, currentHeight)
 	if err != nil {
 		t.Fatalf("unable to update filter: %v", err)
 	}
@@ -382,7 +379,7 @@ func testUpdateFilterBackTrack(node *rpctest.Harness,
 	filter := []channeldb.EdgePoint{
 		{FundingPkScript: testScript, OutPoint: *outPoint},
 	}
-	err = chainView.UpdateFilter(filter, uint32(currentHeight))
+	err = chainView.UpdateFilter(filter, currentHeight)
 	if err != nil {
 		t.Fatalf("unable to update filter: %v", err)
 	}
@@ -505,7 +502,7 @@ func testFilterSingleBlock(node *rpctest.Harness, chainView FilteredChainView,
 		{FundingPkScript: testScript, OutPoint: *outPoint1},
 		{FundingPkScript: testScript, OutPoint: *outPoint2},
 	}
-	err = chainView.UpdateFilter(filter, uint32(currentHeight))
+	err = chainView.UpdateFilter(filter, currentHeight)
 	if err != nil {
 		t.Fatalf("unable to update filter: %v", err)
 	}
@@ -545,14 +542,13 @@ func testFilterBlockDisconnected(node *rpctest.Harness,
 	}
 	defer reorgNode.TearDown()
 
-	// This node's chain will be 105 blocks.
+	// This node's chain will be maturity+5 blocks.
 	if err := reorgNode.SetUp(true, 5); err != nil {
 		t.Fatalf("unable to set up mining node: %v", err)
 	}
 
 	// Init a chain view that has this node as its block source.
-	cleanUpFunc, reorgView, err := chainViewInit(reorgNode.RPCConfig(),
-		reorgNode.P2PAddress())
+	cleanUpFunc, reorgView, err := chainViewInit(reorgNode.RPCConfig())
 	if err != nil {
 		t.Fatalf("unable to create chain view: %v", err)
 	}
@@ -569,13 +565,6 @@ func testFilterBlockDisconnected(node *rpctest.Harness,
 
 	newBlocks := reorgView.FilteredBlocks()
 	disconnectedBlocks := reorgView.DisconnectedBlocks()
-
-	// If this the neutrino backend, then we'll give it some time to catch
-	// up, as it's a bit slower to consume new blocks compared to the RPC
-	// backends.
-	if _, ok := reorgView.(*CfFilteredChainView); ok {
-		time.Sleep(time.Second * 3)
-	}
 
 	_, oldHeight, err := reorgNode.Node.GetBestBlock()
 	if err != nil {
@@ -601,7 +590,7 @@ func testFilterBlockDisconnected(node *rpctest.Harness,
 	// We should be getting oldHeight number of blocks marked as
 	// stale/disconnected. We expect to first get all stale blocks,
 	// then the new blocks. We also ensure a strict ordering.
-	for i := int32(0); i < oldHeight+newHeight; i++ {
+	for i := int64(0); i < oldHeight+newHeight; i++ {
 		select {
 		case block := <-newBlocks:
 			if i < oldHeight {
@@ -609,7 +598,7 @@ func testFilterBlockDisconnected(node *rpctest.Harness,
 					"in iteration %d, old height: %v", i,
 					oldHeight)
 			}
-			expectedHeight := uint32(i - oldHeight + 1)
+			expectedHeight := i - oldHeight + 1
 			if block.Height != expectedHeight {
 				t.Fatalf("expected to receive connected "+
 					"block at height %d, instead got at %d",
@@ -620,7 +609,7 @@ func testFilterBlockDisconnected(node *rpctest.Harness,
 				t.Fatalf("did not expect to get stale block "+
 					"in iteration %d", i)
 			}
-			expectedHeight := uint32(oldHeight - i)
+			expectedHeight := oldHeight - i
 			if block.Height != expectedHeight {
 				t.Fatalf("expected to receive disconnected "+
 					"block at height %d, instead got at %d",
@@ -639,8 +628,15 @@ func testFilterBlockDisconnected(node *rpctest.Harness,
 	}
 	numPeers := len(peers)
 
+	// TODO(decred): This is hacky.  Ideally there should be a way to get the
+	// peer address from the passed in node directly rather than assuming it
+	// is the first connected peer which is brittle if the tests change.
+	//
 	// Disconnect the nodes.
-	err = reorgNode.Node.AddNode(node.P2PAddress(), rpcclient.ANRemove)
+	if numPeers < 1 {
+		t.Fatalf("no connected peer")
+	}
+	err = reorgNode.Node.AddNode(peers[0].Addr, rpcclient.ANRemove)
 	if err != nil {
 		t.Fatalf("unable to disconnect mining nodes: %v", err)
 	}
@@ -663,10 +659,10 @@ func testFilterBlockDisconnected(node *rpctest.Harness,
 	reorgNode.Node.Generate(5)
 
 	// 5 new blocks should get notified.
-	for i := uint32(0); i < 5; i++ {
+	for i := int64(0); i < 5; i++ {
 		select {
 		case block := <-newBlocks:
-			expectedHeight := uint32(newHeight) + i + 1
+			expectedHeight := newHeight + i + 1
 			if block.Height != expectedHeight {
 				t.Fatalf("expected to receive connected "+
 					"block at height %d, instead got at %d",
@@ -699,7 +695,7 @@ func testFilterBlockDisconnected(node *rpctest.Harness,
 	}
 
 	// We should get 5 disconnected, 10 connected blocks.
-	for i := uint32(0); i < 15; i++ {
+	for i := int64(0); i < 15; i++ {
 		select {
 		case block := <-newBlocks:
 			if i < 5 {
@@ -710,7 +706,7 @@ func testFilterBlockDisconnected(node *rpctest.Harness,
 			// oldHeight - 5 (the 5 disconnected blocks) + (i-5)
 			// (subtract 5 since the 5 first iterations consumed
 			// disconnected blocks) + 1
-			expectedHeight := uint32(oldHeight) - 9 + i
+			expectedHeight := int64(oldHeight) - 9 + i
 			if block.Height != expectedHeight {
 				t.Fatalf("expected to receive connected "+
 					"block at height %d, instead got at %d",
@@ -721,7 +717,7 @@ func testFilterBlockDisconnected(node *rpctest.Harness,
 				t.Fatalf("did not expect to get stale block "+
 					"in iteration %d", i)
 			}
-			expectedHeight := uint32(oldHeight) - i
+			expectedHeight := int64(oldHeight) - i
 			if block.Height != expectedHeight {
 				t.Fatalf("expected to receive disconnected "+
 					"block at height %d, instead got at %d",
@@ -736,8 +732,7 @@ func testFilterBlockDisconnected(node *rpctest.Harness,
 	time.Sleep(time.Millisecond * 500)
 }
 
-type chainViewInitFunc func(rpcInfo rpcclient.ConnConfig,
-	p2pAddr string) (func(), FilteredChainView, error)
+type chainViewInitFunc func(rpcInfo rpcclient.ConnConfig) (func(), FilteredChainView, error)
 
 type testCase struct {
 	name string
@@ -769,123 +764,8 @@ var interfaceImpls = []struct {
 	chainViewInit chainViewInitFunc
 }{
 	{
-		name: "bitcoind_zmq",
-		chainViewInit: func(_ rpcclient.ConnConfig, p2pAddr string) (func(), FilteredChainView, error) {
-			// Start a bitcoind instance.
-			tempBitcoindDir, err := ioutil.TempDir("", "bitcoind")
-			if err != nil {
-				return nil, nil, err
-			}
-			zmqBlockHost := "ipc:///" + tempBitcoindDir + "/blocks.socket"
-			zmqTxHost := "ipc:///" + tempBitcoindDir + "/tx.socket"
-			cleanUp1 := func() {
-				os.RemoveAll(tempBitcoindDir)
-			}
-			rpcPort := rand.Int()%(65536-1024) + 1024
-			bitcoind := exec.Command(
-				"bitcoind",
-				"-datadir="+tempBitcoindDir,
-				"-regtest",
-				"-connect="+p2pAddr,
-				"-txindex",
-				"-rpcauth=weks:469e9bb14ab2360f8e226efed5ca6f"+
-					"d$507c670e800a95284294edb5773b05544b"+
-					"220110063096c221be9933c82d38e1",
-				fmt.Sprintf("-rpcport=%d", rpcPort),
-				"-disablewallet",
-				"-zmqpubrawblock="+zmqBlockHost,
-				"-zmqpubrawtx="+zmqTxHost,
-			)
-			err = bitcoind.Start()
-			if err != nil {
-				cleanUp1()
-				return nil, nil, err
-			}
-			cleanUp2 := func() {
-				bitcoind.Process.Kill()
-				bitcoind.Wait()
-				cleanUp1()
-			}
-
-			// Wait for the bitcoind instance to start up.
-			time.Sleep(time.Second)
-
-			host := fmt.Sprintf("127.0.0.1:%d", rpcPort)
-			chainConn, err := chain.NewBitcoindConn(
-				&chaincfg.RegressionNetParams, host, "weks",
-				"weks", zmqBlockHost, zmqTxHost,
-				100*time.Millisecond,
-			)
-			if err != nil {
-				return cleanUp2, nil, fmt.Errorf("unable to "+
-					"establish connection to bitcoind: %v",
-					err)
-			}
-			if err := chainConn.Start(); err != nil {
-				return cleanUp2, nil, fmt.Errorf("unable to "+
-					"establish connection to bitcoind: %v",
-					err)
-			}
-			cleanUp3 := func() {
-				chainConn.Stop()
-				cleanUp2()
-			}
-
-			chainView := NewBitcoindFilteredChainView(chainConn)
-
-			return cleanUp3, chainView, nil
-		},
-	},
-	{
-		name: "p2p_neutrino",
-		chainViewInit: func(_ rpcclient.ConnConfig, p2pAddr string) (func(), FilteredChainView, error) {
-			spvDir, err := ioutil.TempDir("", "neutrino")
-			if err != nil {
-				return nil, nil, err
-			}
-
-			dbName := filepath.Join(spvDir, "neutrino.db")
-			spvDatabase, err := walletdb.Create("bdb", dbName)
-			if err != nil {
-				return nil, nil, err
-			}
-
-			spvConfig := neutrino.Config{
-				DataDir:      spvDir,
-				Database:     spvDatabase,
-				ChainParams:  *netParams,
-				ConnectPeers: []string{p2pAddr},
-			}
-
-			spvNode, err := neutrino.NewChainService(spvConfig)
-			if err != nil {
-				return nil, nil, err
-			}
-			spvNode.Start()
-
-			// Wait until the node has fully synced up to the local
-			// dcrd node.
-			for !spvNode.IsCurrent() {
-				time.Sleep(time.Millisecond * 100)
-			}
-
-			cleanUp := func() {
-				spvDatabase.Close()
-				spvNode.Stop()
-				os.RemoveAll(spvDir)
-			}
-
-			chainView, err := NewCfFilteredChainView(spvNode)
-			if err != nil {
-				return nil, nil, err
-			}
-
-			return cleanUp, chainView, nil
-		},
-	},
-	{
 		name: "dcrd_websockets",
-		chainViewInit: func(config rpcclient.ConnConfig, _ string) (func(), FilteredChainView, error) {
+		chainViewInit: func(config rpcclient.ConnConfig) (func(), FilteredChainView, error) {
 			chainView, err := NewDcrdFilteredChainView(config)
 			if err != nil {
 				return nil, nil, err
