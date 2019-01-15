@@ -8,7 +8,7 @@ import (
 	"path"
 	"testing"
 
-	"github.com/coreos/bbolt"
+	bolt "go.etcd.io/bbolt"
 	"github.com/decred/dcrlnd/macaroons"
 	"google.golang.org/grpc/metadata"
 	"gopkg.in/macaroon-bakery.v2/bakery"
@@ -33,8 +33,8 @@ func setupTestRootKeyStorage(t *testing.T) string {
 	if err != nil {
 		t.Fatalf("Error creating temp dir: %v", err)
 	}
-	db, err := bbolt.Open(path.Join(tempDir, "macaroons.db"), 0600,
-		bbolt.DefaultOptions)
+	db, err := bolt.Open(path.Join(tempDir, "macaroons.db"), 0600,
+		bolt.DefaultOptions)
 	if err != nil {
 		t.Fatalf("Error opening store DB: %v", err)
 	}

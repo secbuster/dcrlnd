@@ -6,7 +6,7 @@ import (
 	"os"
 	"path"
 
-	"github.com/coreos/bbolt"
+	bolt "go.etcd.io/bbolt"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 
@@ -49,8 +49,8 @@ func NewService(dir string, checks ...Checker) (*Service, error) {
 
 	// Open the database that we'll use to store the primary macaroon key,
 	// and all generated macaroons+caveats.
-	macaroonDB, err := bbolt.Open(
-		path.Join(dir, DBFilename), 0600, bbolt.DefaultOptions,
+	macaroonDB, err := bolt.Open(
+		path.Join(dir, DBFilename), 0600, bolt.DefaultOptions,
 	)
 	if err != nil {
 		return nil, err
