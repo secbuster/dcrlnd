@@ -11,11 +11,17 @@ require (
 	github.com/btcsuite/btcutil v0.0.0-20190112041146-bf1e1be93589
 	github.com/coreos/bbolt v1.3.0
 	github.com/davecgh/go-spew v1.1.1
+	github.com/decred/dcrd/blockchain v1.1.1
+	github.com/decred/dcrd/chaincfg v1.2.0
 	github.com/decred/dcrd/chaincfg/chainhash v1.0.1
 	github.com/decred/dcrd/connmgr v1.0.2
 	github.com/decred/dcrd/dcrec v0.0.0-20190105003738-0774a3168208
 	github.com/decred/dcrd/dcrec/secp256k1 v1.0.1
+	github.com/decred/dcrd/dcrjson v1.1.0
 	github.com/decred/dcrd/dcrutil v1.2.0
+	github.com/decred/dcrd/hdkeychain v1.1.1
+	github.com/decred/dcrd/rpcclient v1.1.0
+	github.com/decred/dcrd/txscript v1.0.2
 	github.com/decred/dcrd/wire v1.2.0
 	github.com/decred/dcrwallet/chain v1.1.1
 	github.com/decred/dcrwallet/errors v1.0.1
@@ -49,6 +55,7 @@ require (
 	github.com/urfave/cli v1.20.0
 	gitlab.com/NebulousLabs/fastrand v0.0.0-20181126182046-603482d69e40 // indirect
 	gitlab.com/NebulousLabs/go-upnp v0.0.0-20181011194642-3a71999ed0d3 // indirect
+	go.etcd.io/bbolt v1.3.0
 	golang.org/x/crypto v0.0.0-20190103213133-ff983b9c42bc
 	golang.org/x/net v0.0.0-20190110200230-915654e7eabc
 	golang.org/x/time v0.0.0-20181108054448-85acf8d2951c

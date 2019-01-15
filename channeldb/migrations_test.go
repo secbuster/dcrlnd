@@ -8,10 +8,10 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/coreos/bbolt"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/decred/dcrd/dcrutil"
 	"github.com/go-errors/errors"
+	bolt "go.etcd.io/bbolt"
 )
 
 // TestPaymentStatusesMigration checks that already completed payments will have
@@ -55,7 +55,7 @@ func TestPaymentStatusesMigration(t *testing.T) {
 		// locally-sourced payment should end up with an InFlight
 		// status, while the other should remain unchanged, which
 		// defaults to Grounded.
-		err = d.Update(func(tx *bbolt.Tx) error {
+		err = d.Update(func(tx *bolt.Tx) error {
 			circuits, err := tx.CreateBucketIfNotExists(
 				[]byte("circuit-adds"),
 			)
@@ -382,7 +382,7 @@ func TestMigrateOptionalChannelCloseSummaryFields(t *testing.T) {
 			// Get the old serialization format for this test's
 			// close summary, and it to the closed channel bucket.
 			old := test.oldSerialization(test.closeSummary)
-			err = d.Update(func(tx *bbolt.Tx) error {
+			err = d.Update(func(tx *bolt.Tx) error {
 				closedChanBucket, err := tx.CreateBucketIfNotExists(
 					closedChannelBucket,
 				)
@@ -418,7 +418,7 @@ func TestMigrateOptionalChannelCloseSummaryFields(t *testing.T) {
 			newSerialization := b.Bytes()
 
 			var dbSummary []byte
-			err = d.View(func(tx *bbolt.Tx) error {
+			err = d.View(func(tx *bolt.Tx) error {
 				closedChanBucket := tx.Bucket(closedChannelBucket)
 				if closedChanBucket == nil {
 					return errors.New("unable to find bucket")

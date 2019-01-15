@@ -7,6 +7,7 @@ github.com/NebulousLabs/go-upnp v0.0.0-20180202185039-29b680b06c82 h1:MG93+PZYs9
 github.com/NebulousLabs/go-upnp v0.0.0-20180202185039-29b680b06c82/go.mod h1:GbuBk21JqF+driLX3XtJYNZjGa45YDoa9IqCTzNSfEc=
 github.com/NebulousLabs/go-upnp v0.0.0-20181203152547-b32978b8ccbf h1:1UP+tqdgLAKwt6NpefYq/SdyFaelU8MXOThESt6Od1U=
 github.com/NebulousLabs/go-upnp v0.0.0-20181203152547-b32978b8ccbf/go.mod h1:GbuBk21JqF+driLX3XtJYNZjGa45YDoa9IqCTzNSfEc=
+github.com/Roasbeef/btcutil v0.0.0-20180406014609-dfb640c57141/go.mod h1:Q8e/TakPIqMqkD/B5e1Cgu0xzH3J3/SX2h+aOMv1i2c=
 github.com/Yawning/aez v0.0.0-20180114000226-4dad034d9db2 h1:2be4ykKKov3M1yISM2E8gnGXZ/N2SsPawfnGiXxaYEU=
 github.com/Yawning/aez v0.0.0-20180114000226-4dad034d9db2/go.mod h1:9pIqrY6SXNL8vjRQE5Hd/OL5GyK/9MrGUWs87z/eFfk=
 github.com/Yawning/aez v0.0.0-20180408160647-ec7426b44926 h1:oBNaMAcYxOjYhHIXs5U3Dz1bODLJTpP7mEI5yzhyu1k=
@@ -16,7 +17,9 @@ github.com/aead/chacha20 v0.0.0-20180709150244-8b13a72661da/go.mod h1:eHEWzANqSi
 github.com/aead/siphash v0.0.0-20170329201724-e404fcfc8885/go.mod h1:Nywa3cDsYNNK3gaciGTWPwHt0wlpNV15vwmswBAUSII=
 github.com/aead/siphash v1.0.1 h1:FwHfE/T45KPKYuuSAKyyvE+oPWcaQ+CUmFW0bPlM+kg=
 github.com/aead/siphash v1.0.1/go.mod h1:Nywa3cDsYNNK3gaciGTWPwHt0wlpNV15vwmswBAUSII=
+github.com/agl/ed25519 v0.0.0-20170116200512-5312a6153412 h1:w1UutsfOrms1J05zt7ISrnJIXKzwaspym5BTKGx93EI=
 github.com/agl/ed25519 v0.0.0-20170116200512-5312a6153412/go.mod h1:WPjqKcmVOxf0XSf3YxCJs6N6AOSrOx3obionmG7T0y0=
+github.com/awalterschulze/gographviz v0.0.0-20181013152038-b2885df04310/go.mod h1:GEV5wmg4YquNw7v1kkyoX9etIk8yVmXj+AkDHuuETHs=
 github.com/boltdb/bolt v1.3.1 h1:JQmyP4ZBrce+ZQu0dY660FMfatumYDLun9hBCUVIkF4=
 github.com/boltdb/bolt v1.3.1/go.mod h1:clJnj/oiGkjum5o1McbSZDSLxVThjynRyGBgiAx27Ps=
 github.com/btcsuite/btcd v0.0.0-20180823030728-d81d8877b8f3/go.mod h1:Dmm/EzmjnCiweXmzRIAiUWCInVmPgjkzgv5k4tVyXiQ=
@@ -58,8 +61,11 @@ github.com/davecgh/go-spew v0.0.0-20171005155431-ecdeabc65495/go.mod h1:J7Y8YcW2
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
+github.com/dchest/blake256 v1.0.0 h1:6gUgI5MHdz9g0TdrgKqXsoDX+Zjxmm1Sc6OsoGru50I=
 github.com/dchest/blake256 v1.0.0/go.mod h1:xXNWCE1jsAP8DAjP+rKw2MbeqLczjI3TRx2VK+9OEYY=
+github.com/dchest/siphash v1.2.0 h1:YWOShuhvg0GqbQpMa60QlCGtEyf7O7HC1Jf0VjdQ60M=
 github.com/dchest/siphash v1.2.0/go.mod h1:q+IRvb2gOSrUnYoPqHiyHXS0FOBBOdl6tONBlVnOnt4=
+github.com/decred/base58 v1.0.0 h1:BVi1FQCThIjZ0ehG+I99NJ51o0xcc9A/fDKhmJxY6+w=
 github.com/decred/base58 v1.0.0/go.mod h1:LLY1p5e3g91byL/UO1eiZaYd+uRoVRarybgcoymu9Ks=
 github.com/decred/dcrd v1.2.0 h1:RWx91j1kMgYmrgZ+JGGaIMDTejroN4Y8pVEzdmPilDs=
 github.com/decred/dcrd v1.2.0/go.mod h1:zi/JKsVwuqMTDpGV1SVpYHgggU3PsbrHFCJAbgVJKEQ=
@@ -70,6 +76,7 @@ github.com/decred/dcrd/blockchain/stake v1.0.1/go.mod h1:hgoGmWMIu2LLApBbcguVpzC
 github.com/decred/dcrd/blockchain/stake v1.1.0 h1:kCxZdQ2/UfcD+XjE3wlCv0vLKWR9ZFtjbbTTpudb74o=
 github.com/decred/dcrd/blockchain/stake v1.1.0/go.mod h1:WRuaml4bcyZYza1NT3qizlLcQwMIcAQRENvZVb2t884=
 github.com/decred/dcrd/chaincfg v1.1.1/go.mod h1:UlGtnp8Xx9YK+etBTybGjoFGoGXSw2bxZQuAnwfKv6I=
+github.com/decred/dcrd/chaincfg v1.2.0 h1:Vj0xr85wmqOdQDxKLkpP9TqwK1RykqY2eC0fWcCsl0k=
 github.com/decred/dcrd/chaincfg v1.2.0/go.mod h1:kpoGTMIriKn5hHRSu5b65+Q9LlGUdbQcMzGujac1BVs=
 github.com/decred/dcrd/chaincfg v1.2.1 h1:I+IyCBppeGuDb17mxPcDVJ+kb/x7DFoImymQ1P4XAwg=
 github.com/decred/dcrd/chaincfg v1.2.1/go.mod h1:kpoGTMIriKn5hHRSu5b65+Q9LlGUdbQcMzGujac1BVs=
@@ -78,6 +85,7 @@ github.com/decred/dcrd/chaincfg/chainhash v1.0.1/go.mod h1:OVfvaOsNLS/A1y4Eod0Ip
 github.com/decred/dcrd/connmgr v1.0.2 h1:ipHJBV9fmhLi8ZZCtsNpG+kLY2c+yu59/8oOkA8BNJY=
 github.com/decred/dcrd/connmgr v1.0.2/go.mod h1:jBNfQLh+454n3crgNCPrhMgZ9mVvYcMbWSCEAHsJQus=
 github.com/decred/dcrd/database v1.0.1/go.mod h1:ILCeyOHFew3fZ7K2B9jl+tp5qFOap/pEGoo6Yy6Wk0g=
+github.com/decred/dcrd/database v1.0.3 h1:e5Q3gDt9LwfvpZxYqFF3OVzgr8bGeC1cen+V3mv/CCw=
 github.com/decred/dcrd/database v1.0.3/go.mod h1:TLxRwIV8x85+dxPTLAWu4mHg45TkKrrza5xzwOS1QtA=
 github.com/decred/dcrd/dcrec v0.0.0-20180721005212-59fe2b293f69/go.mod h1:cRAH1SNk8Mi9hKBc/DHbeiWz/fyO8KWZR3H7okrIuOA=
 github.com/decred/dcrd/dcrec v0.0.0-20180721005914-d26200ec716b/go.mod h1:cRAH1SNk8Mi9hKBc/DHbeiWz/fyO8KWZR3H7okrIuOA=
@@ -88,6 +96,7 @@ github.com/decred/dcrd/dcrec v0.0.0-20190105003738-0774a3168208 h1:6d8wvfxGc/zL5
 github.com/decred/dcrd/dcrec v0.0.0-20190105003738-0774a3168208/go.mod h1:cRAH1SNk8Mi9hKBc/DHbeiWz/fyO8KWZR3H7okrIuOA=
 github.com/decred/dcrd/dcrec/edwards v0.0.0-20180721005212-59fe2b293f69/go.mod h1:+ehP0Hk/mesyZXttxCtBbhPX23BMpZJ1pcVBqUfbmvU=
 github.com/decred/dcrd/dcrec/edwards v0.0.0-20180721031028-5369a485acf6/go.mod h1:+ehP0Hk/mesyZXttxCtBbhPX23BMpZJ1pcVBqUfbmvU=
+github.com/decred/dcrd/dcrec/edwards v0.0.0-20181208004914-a0816cf4301f h1:NF7vp3nZ4MsAiXswGmE//m83jCN0lDsQrLI7IwLCTlo=
 github.com/decred/dcrd/dcrec/edwards v0.0.0-20181208004914-a0816cf4301f/go.mod h1:+ehP0Hk/mesyZXttxCtBbhPX23BMpZJ1pcVBqUfbmvU=
 github.com/decred/dcrd/dcrec/secp256k1 v1.0.0/go.mod h1:JPMFscGlgXTV684jxQNDijae2qrh0fLG7pJBimaYotE=
 github.com/decred/dcrd/dcrec/secp256k1 v1.0.1 h1:EFWVd1p0t0Y5tnsm/dJujgV0ORogRJ6vo7CMAjLseAc=
@@ -105,6 +114,7 @@ github.com/decred/dcrd/hdkeychain v1.1.1 h1:6+BwOmPfEyw/Krm+91RXysc76F1jqCta3m45
 github.com/decred/dcrd/hdkeychain v1.1.1/go.mod h1:CLBVXLoO63fIiqkv38KR23zXGSgrfiAWOybOKTneLhA=
 github.com/decred/dcrd/mempool v1.1.1 h1:ysFIS3HzEIJ88B1Y4OfL6wjzBurlChbKkzq54hPglGo=
 github.com/decred/dcrd/mempool v1.1.1/go.mod h1:u1I2KRv9UHhx2crlbZXYoLDabWyQ8VnnHDSG53UdhCA=
+github.com/decred/dcrd/mining v1.1.0 h1:9Wtla+i+pEjfYsNCfixsipmyyoB26DgL4LSXWAin/zw=
 github.com/decred/dcrd/mining v1.1.0/go.mod h1:NQEtX604XgNwKcPFId1hVTTiBqmVQDlnqV1yNqGl4oU=
 github.com/decred/dcrd/rpcclient v1.1.0 h1:nQZ1qOJaLYoOTM1oQ2dLaqocb5TWI7gNBK+BTY7UVXk=
 github.com/decred/dcrd/rpcclient v1.1.0/go.mod h1:SCwBs4d+aqRV2ChnriIZ1y/LgNVHG/2ieEC1vIop82s=
@@ -130,6 +140,7 @@ github.com/decred/dcrwallet/validate v1.0.2/go.mod h1:1ur2sRZkQ23ECalUKdwgx6rdIi
 github.com/decred/dcrwallet/wallet v1.1.0/go.mod h1:g4OzDG7jpsRqTDP3bHiA0LIEZFx81accYPCkO1DBNT8=
 github.com/decred/dcrwallet/wallet v1.1.2 h1:nxMALiRrC+og7IqhEkFUJP/55qJjE0oks+wd0IKoCLU=
 github.com/decred/dcrwallet/wallet v1.1.2/go.mod h1:g4OzDG7jpsRqTDP3bHiA0LIEZFx81accYPCkO1DBNT8=
+github.com/decred/lnd v0.2.1-alpha/go.mod h1:5QU6USAo2XfItuoQlQD38uzuQV9NsPmMPDvJ+JESwaQ=
 github.com/decred/slog v1.0.0 h1:Dl+W8O6/JH6n2xIFN2p3DNjCmjYwvrXsjlSJTQQ4MhE=
 github.com/decred/slog v1.0.0/go.mod h1:zR98rEZHSnbZ4WHZtO0iqmSZjDLKhkXfrPTZQKtAonQ=
 github.com/fsnotify/fsnotify v1.4.7 h1:IXs+QLmnXW2CcXuY+8Mzv/fWEsPGWxqefPtCP5CnV9I=
@@ -144,6 +155,7 @@ github.com/golang/protobuf v0.0.0-20180821051752-b27b920f9e71/go.mod h1:6lQm79b+
 github.com/golang/protobuf v1.1.0/go.mod h1:6lQm79b+lXiMfvg/cZm0SGofjICqVBUtrP5yJMmIC1U=
 github.com/golang/protobuf v1.2.0 h1:P3YflyNX/ehuJFLhxviNdFxQPkGK5cDcApsge1SqnvM=
 github.com/golang/protobuf v1.2.0/go.mod h1:6lQm79b+lXiMfvg/cZm0SGofjICqVBUtrP5yJMmIC1U=
+github.com/gorilla/websocket v1.2.0 h1:VJtLvh6VQym50czpZzx07z/kw9EgAxI3x1ZB8taTMQQ=
 github.com/gorilla/websocket v1.2.0/go.mod h1:E7qHFY5m1UJ88s3WnNqhKjPHQ0heANvMoAMk2YaljkQ=
 github.com/grpc-ecosystem/grpc-gateway v0.0.0-20170724004829-f2862b476edc h1:3NXdOHZ1YlN6SGP3FPbn4k73O2MeEp065abehRwGFxI=
 github.com/grpc-ecosystem/grpc-gateway v0.0.0-20170724004829-f2862b476edc/go.mod h1:RSKVYQBd5MCa4OVpNdGskqpgL2+G+NZTnrVHpWWfpdw=
@@ -201,6 +213,7 @@ github.com/lightningnetwork/lightning-onion v0.0.0-20180605012408-ac4d9da8f1d6 h
 github.com/lightningnetwork/lightning-onion v0.0.0-20180605012408-ac4d9da8f1d6/go.mod h1:8EgEt4a/NUOVQd+3kk6n9aZCJ1Ssj96Pb6lCrci+6oc=
 github.com/lightningnetwork/lightning-onion v0.0.0-20181120012844-725fcf830eac h1:SelYbSBbpqkmu3F7If4/b4Ht2s7LIUNwfwhevTSOupY=
 github.com/lightningnetwork/lightning-onion v0.0.0-20181120012844-725fcf830eac/go.mod h1:8EgEt4a/NUOVQd+3kk6n9aZCJ1Ssj96Pb6lCrci+6oc=
+github.com/lightningnetwork/lnd v0.0.2/go.mod h1:wpCSmoRQxoM/vXLtTETeBp08XnB/9/f+sjPvCJZPyA0=
 github.com/ltcsuite/ltcd v0.0.0-20190101042124-f37f8bf35796 h1:sjOGyegMIhvgfq5oaue6Td+hxZuf3tDC8lAPrFldqFw=
 github.com/ltcsuite/ltcd v0.0.0-20190101042124-f37f8bf35796/go.mod h1:3p7ZTf9V1sNPI5H8P3NkTFF4LuwMdPl2DodF60qAKqY=
 github.com/ltcsuite/ltcutil v0.0.0-20181217130922-17f3b04680b6 h1:b/Op1jKdoE6tzGyjzFx8gc7ZyW3hVFs1jUCQfM/Z2Jo=
@@ -215,6 +228,8 @@ github.com/onsi/ginkgo v1.7.0/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+W
 github.com/onsi/gomega v1.4.1 h1:PZSj/UFNaVp3KxrzHOcS7oyuWA7LoOY/77yCTEFu21U=
 github.com/onsi/gomega v1.4.1/go.mod h1:C1qb7wdrVGGVU+Z6iS04AVkA3Q65CEZX59MT0QO5uiA=
 github.com/onsi/gomega v1.4.3/go.mod h1:ex+gbHU/CVuBBDIJjb2X0qEXbFg53c61hWP/1CpauHY=
+github.com/roasbeef/btcd v0.0.0-20180418012700-a03db407e40d/go.mod h1:A6JDd1s2zvd0LJNnhvindLqoL7gzisoxi5QlvRH7rmY=
+github.com/roasbeef/btcrpcclient v0.0.0-20170622074026-d0f4db8b4dad/go.mod h1:pifwSYHPshWU3rt0bWMWh4pOIIWLs8DBfMhIsXRR9Nc=
 github.com/roasbeef/btcutil v0.0.0-20180406014609-dfb640c57141 h1:Ff9AGVuxwGC3rmvHvmfr0sGjB0ybNYMn9TzgdkGbrOg=
 github.com/roasbeef/btcutil v0.0.0-20180406014609-dfb640c57141/go.mod h1:rt+VEaQjfoxd3IOujqxoF9v3uy1ygl7Gk8Q5y3Kv+Lw=
 github.com/rogpeppe/fastuuid v0.0.0-20150106093220-6724a57986af h1:gu+uRPtBe88sKxUCEXRoeCvVG90TJmwhiqRpvdhQFng=
@@ -223,6 +238,7 @@ github.com/tv42/zbase32 v0.0.0-20160707012821-501572607d02 h1:tcJ6OjwOMvExLlzrAV
 github.com/tv42/zbase32 v0.0.0-20160707012821-501572607d02/go.mod h1:tHlrkM198S068ZqfrO6S8HsoJq2bF3ETfTL+kt4tInY=
 github.com/urfave/cli v1.18.0 h1:m9MfmZWX7bwr9kUcs/Asr95j0IVXzGNNc+/5ku2m26Q=
 github.com/urfave/cli v1.18.0/go.mod h1:70zkFmudgCuE/ngEzBv17Jvp/497gISqfk5gWijbERA=
+github.com/urfave/cli v1.20.0/go.mod h1:70zkFmudgCuE/ngEzBv17Jvp/497gISqfk5gWijbERA=
 gitlab.com/NebulousLabs/fastrand v0.0.0-20181126182046-603482d69e40 h1:dizWJqTWjwyD8KGcMOwgrkqu1JIkofYgKkmDeNE7oAs=
 gitlab.com/NebulousLabs/fastrand v0.0.0-20181126182046-603482d69e40/go.mod h1:rOnSnoRyxMI3fe/7KIbVcsHRGxe30OONv8dEgo+vCfA=
 gitlab.com/NebulousLabs/go-upnp v0.0.0-20181011194642-3a71999ed0d3 h1:qXqiXDgeQxspR3reot1pWme00CX1pXbxesdzND+EjbU=
