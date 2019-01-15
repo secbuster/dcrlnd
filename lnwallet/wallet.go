@@ -1038,7 +1038,7 @@ func (l *LightningWallet) handleFundingCounterPartySigs(msg *addCounterPartySigs
 	// Verify that we've received a valid signature from the remote party
 	// for our version of the commitment transaction.
 	theirCommitSig := msg.theirCommitmentSig
-	sig, err := secp256k1.ParseSignature(theirCommitSig, secp256k1.S256())
+	sig, err := secp256k1.ParseSignature(theirCommitSig)
 	if err != nil {
 		msg.err <- err
 		msg.completeChan <- nil
@@ -1183,7 +1183,7 @@ func (l *LightningWallet) handleSingleFunderSigs(req *addSingleFunderSigsMsg) {
 
 	// Verify that we've received a valid signature from the remote party
 	// for our version of the commitment transaction.
-	sig, err := secp256k1.ParseSignature(req.theirCommitmentSig, secp256k1.S256())
+	sig, err := secp256k1.ParseSignature(req.theirCommitmentSig)
 	if err != nil {
 		req.err <- err
 		req.completeChan <- nil

@@ -15,12 +15,14 @@ import (
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrd/dcrutil"
 	"github.com/decred/dcrd/dcrutil/txsort"
+	"github.com/decred/dcrd/mempool"
 	"github.com/decred/dcrd/txscript"
 	"github.com/decred/dcrd/wire"
 
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/lnwire"
+	"github.com/decred/dcrlnd/shachain"
 )
 
 var zeroHash chainhash.Hash
@@ -4917,7 +4919,7 @@ func (lc *LightningChannel) getSignedCommitTx() (*wire.MsgTx, error) {
 
 	// With the final signature generated, create the witness stack
 	// required to spend from the multi-sig output.
-	ourKey := lc.localChanCfg.MultiSigKey.PubKey, SerializeCompressed()
+	ourKey := lc.localChanCfg.MultiSigKey.PubKey.SerializeCompressed()
 	theirKey := lc.remoteChanCfg.MultiSigKey.PubKey.SerializeCompressed()
 	witness := SpendMultiSig(lc.signDesc.WitnessScript, ourKey,
 		ourSig, theirKey, theirSig,
