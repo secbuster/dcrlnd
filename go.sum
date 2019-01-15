@@ -175,6 +175,7 @@ github.com/decred/dcrwallet/p2p v1.0.0/go.mod h1:b1CLZAkl/K5dr5I5B4SdFT8FrE11jSk
 github.com/decred/dcrwallet/pgpwordlist v1.0.0/go.mod h1:Fek3uYn+9DnEFIreA/8PnTIXUl2lBO64JpEBkL9BXtk=
 github.com/decred/dcrwallet/rpc/walletrpc v0.1.0/go.mod h1:Zp1ZFTCUo7S6MJvUyS5tYfaDUxGAMHkZ+vbsLgAdd4A=
 github.com/decred/dcrwallet/spv v1.0.0/go.mod h1:lz39nz9P/HVoxYa4XAT6ithyR3WgdF0oVu4jtFwnCxE=
+github.com/decred/dcrwallet/ticketbuyer v1.0.0 h1:YkQhmNEwHr/1MyBDFCsKwKO8qbTCyr4gkBeTSMKE6KQ=
 github.com/decred/dcrwallet/ticketbuyer v1.0.0/go.mod h1:mrAlRjOJ6txO8Zyqo5koxVOMEYLK2POUX35a/QcKN8g=
 github.com/decred/dcrwallet/ticketbuyer/v2 v2.0.0/go.mod h1:VKo2PjXAlF/E46tSBKrIgqKbVcHVLfM5ACyOehT1unA=
 github.com/decred/dcrwallet/validate v1.0.0/go.mod h1:zHIlcrjAWl6LK+X+R7jc3F9wIM/qxjtMjG/mdEwt4tY=
