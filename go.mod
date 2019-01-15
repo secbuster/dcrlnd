@@ -13,7 +13,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/decred/dcrd v1.3.0
 	github.com/decred/dcrd/blockchain v1.1.1
-	github.com/decred/dcrd/chaincfg v1.2.0
+	github.com/decred/dcrd/chaincfg v1.2.1
 	github.com/decred/dcrd/chaincfg/chainhash v1.0.1
 	github.com/decred/dcrd/connmgr v1.0.2
 	github.com/decred/dcrd/dcrec v0.0.0-20190105003738-0774a3168208
@@ -72,3 +72,5 @@ require (
 )
 
 replace github.com/decred/dcrwallet/wallet => github.com/matheusd/dcrwallet/wallet v0.0.0-20190115143705-93473c7512c8
+
+replace github.com/decred/dcrd => github.com/matheusd/dcrd v0.0.0-20190112120833-3553b8af1047
