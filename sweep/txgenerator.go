@@ -62,7 +62,7 @@ func generateInputPartitionings(sweepableInputs []Input,
 		}
 
 		yields[*input.OutPoint()] = input.SignDesc().Output.Value -
-			int64(feePerKW.FeeForWeight(int64(size)))
+			int64(feePerKW.FeeForSize(int64(size)))
 	}
 
 	sort.Slice(sweepableInputs, func(i, j int) bool {
@@ -133,7 +133,7 @@ func getPositiveYieldInputs(sweepableInputs []Input, maxInputs int,
 		newTotal := total + dcrutil.Amount(input.SignDesc().Output.Value)
 
 		weight := weightEstimate.Weight()
-		fee := feePerKW.FeeForWeight(int64(weight))
+		fee := feePerKW.FeeForSize(int64(weight))
 
 		// Calculate the output value if the current input would be
 		// added to the set.
@@ -172,7 +172,7 @@ func createSweepTx(inputs []Input, outputPkScript []byte,
 		"using %v sat/kw", len(inputs), csvCount, cltvCount,
 		int64(feePerKw))
 
-	txFee := feePerKw.FeeForWeight(txWeight)
+	txFee := feePerKw.FeeForSize(txWeight)
 
 	// Sum up the total value contained in the inputs.
 	var totalSum dcrutil.Amount

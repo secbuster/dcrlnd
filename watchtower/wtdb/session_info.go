@@ -117,7 +117,7 @@ func (s *SessionInfo) AcceptUpdateSequence(seqNum, lastApplied uint16) error {
 func (s *SessionInfo) ComputeSweepOutputs(totalAmt dcrutil.Amount,
 	txVSize int64) (dcrutil.Amount, dcrutil.Amount, error) {
 
-	txFee := s.SweepFeeRate.FeeForWeight(txVSize)
+	txFee := s.SweepFeeRate.FeeForSize(txVSize)
 	if txFee > totalAmt {
 		return 0, 0, ErrFeeExceedsInputs
 	}

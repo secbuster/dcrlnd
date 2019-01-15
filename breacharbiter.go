@@ -1038,7 +1038,7 @@ func (b *breachArbiter) sweepSpendableOutputsTxn(txWeight int64,
 	if err != nil {
 		return nil, err
 	}
-	txFee := feePerKw.FeeForWeight(txWeight)
+	txFee := feePerKw.FeeForSize(txWeight)
 
 	// TODO(roasbeef): already start to siphon their funds into fees
 	sweepAmt := int64(totalAmt - txFee)

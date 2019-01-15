@@ -277,7 +277,7 @@ func createTestChannel(alicePrivKey, bobPrivKey []byte,
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
-	commitFee := feePerKw.FeeForWeight(724)
+	commitFee := feePerKw.FeeForSize(724)
 
 	const broadcastHeight = 1
 	bobAddr := &net.TCPAddr{
