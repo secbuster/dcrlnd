@@ -49,7 +49,7 @@ func (b *DcrWallet) FetchInputInfo(prevOut *wire.OutPoint) (*wire.TxOut, error) 
 	// above only guarantees that the transaction is somehow relevant to us,
 	// like in the event of us being the sender of the transaction.
 	output = txDetail.TxRecord.MsgTx.TxOut[prevOut.Index]
-	if _, err := b.fetchOutputAddr(output.PkScript); err != nil {
+	if _, err := b.fetchOutputAddr(output.Version, output.PkScript); err != nil {
 		return nil, err
 	}
 
@@ -63,8 +63,9 @@ func (b *DcrWallet) FetchInputInfo(prevOut *wire.OutPoint) (*wire.TxOut, error) 
 // fetchOutputAddr attempts to fetch the managed address corresponding to the
 // passed output script. This function is used to look up the proper key which
 // should be used to sign a specified input.
-func (b *DcrWallet) fetchOutputAddr(script []byte) (udb.ManagedAddress, error) {
-	_, addrs, _, err := txscript.ExtractPkScriptAddrs(script, b.netParams)
+func (b *DcrWallet) fetchOutputAddr(scriptVersion uint16, script []byte) (udb.ManagedAddress, error) {
+	_, addrs, _, err := txscript.ExtractPkScriptAddrs(scriptVersion, script,
+		b.netParams)
 	if err != nil {
 		return nil, err
 	}
@@ -201,7 +202,8 @@ func (b *DcrWallet) ComputeInputScript(tx *wire.MsgTx,
 	signDesc *lnwallet.SignDescriptor) (*lnwallet.InputScript, error) {
 
 	outputScript := signDesc.Output.PkScript
-	walletAddr, err := b.fetchOutputAddr(outputScript)
+	outputScriptVer := signDesc.Output.Version
+	walletAddr, err := b.fetchOutputAddr(outputScriptVer, outputScript)
 	if err != nil {
 		return nil, err
 	}
