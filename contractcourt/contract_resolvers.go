@@ -8,13 +8,12 @@ import (
 	"io"
 	"io/ioutil"
 
-	"github.com/decred/dcrlnd/sweep"
-
 	"github.com/davecgh/go-spew/spew"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwire"
+	"github.com/decred/dcrlnd/sweep"
 )
 
 var (

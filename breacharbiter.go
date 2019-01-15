@@ -8,7 +8,6 @@ import (
 	"sync"
 	"sync/atomic"
 
-	bolt "go.etcd.io/bbolt"
 	"github.com/decred/dcrd/blockchain"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrec/secp256k1"
@@ -20,6 +19,7 @@ import (
 	"github.com/decred/dcrlnd/htlcswitch"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/sweep"
+	bolt "go.etcd.io/bbolt"
 )
 
 var (

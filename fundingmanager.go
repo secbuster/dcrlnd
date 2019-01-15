@@ -8,7 +8,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	bolt "go.etcd.io/bbolt"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrec/secp256k1"
@@ -24,6 +23,7 @@ import (
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/routing"
 	"github.com/go-errors/errors"
+	bolt "go.etcd.io/bbolt"
 	"golang.org/x/crypto/salsa20"
 	"google.golang.org/grpc"
 )

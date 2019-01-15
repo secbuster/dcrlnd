@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"io"
 
-	bolt "go.etcd.io/bbolt"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/lnwallet"
+	bolt "go.etcd.io/bbolt"
 )
 
 // ContractResolutions is a wrapper struct around the two forms of resolutions

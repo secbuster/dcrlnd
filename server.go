@@ -17,7 +17,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	bolt "go.etcd.io/bbolt"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/connmgr"
 	"github.com/decred/dcrd/dcrec/secp256k1"
@@ -43,6 +42,7 @@ import (
 	"github.com/decred/dcrlnd/tor"
 	"github.com/go-errors/errors"
 	"github.com/lightningnetwork/lightning-onion" // TODO(decred): ok?
+	bolt "go.etcd.io/bbolt"
 )
 
 const (
