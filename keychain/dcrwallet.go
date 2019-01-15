@@ -14,23 +14,13 @@ import (
 )
 
 const (
-	// CoinTypeBitcoin specifies the BIP44 coin type for Bitcoin key
+	// CoinTypeDecred specifies the BIP44 coin type for Decred key
 	// derivation.
-	CoinTypeBitcoin uint32 = 0
+	CoinTypeDecred uint32 = 42
 
 	// CoinTypeTestnet specifies the BIP44 coin type for all testnet key
 	// derivation.
 	CoinTypeTestnet = 1
-
-	// CoinTypeLitecoin specifies the BIP44 coin type for Litecoin key
-	// derivation.
-	CoinTypeLitecoin = 2
-)
-
-var (
-	// waddrmgrNamespaceKey is the namespace key that the waddrmgr state is
-	// stored within the top-level waleltdb buckets of dcrwallet.
-	waddrmgrNamespaceKey = []byte("waddrmgr")
 )
 
 // Yep I WalletKeyRing is an implementation of both the KeyRing and SecretKeyRing
