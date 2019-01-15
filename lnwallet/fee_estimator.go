@@ -2,57 +2,40 @@ package lnwallet
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/decred/dcrd/dcrutil"
 	"github.com/decred/dcrd/rpcclient"
 )
 
 const (
-	// FeePerKwFloor is the lowest fee rate in sat/kw that we should use for
+	// FeePerKBFloor is the lowest fee rate in sat/kw that we should use for
 	// determining transaction fees.
-	FeePerKwFloor SatPerKWeight = 253
+	// TODO(decred) determine this value.
+	FeePerKBFloor AtomPerKByte = 253
 )
 
-// SatPerKVByte represents a fee rate in sat/kb.
-type SatPerKVByte dcrutil.Amount
+// AtomPerKByte represents a fee rate in atom/kb.
+type AtomPerKByte dcrutil.Amount
 
-// FeeForVSize calculates the fee resulting from this fee rate and the given
-// vsize in vbytes.
-func (s SatPerKVByte) FeeForVSize(vbytes int64) dcrutil.Amount {
-	return dcrutil.Amount(s) * dcrutil.Amount(vbytes) / 1000
+// FeeForSize calculates the fee resulting from this fee rate and the given
+// size in bytes.
+func (s AtomPerKByte) FeeForSize(bytes int64) dcrutil.Amount {
+	return dcrutil.Amount(s) * dcrutil.Amount(bytes) / 1000
 }
 
-// FeePerKWeight converts the current fee rate from sat/kb to sat/kw.
-func (s SatPerKVByte) FeePerKWeight() SatPerKWeight {
-	// TODO(decred) Remove as is unneeded
-	panic(fmt.Errorf("please remove"))
-}
-
-// SatPerKWeight represents a fee rate in sat/kw.
-type SatPerKWeight dcrutil.Amount
-
-// TODO(decred): No weight...
-// FeeForWeight calculates the fee resulting from this fee rate and the given
-// weight in weight units (wu).
-func (s SatPerKWeight) FeeForWeight(wu int64) dcrutil.Amount {
-	// The resulting fee is rounded down, as specified in BOLT#03.
-	return dcrutil.Amount(s) * dcrutil.Amount(wu) / 1000
-}
-
-// FeePerKVByte converts the current fee rate from sat/kw to sat/kb.
-func (s SatPerKWeight) FeePerKVByte() SatPerKVByte {
-	panic(fmt.Errorf("Please Remove"))
+// String returns a pretty string representation for the rate in DCR/KB.
+func (s AtomPerKByte) String() string {
+	return dcrutil.Amount(s).String() + "/KB"
 }
 
 // FeeEstimator provides the ability to estimate on-chain transaction fees for
 // various combinations of transaction sizes and desired confirmation time
 // (measured by number of blocks).
 type FeeEstimator interface {
-	// EstimateFeePerByte takes in a target for the number of blocks until
+	// EstimateFeePerKB takes in a target for the number of blocks until
 	// an initial confirmation and returns the estimated fee expressed in
 	// atoms/byte.
-	EstimateFeePerKB(numBlocks uint32) (dcrutil.Amount, error)
+	EstimateFeePerKB(numBlocks uint32) (AtomPerKByte, error)
 
 	// Start signals the FeeEstimator to start any processes or goroutines
 	// it needs to perform its duty.
@@ -62,10 +45,10 @@ type FeeEstimator interface {
 	// by the fee estimator.
 	Stop() error
 
-	// RelayFeePerKW returns the minimum fee rate required for transactions
+	// RelayFeePerKB returns the minimum fee rate required for transactions
 	// to be relayed. This is also the basis for calculation of the dust
 	// limit.
-	RelayFeePerKW() SatPerKWeight
+	RelayFeePerKB() AtomPerKByte
 }
 
 // StaticFeeEstimator will return a static value for all fee calculation
@@ -73,47 +56,37 @@ type FeeEstimator interface {
 // implementation. The fees are not accessible directly, because changing them
 // would not be thread safe.
 type StaticFeeEstimator struct {
-	// TODO(decred): atoms-per-byte
-	// feePerKW is the static fee rate in satoshis-per-vbyte that will be
+	// feePerKB is the static fee rate in atoms-per-KB that will be
 	// returned by this fee estimator.
-	feePerKW SatPerKWeight
+	feePerKB AtomPerKByte
 
 	// relayFee is the minimum fee rate required for transactions to be
 	// relayed.
-	relayFee SatPerKWeight
+	relayFee AtomPerKByte
 }
 
 // NewStaticFeeEstimator returns a new static fee estimator instance.
-func NewStaticFeeEstimator(feePerKW,
-	relayFee SatPerKWeight) *StaticFeeEstimator {
+func NewStaticFeeEstimator(feePerKB,
+	relayFee AtomPerKByte) *StaticFeeEstimator {
 
 	return &StaticFeeEstimator{
-		feePerKW: feePerKW,
+		feePerKB: feePerKB,
 		relayFee: relayFee,
 	}
 }
 
-// TODO(decred) implement
-func (e StaticFeeEstimator) EstimateFeePerKB(numBlocks uint32) (dcrutil.Amount, error) {
-	panic(fmt.Errorf("Please implement"))
-}
-
-// TODO(decred): EstimateFeePerByte
-//
-// EstimateFeePerKW will return a static value for fee calculations.
+// EstimateFeePerKB will return the static value for fee calculations.
 //
 // NOTE: This method is part of the FeeEstimator interface.
-func (e StaticFeeEstimator) EstimateFeePerKW(numBlocks uint32) (SatPerKWeight, error) {
-	return e.feePerKW, nil
+func (e StaticFeeEstimator) EstimateFeePerKB(numBlocks uint32) (AtomPerKByte, error) {
+	return e.feePerKB, nil
 }
 
-// TODO(decred): Update for no weighting in dcr
-//
-// RelayFeePerKW returns the minimum fee rate required for transactions to be
+// RelayFeePerKB returns the minimum fee rate required for transactions to be
 // relayed.
 //
 // NOTE: This method is part of the FeeEstimator interface.
-func (e StaticFeeEstimator) RelayFeePerKW() SatPerKWeight {
+func (e StaticFeeEstimator) RelayFeePerKB() AtomPerKByte {
 	return e.relayFee
 }
 
@@ -141,33 +114,27 @@ var _ FeeEstimator = (*StaticFeeEstimator)(nil)
 // by the RPC interface of an active dcrd node. This implementation will proxy
 // any fee estimation requests to dcrd's RPC interface.
 type DcrdFeeEstimator struct {
-	// TODO(decred): Update for no weighting in dcr and atoms per byte
-	//
-	// fallbackFeePerKW is the fall back fee rate in sat/kw that is returned
+	// fallbackFeePerKB is the fall back fee rate in atoms/KB that is returned
 	// if the fee estimator does not yet have enough data to actually
 	// produce fee estimates.
-	fallbackFeePerKW SatPerKWeight
+	fallbackFeePerKB AtomPerKByte
 
-	// TODO(decred): Update for no weighting in dcr and atoms per byte
-	//
-	// minFeePerKW is the minimum fee, in sat/kw, that we should enforce.
+	// minFeePerKB is the minimum fee, in atoms/KB, that we should enforce.
 	// This will be used as the default fee rate for a transaction when the
 	// estimated fee rate is too low to allow the transaction to propagate
 	// through the network.
-	minFeePerKW SatPerKWeight
+	minFeePerKB AtomPerKByte
 
 	dcrdConn *rpcclient.Client
 }
 
-// TODO(decred): Update for no weighting in dcr and atoms per byte
-//
 // NewDcrdFeeEstimator creates a new DcrdFeeEstimator given a fully populated
 // rpc config that is able to successfully connect and authenticate with the
 // dcrd node, and also a fall back fee rate. The fallback fee rate is used in
 // the occasion that the estimator has insufficient data, or returns zero for a
 // fee estimate.
 func NewDcrdFeeEstimator(rpcConfig rpcclient.ConnConfig,
-	fallBackFeeRate SatPerKWeight) (*DcrdFeeEstimator, error) {
+	fallBackFeeRate AtomPerKByte) (*DcrdFeeEstimator, error) {
 
 	rpcConfig.DisableConnectOnNew = true
 	rpcConfig.DisableAutoReconnect = false
@@ -177,7 +144,7 @@ func NewDcrdFeeEstimator(rpcConfig rpcclient.ConnConfig,
 	}
 
 	return &DcrdFeeEstimator{
-		fallbackFeePerKW: fallBackFeeRate,
+		fallbackFeePerKB: fallBackFeeRate,
 		dcrdConn:         chainConn,
 	}, nil
 }
@@ -204,20 +171,16 @@ func (b *DcrdFeeEstimator) Start() error {
 		return err
 	}
 
-	// The fee rate is expressed in sat/kb, so we'll manually convert it to
-	// our desired sat/kw rate.
-	minRelayFeePerKw := SatPerKVByte(relayFee).FeePerKWeight()
-
 	// By default, we'll use the backend node's minimum relay fee as the
-	// minimum fee rate we'll propose for transacations. However, if this
+	// minimum fee rate we'll propose for transactions. However, if this
 	// happens to be lower than our fee floor, we'll enforce that instead.
-	b.minFeePerKW = minRelayFeePerKw
-	if b.minFeePerKW < FeePerKwFloor {
-		b.minFeePerKW = FeePerKwFloor
+	b.minFeePerKB = AtomPerKByte(relayFee)
+	if b.minFeePerKB < FeePerKBFloor {
+		b.minFeePerKB = FeePerKBFloor
 	}
 
-	walletLog.Debugf("Using minimum fee rate of %v sat/kw",
-		int64(b.minFeePerKW))
+	walletLog.Debugf("Using minimum fee rate of %s",
+		b.minFeePerKB)
 
 	return nil
 }
@@ -232,13 +195,19 @@ func (b *DcrdFeeEstimator) Stop() error {
 	return nil
 }
 
-// TODO(decred): Update for no weighting in dcr and atoms per byte
-//
-// EstimateFeePerKW takes in a target for the number of blocks until an initial
-// confirmation and returns the estimated fee expressed in sat/kw.
+// RelayFeePerKB returns the minimum fee rate required for transactions to be
+// relayed.
 //
 // NOTE: This method is part of the FeeEstimator interface.
-func (b *DcrdFeeEstimator) EstimateFeePerKW(numBlocks uint32) (SatPerKWeight, error) {
+func (b *DcrdFeeEstimator) RelayFeePerKB() AtomPerKByte {
+	return b.minFeePerKB
+}
+
+// EstimateFeePerKB queries the connected chain client for a fee estimation for
+// the given block range.
+//
+// NOTE: This method is part of the FeeEstimator interface.
+func (b *DcrdFeeEstimator) EstimateFeePerKB(numBlocks uint32) (AtomPerKByte, error) {
 	feeEstimate, err := b.fetchEstimate(numBlocks)
 	switch {
 	// If the estimator doesn't have enough data, or returns an error, then
@@ -249,29 +218,15 @@ func (b *DcrdFeeEstimator) EstimateFeePerKW(numBlocks uint32) (SatPerKWeight, er
 		fallthrough
 
 	case feeEstimate == 0:
-		return b.fallbackFeePerKW, nil
+		return b.fallbackFeePerKB, nil
 	}
 
 	return feeEstimate, nil
 }
 
-// TODO(decred): Update for no weighting in dcr and atoms per byte
-//
-// RelayFeePerKW returns the minimum fee rate required for transactions to be
-// relayed.
-//
-// NOTE: This method is part of the FeeEstimator interface.
-func (b *DcrdFeeEstimator) RelayFeePerKW() SatPerKWeight {
-	return b.minFeePerKW
-}
-
-func (b DcrdFeeEstimator) EstimateFeePerKB(numBlocks uint32) (dcrutil.Amount, error) {
-	panic("implement")
-}
-
 // fetchEstimate returns a fee estimate for a transaction to be confirmed in
 // confTarget blocks. The estimate is returned in sat/kw.
-func (b *DcrdFeeEstimator) fetchEstimate(confTarget uint32) (SatPerKWeight, error) {
+func (b *DcrdFeeEstimator) fetchEstimate(confTarget uint32) (AtomPerKByte, error) {
 	// TODO(decred): Implement fee estimation.
 	//
 	// First, we'll fetch the estimate for our confirmation target.
@@ -282,31 +237,26 @@ func (b *DcrdFeeEstimator) fetchEstimate(confTarget uint32) (SatPerKWeight, erro
 	// }
 	dcrPerKB := float64(0)
 
-	// TODO(decred): Update for no weighting in dcr and atoms per byte
-	//
-	// Next, we'll convert the returned value to satoshis, as it's
+	// Next, we'll convert the returned value to atoms, as it's
 	// currently returned in DCR.
-	satPerKB, err := dcrutil.NewAmount(dcrPerKB)
+	atoms, err := dcrutil.NewAmount(dcrPerKB)
 	if err != nil {
 		return 0, err
 	}
-
-	// Since we use fee rates in sat/kw internally, we'll convert the
-	// estimated fee rate from its sat/kb representation to sat/kw.
-	satPerKw := SatPerKVByte(satPerKB).FeePerKWeight()
+	atomsPerKB := AtomPerKByte(atoms)
 
 	// Finally, we'll enforce our fee floor.
-	if satPerKw < b.minFeePerKW {
-		walletLog.Debugf("Estimated fee rate of %v sat/kw is too low, "+
-			"using fee floor of %v sat/kw instead", satPerKw,
-			b.minFeePerKW)
-		satPerKw = b.minFeePerKW
+	if atomsPerKB < b.minFeePerKB {
+		walletLog.Debugf("Estimated fee rate of %s is too low, "+
+			"using fee floor of %s", atomsPerKB,
+			b.minFeePerKB)
+		atomsPerKB = b.minFeePerKB
 	}
 
-	walletLog.Debugf("Returning %v sat/kw for conf target of %v",
-		int64(satPerKw), confTarget)
+	walletLog.Debugf("Returning %s for conf target of %s",
+		atomsPerKB, confTarget)
 
-	return satPerKw, nil
+	return atomsPerKB, nil
 }
 
 // A compile-time assertion to ensure that DcrdFeeEstimator implements the

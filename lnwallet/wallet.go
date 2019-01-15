@@ -80,11 +80,11 @@ type InitFundingReserveMsg struct {
 	// of initial commitment transactions. In order to ensure timely
 	// confirmation, it is recommended that this fee should be generous,
 	// paying some multiple of the accepted base fee rate of the network.
-	CommitFeePerKw SatPerKWeight
+	CommitFeePerKw AtomPerKByte
 
 	// FundingFeePerKw is the fee rate in sat/kw to use for the initial
 	// funding transaction.
-	FundingFeePerKw SatPerKWeight
+	FundingFeePerKw AtomPerKByte
 
 	// PushMSat is the number of milli-satoshis that should be pushed over
 	// the responder as part of the initial channel creation.
@@ -1259,7 +1259,7 @@ func (l *LightningWallet) handleSingleFunderSigs(req *addSingleFunderSigsMsg) {
 // within the passed contribution's inputs. If necessary, a change address will
 // also be generated.
 // TODO(roasbeef): remove hardcoded fees.
-func (l *LightningWallet) selectCoinsAndChange(feeRate SatPerKWeight,
+func (l *LightningWallet) selectCoinsAndChange(feeRate AtomPerKByte,
 	amt dcrutil.Amount, minConfs int32,
 	contribution *ChannelContribution) error {
 
@@ -1380,7 +1380,7 @@ func selectInputs(amt dcrutil.Amount, coins []*Utxo) (dcrutil.Amount, []*Utxo, e
 // change output to fund amt satoshis, adhering to the specified fee rate. The
 // specified fee rate should be expressed in sat/kw for coin selection to
 // function properly.
-func coinSelect(feeRate SatPerKWeight, amt dcrutil.Amount,
+func coinSelect(feeRate AtomPerKByte, amt dcrutil.Amount,
 	coins []*Utxo) ([]*Utxo, dcrutil.Amount, error) {
 
 	amtNeeded := amt
@@ -1425,7 +1425,7 @@ func coinSelect(feeRate SatPerKWeight, amt dcrutil.Amount,
 		// coin amount by the estimate required fee, performing another
 		// round of coin selection.
 		totalWeight := int64(weightEstimate.Weight())
-		requiredFee := feeRate.FeeForWeight(totalWeight)
+		requiredFee := feeRate.FeeForSize(totalWeight)
 		if overShootAmt < requiredFee {
 			amtNeeded = amt + requiredFee
 			continue

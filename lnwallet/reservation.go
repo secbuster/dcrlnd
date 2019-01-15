@@ -135,7 +135,7 @@ type ChannelReservation struct {
 // creation of all channel reservations should be carried out via the
 // lnwallet.InitChannelReservation interface.
 func NewChannelReservation(capacity, fundingAmt dcrutil.Amount,
-	commitFeePerKw SatPerKWeight, wallet *LightningWallet,
+	commitFeePerKw AtomPerKByte, wallet *LightningWallet,
 	id uint64, pushMSat lnwire.MilliSatoshi, chainHash *chainhash.Hash,
 	flags lnwire.FundingFlag) (*ChannelReservation, error) {
 
@@ -145,7 +145,7 @@ func NewChannelReservation(capacity, fundingAmt dcrutil.Amount,
 		initiator    bool
 	)
 
-	commitFee := commitFeePerKw.FeeForWeight(CommitWeight)
+	commitFee := commitFeePerKw.FeeForSize(CommitWeight)
 
 	fundingMSat := lnwire.NewMSatFromSatoshis(fundingAmt)
 	capacityMSat := lnwire.NewMSatFromSatoshis(capacity)

@@ -219,18 +219,14 @@ func (b *DcrWallet) IsOurAddress(a dcrutil.Address) bool {
 //
 // This is a part of the WalletController interface.
 func (b *DcrWallet) SendOutputs(outputs []*wire.TxOut,
-	feeRate lnwallet.SatPerKWeight) (*wire.MsgTx, error) {
-
-	// Convert our fee rate from sat/kw to sat/kb since it's required by
-	// SendOutputs.
-	feeSatPerKB := dcrutil.Amount(feeRate.FeePerKVByte())
-
+	feeRate lnwallet.AtomPerKByte) (*wire.MsgTx, error) {
+	
 	// Ensure we haven't changed the default relay fee.
 	// TODO(decred) Potentially change to a construct/sign/publish cycle or
 	// add the fee as a parameter so that we don't risk changing the default
 	// fee rate.
 	oldRelayFee := b.wallet.RelayFee()
-	b.wallet.SetRelayFee(feeSatPerKB)
+	b.wallet.SetRelayFee(dcrutil.Amount(feeRate))
 	defer b.wallet.SetRelayFee(oldRelayFee)
 
 	txHash, err := b.wallet.SendOutputs(outputs, defaultAccount, 1)

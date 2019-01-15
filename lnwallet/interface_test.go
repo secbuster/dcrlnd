@@ -197,7 +197,7 @@ func newPkScript(t *testing.T, w *lnwallet.LightningWallet,
 // parties to send on-chain funds to each other.
 func sendCoins(t *testing.T, miner *rpctest.Harness,
 	sender, receiver *lnwallet.LightningWallet, output *wire.TxOut,
-	feeRate lnwallet.SatPerKWeight) *wire.MsgTx {
+	feeRate lnwallet.AtomPerKByte) *wire.MsgTx {
 
 	t.Helper()
 
@@ -768,8 +768,7 @@ func testReservationInitiatorBalanceBelowDustCancel(miner *rpctest.Harness,
 		t.Fatalf("unable to create amt: %v", err)
 	}
 
-	// TODO(decred) feePerKB
-	feePerKw := lnwallet.SatPerKWeight(
+	feePerKw := lnwallet.AtomPerKByte(
 		numBTC * numBTC * dcrutil.AtomsPerCoin,
 	)
 	req := &lnwallet.InitFundingReserveMsg{
@@ -2106,7 +2105,7 @@ func testChangeOutputSpendConfirmation(r *rpctest.Harness,
 	//
 	// TODO(wilmer): replace this once SendOutputs easily supports sending
 	// all funds in one transaction.
-	txFeeRate := lnwallet.SatPerKWeight(2500)
+	txFeeRate := lnwallet.AtomPerKByte(2500)
 	txFee := dcrutil.Amount(14380)
 	output := &wire.TxOut{
 		Value:    int64(aliceBalance - txFee),
