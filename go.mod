@@ -70,3 +70,5 @@ require (
 	gopkg.in/macaroon.v2 v2.0.0
 	gopkg.in/mgo.v2 v2.0.0-20180705113604-9856a29383ce // indirect
 )
+
+replace github.com/decred/dcrwallet/wallet => github.com/matheusd/dcrwallet/wallet v0.0.0-20190115143705-93473c7512c8
