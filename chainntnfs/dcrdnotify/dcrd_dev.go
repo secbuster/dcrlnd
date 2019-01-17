@@ -3,6 +3,7 @@
 package dcrdnotify
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -10,18 +11,22 @@ import (
 	"github.com/decred/dcrlnd/chainntnfs"
 )
 
+// TODO(decred): Determine if the generateBlocks is needed.
+//
 // UnsafeStart starts the notifier with a specified best height and optional
 // best hash. Its bestBlock and txNotifier are initialized with bestHeight and
 // optionally bestHash. The parameter generateBlocks is necessary for the
 // bitcoind notifier to ensure we drain all notifications up to syncHeight,
 // since if they are generated ahead of UnsafeStart the chainConn may start up
 // with an outdated best block and miss sending ntfns. Used for testing.
-func (b *DcrdNotifier) UnsafeStart(bestHeight int32, bestHash *chainhash.Hash,
-	syncHeight int32, generateBlocks func() error) error {
+func (b *DcrdNotifier) UnsafeStart(bestHeight int64, bestHash *chainhash.Hash,
+	syncHeight int64, generateBlocks func() error) error {
 
+	// TODO(decred): Handle 20 retries...
+	//
 	// Connect to dcrd, and register for notifications on connected, and
 	// disconnected blocks.
-	if err := b.chainConn.Connect(20); err != nil {
+	if err := b.chainConn.Connect(context.Background(), true); err != nil {
 		return err
 	}
 	if err := b.chainConn.NotifyBlocks(); err != nil {
@@ -29,12 +34,11 @@ func (b *DcrdNotifier) UnsafeStart(bestHeight int32, bestHash *chainhash.Hash,
 	}
 
 	b.txNotifier = chainntnfs.NewTxNotifier(
-		uint32(bestHeight), reorgSafetyLimit, b.confirmHintCache,
-		b.spendHintCache,
+		uint32(bestHeight), chainntnfs.ReorgSafetyLimit,
+		b.confirmHintCache, b.spendHintCache,
 	)
 
 	b.chainUpdates.Start()
-	b.txUpdates.Start()
 
 	if generateBlocks != nil {
 		// Ensure no block notifications are pending when we start the
@@ -51,8 +55,8 @@ func (b *DcrdNotifier) UnsafeStart(bestHeight int32, bestHash *chainhash.Hash,
 		for {
 			select {
 			case ntfn := <-b.chainUpdates.ChanOut():
-				lastReceivedNtfn := ntfn.(*chainUpdate)
-				if lastReceivedNtfn.blockHeight >= syncHeight {
+				lastReceivedNtfn := ntfn.(*filteredBlock)
+				if lastReceivedNtfn.header.Height >= uint32(syncHeight) {
 					break loop
 				}
 			case <-timeout:
@@ -64,7 +68,9 @@ func (b *DcrdNotifier) UnsafeStart(bestHeight int32, bestHash *chainhash.Hash,
 
 	// Run notificationDispatcher after setting the notifier's best block
 	// to avoid a race condition.
-	b.bestBlock = chainntnfs.BlockEpoch{Height: bestHeight, Hash: bestHash}
+	b.bestBlock = chainntnfs.BlockEpoch{
+		Height: int32(bestHeight), Hash: bestHash,
+	}
 	if bestHash == nil {
 		hash, err := b.chainConn.GetBlockHash(int64(bestHeight))
 		if err != nil {

@@ -5,11 +5,6 @@ package chainntnfs
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
-	"math/rand"
-	"os"
-	"os/exec"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -21,8 +16,6 @@ import (
 	"github.com/decred/dcrd/rpctest"
 	"github.com/decred/dcrd/txscript"
 	"github.com/decred/dcrd/wire"
-	"github.com/decred/dcrwallet/chain"
-	"github.com/decred/dcrwallet/wallet/walletdb"
 )
 
 var (
@@ -33,7 +26,7 @@ var (
 )
 
 var (
-	NetParams = &chaincfg.RegressionNetParams
+	NetParams = &chaincfg.RegNetParams
 
 	testPrivKey = []byte{
 		0x81, 0xb6, 0x37, 0xd8, 0xfc, 0xd2, 0xc6, 0xda,
@@ -41,8 +34,8 @@ var (
 		0xd, 0xe7, 0x95, 0xe4, 0xb7, 0x25, 0xb8, 0x4d,
 		0x1e, 0xb, 0x4c, 0xfd, 0x9e, 0xc5, 0x8c, 0xe9,
 	}
-	privKey, pubKey = secp256k1.PrivKeyFromBytes(secp256k1.S256(), testPrivKey)
-	addrPk, _       = dcrutil.NewAddressPubKey(
+	privKey, pubKey = secp256k1.PrivKeyFromBytes(testPrivKey)
+	addrPk, _       = dcrutil.NewAddressSecpPubKey(
 		pubKey.SerializeCompressed(), NetParams,
 	)
 	testAddr = addrPk.AddressPubKeyHash()
@@ -116,7 +109,8 @@ func CreateSpendableOutput(t *testing.T, miner *rpctest.Harness) (*wire.OutPoint
 		t.Fatalf("unable to create p2pkh script: %v", err)
 	}
 	output := &wire.TxOut{Value: 2e8, PkScript: script}
-	txid, err := miner.SendOutputsWithoutChange([]*wire.TxOut{output}, 10)
+	// TODO(decred): SendOutputsWithoutChange
+	txid, err := miner.SendOutputs([]*wire.TxOut{output}, 10)
 	if err != nil {
 		t.Fatalf("unable to create tx: %v", err)
 	}
@@ -129,14 +123,15 @@ func CreateSpendableOutput(t *testing.T, miner *rpctest.Harness) (*wire.OutPoint
 		t.Fatalf("unable to generate single block: %v", err)
 	}
 
-	return wire.NewOutPoint(txid, 0), script
+	return wire.NewOutPoint(txid, 0, wire.TxTreeRegular), script
 }
 
 // CreateSpendTx creates a transaction spending the specified output.
 func CreateSpendTx(t *testing.T, outpoint *wire.OutPoint, pkScript []byte) *wire.MsgTx {
 	t.Helper()
 
-	spendingTx := wire.NewMsgTx(1)
+	spendingTx := wire.NewMsgTx()
+	spendingTx.Version = 1
 	spendingTx.AddTxIn(&wire.TxIn{PreviousOutPoint: *outpoint})
 	spendingTx.AddTxOut(&wire.TxOut{Value: 1e8, PkScript: pkScript})
 
@@ -151,16 +146,19 @@ func CreateSpendTx(t *testing.T, outpoint *wire.OutPoint, pkScript []byte) *wire
 	return spendingTx
 }
 
-// NewMiner spawns testing harness backed by a dcrd node that can serve as a
+// NewMiner spawns a testing harness backed by a dcrd node that can serve as a
 // miner.
 func NewMiner(t *testing.T, extraArgs []string, createChain bool,
 	spendableOutputs uint32) (*rpctest.Harness, func()) {
 
 	t.Helper()
 
+	// TODO(decred): Test and either remove or add as needed.
+	//
 	// Add the trickle interval argument to the extra args.
 	trickle := fmt.Sprintf("--trickleinterval=%v", trickleInterval)
-	extraArgs = append(extraArgs, trickle)
+	//extraArgs = append(extraArgs, trickle)
+	_ = trickle
 
 	node, err := rpctest.New(NetParams, nil, extraArgs)
 	if err != nil {

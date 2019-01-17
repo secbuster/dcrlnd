@@ -1,6 +1,6 @@
 // +build dev
 
-package dcrddnotify
+package dcrdnotify
 
 import (
 	"io/ioutil"

@@ -11,22 +11,18 @@ import (
 	"testing"
 	"time"
 
-	"github.com/decred/dcrd/chaincfg"
 	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/dcrec/secp256k1"
-	"github.com/decred/dcrd/dcrjson"
 	"github.com/decred/dcrd/dcrutil"
 	"github.com/decred/dcrd/rpcclient"
 	"github.com/decred/dcrd/rpctest"
-	"github.com/decred/dcrd/txscript"
+
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
+	"github.com/decred/dcrlnd/chainntnfs/dcrdnotify"
 	"github.com/decred/dcrlnd/channeldb"
-	"github.com/decred/dcrwallet/wallet/walletdb"
-
 	// Required to auto-register the dcrd backed ChainNotifier
 	// implementation.
-	_ "github.com/decred/dcrlnd/chainntnfs/dcrdnotify"
+	//_ "github.com/decred/dcrlnd/chainntnfs/dcrdnotify"
 )
 
 func testSingleConfirmationNotification(miner *rpctest.Harness,
@@ -221,8 +217,8 @@ func testBatchConfirmationNotification(miner *rpctest.Harness,
 }
 
 func checkNotificationFields(ntfn *chainntnfs.SpendDetail,
-	outpoint *wire.OutPoint, spenderSha *chainhash.Hash,
-	height int32, t *testing.T) {
+	outpoint *wire.OutPoint, spenderHash *chainhash.Hash,
+	height int64, t *testing.T) {
 
 	t.Helper()
 
@@ -231,17 +227,17 @@ func checkNotificationFields(ntfn *chainntnfs.SpendDetail,
 			"%v instead of %v",
 			ntfn.SpentOutPoint, outpoint)
 	}
-	if !bytes.Equal(ntfn.SpenderTxHash[:], spenderSha[:]) {
-		t.Fatalf("ntfn includes wrong spender tx sha, "+
+	if !bytes.Equal(ntfn.SpenderTxHash[:], spenderHash[:]) {
+		t.Fatalf("ntfn includes wrong spender tx hash, "+
 			"reports %v instead of %v",
-			ntfn.SpenderTxHash[:], spenderSha[:])
+			ntfn.SpenderTxHash[:], spenderHash[:])
 	}
 	if ntfn.SpenderInputIndex != 0 {
 		t.Fatalf("ntfn includes wrong spending input "+
 			"index, reports %v, should be %v",
 			ntfn.SpenderInputIndex, 0)
 	}
-	if ntfn.SpendingHeight != height {
+	if int64(ntfn.SpendingHeight) != height {
 		t.Fatalf("ntfn has wrong spending height: "+
 			"expected %v, got %v", height,
 			ntfn.SpendingHeight)
@@ -283,12 +279,12 @@ func testSpendNotification(miner *rpctest.Harness,
 	spendingTx := chainntnfs.CreateSpendTx(t, outpoint, pkScript)
 
 	// Broadcast our spending transaction.
-	spenderSha, err := miner.Node.SendRawTransaction(spendingTx, true)
+	spenderHash, err := miner.Node.SendRawTransaction(spendingTx, true)
 	if err != nil {
 		t.Fatalf("unable to broadcast tx: %v", err)
 	}
 
-	if err := chainntnfs.WaitForMempoolTx(miner, spenderSha); err != nil {
+	if err := chainntnfs.WaitForMempoolTx(miner, spenderHash); err != nil {
 		t.Fatalf("tx not relayed to miner: %v", err)
 	}
 
@@ -351,7 +347,7 @@ func testSpendNotification(miner *rpctest.Harness,
 		case ntfn := <-c.Spend:
 			// We've received the spend nftn. So now verify all the
 			// fields have been set properly.
-			checkNotificationFields(ntfn, outpoint, spenderSha,
+			checkNotificationFields(ntfn, outpoint, spenderHash,
 				currentHeight, t)
 		case <-time.After(30 * time.Second):
 			t.Fatalf("spend ntfn never received")
@@ -721,11 +717,11 @@ func testSpendBeforeNtfnRegistration(miner *rpctest.Harness,
 
 	// We'll then spend this output and broadcast the spend transaction.
 	spendingTx := chainntnfs.CreateSpendTx(t, outpoint, pkScript)
-	spenderSha, err := miner.Node.SendRawTransaction(spendingTx, true)
+	spenderHash, err := miner.Node.SendRawTransaction(spendingTx, true)
 	if err != nil {
 		t.Fatalf("unable to broadcast tx: %v", err)
 	}
-	if err := chainntnfs.WaitForMempoolTx(miner, spenderSha); err != nil {
+	if err := chainntnfs.WaitForMempoolTx(miner, spenderHash); err != nil {
 		t.Fatalf("tx not relayed to miner: %v", err)
 	}
 
@@ -771,7 +767,7 @@ func testSpendBeforeNtfnRegistration(miner *rpctest.Harness,
 			case ntfn := <-client.Spend:
 				// We've received the spend nftn. So now verify
 				// all the fields have been set properly.
-				checkNotificationFields(ntfn, outpoint, spenderSha,
+				checkNotificationFields(ntfn, outpoint, spenderHash,
 					currentHeight, t)
 			case <-time.After(30 * time.Second):
 				t.Fatalf("spend ntfn never received")
@@ -854,12 +850,12 @@ func testCancelSpendNtfn(node *rpctest.Harness,
 	spendClients[1].Cancel()
 
 	// Broadcast our spending transaction.
-	spenderSha, err := node.Node.SendRawTransaction(spendingTx, true)
+	spenderHash, err := node.Node.SendRawTransaction(spendingTx, true)
 	if err != nil {
 		t.Fatalf("unable to broadcast tx: %v", err)
 	}
 
-	if err := chainntnfs.WaitForMempoolTx(node, spenderSha); err != nil {
+	if err := chainntnfs.WaitForMempoolTx(node, spenderHash); err != nil {
 		t.Fatalf("tx not relayed to miner: %v", err)
 	}
 
@@ -880,10 +876,10 @@ func testCancelSpendNtfn(node *rpctest.Harness,
 				"%v instead of %v",
 				ntfn.SpentOutPoint, outpoint)
 		}
-		if !bytes.Equal(ntfn.SpenderTxHash[:], spenderSha[:]) {
-			t.Fatalf("ntfn includes wrong spender tx sha, "+
+		if !bytes.Equal(ntfn.SpenderTxHash[:], spenderHash[:]) {
+			t.Fatalf("ntfn includes wrong spender tx hash, "+
 				"reports %v instead of %v",
-				ntfn.SpenderTxHash[:], spenderSha[:])
+				ntfn.SpenderTxHash[:], spenderHash[:])
 		}
 		if ntfn.SpenderInputIndex != 0 {
 			t.Fatalf("ntfn includes wrong spending input "+
@@ -1291,7 +1287,7 @@ func testCatchUpClientOnMissedBlocks(miner *rpctest.Harness,
 	// notifications, 1 for each block  they're behind.
 	clients := make([]*chainntnfs.BlockEpochEvent, 0, numClients)
 	outdatedBlock := &chainntnfs.BlockEpoch{
-		Height: outdatedHeight, Hash: outdatedHash,
+		Height: int32(outdatedHeight), Hash: outdatedHash,
 	}
 	for i := 0; i < numClients; i++ {
 		epochClient, err := notifier.RegisterBlockEpochNtfn(outdatedBlock)
@@ -1306,7 +1302,7 @@ func testCatchUpClientOnMissedBlocks(miner *rpctest.Harness,
 		for _, epochClient := range clients {
 			select {
 			case block := <-epochClient.Epochs:
-				if block.Height != expectedHeight {
+				if block.Height != int32(expectedHeight) {
 					t.Fatalf("received block of height: %d, "+
 						"expected: %d", block.Height,
 						expectedHeight)
@@ -1401,7 +1397,7 @@ func testCatchUpOnMissedBlocks(miner *rpctest.Harness,
 		for _, epochClient := range clients {
 			select {
 			case block := <-epochClient.Epochs:
-				if block.Height != expectedHeight {
+				if int64(block.Height) != expectedHeight {
 					t.Fatalf("received block of height: %d, "+
 						"expected: %d", block.Height,
 						expectedHeight)
@@ -1581,10 +1577,8 @@ func testCatchUpOnMissedBlocksWithReorg(miner1 *rpctest.Harness,
 	// the client is only expected to receive notifications for blocks
 	// whose height is greater than the notifier's best known height: 2
 	// notifications, in this case.
-	var startingHeight int32
+	var startingHeight int64
 	switch notifier.(type) {
-	case *neutrinonotify.NeutrinoNotifier:
-		startingHeight = nodeHeight1 + numBlocks + 1
 	default:
 		startingHeight = nodeHeight1 + 1
 	}
@@ -1595,7 +1589,7 @@ func testCatchUpOnMissedBlocksWithReorg(miner1 *rpctest.Harness,
 		for _, epochClient := range clients {
 			select {
 			case block := <-epochClient.Epochs:
-				if block.Height != expectedHeight {
+				if int64(block.Height) != expectedHeight {
 					t.Fatalf("received block of height: %d, "+
 						"expected: %d", block.Height,
 						expectedHeight)

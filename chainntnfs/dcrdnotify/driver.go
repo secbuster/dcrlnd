@@ -11,9 +11,11 @@ import (
 // createNewNotifier creates a new instance of the ChainNotifier interface
 // implemented by DcrdNotifier.
 func createNewNotifier(args ...interface{}) (chainntnfs.ChainNotifier, error) {
-	if len(args) != 3 {
+	const numRequiredArgs = 3
+	if len(args) != numRequiredArgs {
 		return nil, fmt.Errorf("incorrect number of arguments to "+
-			".New(...), expected 2, instead passed %v", len(args))
+			".New(...), expected %d, instead passed %d", numRequiredArgs,
+			len(args))
 	}
 
 	config, ok := args[0].(*rpcclient.ConnConfig)
