@@ -96,6 +96,7 @@ func (p *JusticeDescriptor) commitToLocalInput() (*breachedInput, error) {
 
 // commitToRemoteInput extracts the information required to spend the commit
 // to-remote output.
+// TODO(decred) review for changing p2wkh => p2pk/p2sh
 func (p *JusticeDescriptor) commitToRemoteInput() (*breachedInput, error) {
 	// Retrieve the to-remote witness script from the justice kit.
 	toRemoteScript, err := p.JusticeKit.CommitToRemoteWitnessScript()
@@ -151,10 +152,10 @@ func (p *JusticeDescriptor) commitToRemoteInput() (*breachedInput, error) {
 // assembleJusticeTxn accepts the breached inputs recovered from state update
 // and attempts to construct the justice transaction that sweeps the victims
 // funds to their wallet and claims the watchtower's reward.
-func (p *JusticeDescriptor) assembleJusticeTxn(txWeight int64,
+func (p *JusticeDescriptor) assembleJusticeTxn(txSize int64,
 	inputs ...*breachedInput) (*wire.MsgTx, error) {
 
-	justiceTxn := wire.NewMsgTx(2)
+	justiceTxn := wire.NewMsgTx()
 
 	// First, construct add the breached inputs to our justice transaction
 	// and compute the total amount that will be swept.
@@ -166,14 +167,14 @@ func (p *JusticeDescriptor) assembleJusticeTxn(txWeight int64,
 		})
 	}
 
-	// Using the total input amount and the transaction's weight, compute
+	// Using the total input amount and the transaction's size, compute
 	// the sweep and reward amounts. This corresponds to the amount returned
 	// to the victim and the amount paid to the tower, respectively. To do
 	// so, the required transaction fee is subtracted from the total, and
 	// the remaining amount is divided according to the prenegotiated reward
 	// rate from the client's session info.
 	sweepAmt, rewardAmt, err := p.SessionInfo.ComputeSweepOutputs(
-		totalAmt, txWeight,
+		totalAmt, txSize,
 	)
 	if err != nil {
 		return nil, err
@@ -226,51 +227,51 @@ func (p *JusticeDescriptor) assembleJusticeTxn(txWeight int64,
 func (p *JusticeDescriptor) CreateJusticeTxn() (*wire.MsgTx, error) {
 	var (
 		sweepInputs    = make([]*breachedInput, 0, 2)
-		weightEstimate lnwallet.TxWeightEstimator
+		sizeEstimate lnwallet.TxSizeEstimator
 	)
 
-	// Add our reward address to the weight estimate.
-	weightEstimate.AddP2WKHOutput()
+	// Add our reward address to the size estimate.
+	sizeEstimate.AddP2KHOutput()
 
 	// Add the sweep address's contribution, depending on whether it is a
-	// p2wkh or p2wsh output.
+	// p2pkh or p2sh output.
 	switch len(p.JusticeKit.SweepAddress) {
-	case lnwallet.P2WPKHSize:
-		weightEstimate.AddP2WKHOutput()
+	case lnwallet.P2PKHPkScriptSize:
+		sizeEstimate.AddP2KHOutput()
 
-	case lnwallet.P2WSHSize:
-		weightEstimate.AddP2WSHOutput()
+	case lnwallet.P2SHPkScriptSize:
+		sizeEstimate.AddP2SHOutput()
 
 	default:
 		return nil, ErrUnknownSweepAddrType
 	}
 
 	// Assemble the breached to-local output from the justice descriptor and
-	// add it to our weight estimate.
+	// add it to our size estimate.
 	toLocalInput, err := p.commitToLocalInput()
 	if err != nil {
 		return nil, err
 	}
-	weightEstimate.AddWitnessInput(lnwallet.ToLocalPenaltyWitnessSize)
+	sizeEstimate.AddCustomInput(lnwallet.ToLocalPenaltySigScriptSize)
 	sweepInputs = append(sweepInputs, toLocalInput)
 
 	// If the justice kit specifies that we have to sweep the to-remote
-	// output, we'll also try to assemble the output and add it to weight
+	// output, we'll also try to assemble the output and add it to size
 	// estimate if successful.
 	if p.JusticeKit.HasCommitToRemoteOutput() {
 		toRemoteInput, err := p.commitToRemoteInput()
 		if err != nil {
 			return nil, err
 		}
-		weightEstimate.AddWitnessInput(lnwallet.P2WKHWitnessSize)
+		sizeEstimate.AddP2PKHInput()
 		sweepInputs = append(sweepInputs, toRemoteInput)
 	}
 
 	// TODO(conner): sweep htlc outputs
 
-	txWeight := int64(weightEstimate.Weight())
+	txSize := int64(sizeEstimate.Size())
 
-	return p.assembleJusticeTxn(txWeight, sweepInputs...)
+	return p.assembleJusticeTxn(txSize, sweepInputs...)
 }
 
 // findTxOutByPkScript searches the given transaction for an output whose

@@ -68,7 +68,7 @@ type SessionInfo struct {
 
 	// SweepFeeRate is the agreed upon fee rate used to sign any sweep
 	// transactions.
-	SweepFeeRate lnwallet.SatPerKWeight
+	SweepFeeRate lnwallet.AtomPerKByte
 
 	// RewardAddress the address that the tower's reward will be deposited
 	// to if a sweep transaction confirms.
@@ -115,9 +115,9 @@ func (s *SessionInfo) AcceptUpdateSequence(seqNum, lastApplied uint16) error {
 // and reward rate. The fees are first subtracted from the overall total, before
 // splitting the remaining balance amongst the victim and tower.
 func (s *SessionInfo) ComputeSweepOutputs(totalAmt dcrutil.Amount,
-	txVSize int64) (dcrutil.Amount, dcrutil.Amount, error) {
+	txSize int64) (dcrutil.Amount, dcrutil.Amount, error) {
 
-	txFee := s.SweepFeeRate.FeeForSize(txVSize)
+	txFee := s.SweepFeeRate.FeeForSize(txSize)
 	if txFee > totalAmt {
 		return 0, 0, ErrFeeExceedsInputs
 	}

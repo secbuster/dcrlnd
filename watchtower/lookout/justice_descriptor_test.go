@@ -152,13 +152,13 @@ func TestJusticeDescriptor(t *testing.T) {
 	}
 	breachTxID := breachTxn.TxHash()
 
-	// Compute the weight estimate for our justice transaction.
-	var weightEstimate lnwallet.TxWeightEstimator
-	weightEstimate.AddP2WKHOutput()
-	weightEstimate.AddP2WKHOutput()
-	weightEstimate.AddWitnessInput(lnwallet.ToLocalPenaltyWitnessSize)
-	weightEstimate.AddWitnessInput(lnwallet.P2WKHWitnessSize)
-	txWeight := weightEstimate.Weight()
+	// Compute the size estimate for our justice transaction.
+	var sizeEstimate lnwallet.TxSizeEstimator
+	sizeEstimate.AddP2PKHOutput()
+	sizeEstimate.AddP2PKHOutput()
+	sizeEstimate.AddCustomInput(lnwallet.ToLocalPenaltySigScriptSize)
+	sizeEstimate.AddP2PKHInput()
+	txSize := sizeEstimate.Size()
 
 	// Create a session info so that simulate agreement of the sweep
 	// parameters that should be used in constructing the justice
@@ -169,11 +169,11 @@ func TestJusticeDescriptor(t *testing.T) {
 		RewardAddress: makeAddrSlice(22),
 	}
 
-	// Given the total input amount and the weight estimate, compute the
+	// Given the total input amount and the size estimate, compute the
 	// amount that should be swept for the victim and the amount taken as a
 	// reward by the watchtower.
 	sweepAmt, rewardAmt, err := sessionInfo.ComputeSweepOutputs(
-		totalAmount, int64(txWeight),
+		totalAmount, txSize,
 	)
 	if err != nil {
 		t.Fatalf("unable to compute sweep outputs: %v", err)
