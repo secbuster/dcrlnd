@@ -1392,14 +1392,12 @@ func coinSelect(feeRate AtomPerKByte, amt dcrutil.Amount,
 			return nil, 0, err
 		}
 
-		var weightEstimate TxWeightEstimator
+		var sizeEstimate TxSizeEstimator
 
 		for _, utxo := range selectedUtxos {
 			switch utxo.AddressType {
-			case WitnessPubKey:
-				weightEstimate.AddP2WKHInput()
-			case NestedWitnessPubKey:
-				weightEstimate.AddNestedP2WKHInput()
+			case PubKeyHash:
+				sizeEstimate.AddP2PKHInput()
 			default:
 				return nil, 0, fmt.Errorf("Unsupported address type: %v",
 					utxo.AddressType)
@@ -1407,13 +1405,10 @@ func coinSelect(feeRate AtomPerKByte, amt dcrutil.Amount,
 		}
 
 		// Channel funding multisig output is P2WSH.
-		weightEstimate.AddP2WSHOutput()
+		sizeEstimate.AddP2SHOutput()
 
-		// Assume that change output is a P2WKH output.
-		//
-		// TODO: Handle wallets that generate non-witness change
-		// addresses.
-		weightEstimate.AddP2WKHOutput()
+		// Assume that change output is a P2KH output.
+		sizeEstimate.AddP2PKHOutput()
 
 		// The difference between the selected amount and the amount
 		// requested will be used to pay fees, and generate a change
@@ -1424,8 +1419,8 @@ func coinSelect(feeRate AtomPerKByte, amt dcrutil.Amount,
 		// amount isn't enough to pay fees, then increase the requested
 		// coin amount by the estimate required fee, performing another
 		// round of coin selection.
-		totalWeight := int64(weightEstimate.Weight())
-		requiredFee := feeRate.FeeForSize(totalWeight)
+		totalSize := int64(sizeEstimate.Size())
+		requiredFee := feeRate.FeeForSize(totalSize)
 		if overShootAmt < requiredFee {
 			amtNeeded = amt + requiredFee
 			continue

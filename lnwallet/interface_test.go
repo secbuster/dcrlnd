@@ -265,12 +265,14 @@ func assertTxInWallet(t *testing.T, w *lnwallet.LightningWallet,
 // TODO(bvu): Refactor when dynamic fee estimation is added.
 func calcStaticFee(numHTLCs int) dcrutil.Amount {
 	const (
-		commitWeight = dcrutil.Amount(724)
-		htlcWeight   = 172
-		feePerKw     = dcrutil.Amount(250/4) * 1000
+		// TODO(decred) This was hardcoded here. Should I use static, hardcoded
+		// values instead of estimateCommitmentTxSize?
+		// commitWeight = dcrutil.Amount(724)
+		// htlcWeight   = 172
+		feePerKB = dcrutil.Amount(250) * 1000
 	)
-	return feePerKw * (commitWeight +
-		dcrutil.Amount(htlcWeight*numHTLCs)) / 1000
+	commitSize := lnwallet.EstimateCommitmentTxSize(numHTLCs)
+	return feePerKB * dcrutil.Amount(commitSize/1000)
 }
 
 // TODO(decred): Update for atomsPerOutput...
@@ -416,7 +418,7 @@ func testDualFundingReservationWorkflow(miner *rpctest.Harness,
 		t.Fatalf("unable to query fee estimator: %v", err)
 	}
 	_ = feePerKB
-	
+
 	aliceReq := &lnwallet.InitFundingReserveMsg{
 		ChainHash:       chainHash,
 		NodeID:          bobPub,

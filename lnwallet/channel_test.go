@@ -403,7 +403,7 @@ func TestCheckCommitTxSize(t *testing.T) {
 		// witness script actual size of commitment transaction might
 		// be lower on 6 weight.
 		// TODO(matheusd) review the error limit
-		BaseCommitmentTxSizeEstimationError := 6
+		BaseCommitmentTxSizeEstimationError := int64(6)
 
 		commitTx, err := channel.getSignedCommitTx()
 		if err != nil {
@@ -411,9 +411,9 @@ func TestCheckCommitTxSize(t *testing.T) {
 		}
 
 		actualCost := int64(commitTx.SerializeSize())
-		estimatedCost := estimateCommitTxWeight(count, false)
+		estimatedCost := EstimateCommitmentTxSize(count)
 
-		diff := int(estimatedCost - actualCost)
+		diff := estimatedCost - actualCost
 		if 0 > diff || BaseCommitmentTxSizeEstimationError < diff {
 			t.Fatalf("estimation is wrong, diff: %v", diff)
 		}
@@ -632,9 +632,9 @@ func TestForceClose(t *testing.T) {
 
 	// Factoring in the fee rate, Alice's amount should properly reflect
 	// that we've added two additional HTLC to the commitment transaction.
-	totalCommitWeight := CommitWeight + (HtlcWeight * 2)
-	feePerKw := AtomPerKByte(aliceChannel.channelState.LocalCommitment.FeePerKw)
-	commitFee := feePerKw.FeeForSize(totalCommitWeight) // TODO(decred): No weight...
+	totalCommitSize := CommitmentTxSize + (HTLCOutputSize * 2)
+	feePerKB := AtomPerKByte(aliceChannel.channelState.LocalCommitment.FeePerKw)
+	commitFee := feePerKB.FeeForSize(totalCommitSize)
 	expectedAmount := (aliceChannel.Capacity / 2) - htlcAmount.ToSatoshis() - commitFee
 	if aliceCommitResolution.SelfOutputSignDesc.Output.Value != int64(expectedAmount) {
 		t.Fatalf("alice incorrect output value in SelfOutputSignDesc, "+

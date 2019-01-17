@@ -11,188 +11,108 @@ import (
 	"github.com/decred/dcrlnd/lnwallet"
 )
 
-// TODO(matheusd) mocking just to make not complain
-type txWitnessToReplace [][]byte
-
-// TestTxWeightEstimator tests that transaction weight estimates are calculated
+// TestTxSizeEstimator tests that transaction size estimates are calculated
 // correctly by comparing against an actual (though invalid) transaction
 // matching the template.
-func TestTxWeightEstimator(t *testing.T) {
+func TestTxSizeEstimator(t *testing.T) {
 	netParams := &chaincfg.MainNetParams
 
+	// Static test data.
+	var nullData [73]byte
+
 	p2pkhAddr, err := dcrutil.NewAddressPubKeyHash(
-		make([]byte, 20), netParams, dcrec.STEcdsaSecp256k1)
+		nullData[:20], netParams, dcrec.STEcdsaSecp256k1)
 	if err != nil {
 		t.Fatalf("Failed to generate address: %v", err)
 	}
-	p2pkhScript, err := txscript.PayToAddrScript(p2pkhAddr)
+	p2pkhPkScript, err := txscript.PayToAddrScript(p2pkhAddr)
 	if err != nil {
 		t.Fatalf("Failed to generate scriptPubKey: %v", err)
 	}
 
-	// TODO(matheusd) probably remove these
-	p2wkhAddr := p2pkhAddr
-	// p2wkhAddr, err := dcrutil.NewAddressWitnessPubKeyHash(
-	// 	make([]byte, 20), netParams)
-	// if err != nil {
-	// 	t.Fatalf("Failed to generate address: %v", err)
-	// }
-	p2wkhScript, err := txscript.PayToAddrScript(p2wkhAddr)
+	signature := nullData[:73]
+	compressedPubKey := nullData[:33]
+	p2pkhSigScript, err := txscript.NewScriptBuilder().AddData(signature).
+		AddData(compressedPubKey).Script()
 	if err != nil {
-		t.Fatalf("Failed to generate scriptPubKey: %v", err)
+		t.Fatalf("Failed to generate p2pkhSigScript: %v", err)
 	}
 
-	p2wshAddr := p2wkhAddr
-	// p2wshAddr, err := dcrutil.NewAddressWitnessScriptHash(
-	// 	make([]byte, 32), netParams)
-	// if err != nil {
-	// 	t.Fatalf("Failed to generate address: %v", err)
-	// }
-	p2wshScript, err := txscript.PayToAddrScript(p2wshAddr)
-	if err != nil {
-		t.Fatalf("Failed to generate scriptPubKey: %v", err)
-	}
-
-	p2shAddr, err := dcrutil.NewAddressScriptHash([]byte{0}, netParams)
+	p2shAddr, err := dcrutil.NewAddressScriptHashFromHash(nullData[:20], netParams)
 	if err != nil {
 		t.Fatalf("Failed to generate address: %v", err)
 	}
-	p2shScript, err := txscript.PayToAddrScript(p2shAddr)
+	p2shPkScript, err := txscript.PayToAddrScript(p2shAddr)
 	if err != nil {
 		t.Fatalf("Failed to generate scriptPubKey: %v", err)
+	}
+	p2shRedeemScript := nullData[:71] // 2-of-2 multisig
+	p2shSigScript, err := txscript.NewScriptBuilder().AddData(signature).
+		AddData(signature).AddData(p2shRedeemScript).Script()
+	if err != nil {
+		t.Fatalf("Failed to generate ps2shSigScript: %v", err)
 	}
 
 	testCases := []struct {
-		numP2PKHInputs       int
-		numP2WKHInputs       int
-		numP2WSHInputs       int
-		numNestedP2WKHInputs int
-		numNestedP2WSHInputs int
-		numP2PKHOutputs      int
-		numP2WKHOutputs      int
-		numP2WSHOutputs      int
-		numP2SHOutputs       int
+		numP2PKHInputs  int
+		numP2SHInputs   int
+		numP2PKHOutputs int
+		numP2SHOutputs  int
 	}{
 		{
 			numP2PKHInputs:  1,
 			numP2PKHOutputs: 2,
 		},
 		{
-			numP2PKHInputs:  1,
-			numP2WKHInputs:  1,
-			numP2WKHOutputs: 1,
-			numP2WSHOutputs: 1,
-		},
-		{
-			numP2WKHInputs:  1,
-			numP2WKHOutputs: 1,
-			numP2WSHOutputs: 1,
-		},
-		{
-			numP2WKHInputs:  2,
-			numP2WKHOutputs: 1,
-			numP2WSHOutputs: 1,
-		},
-		{
-			numP2WSHInputs:  1,
-			numP2WKHOutputs: 1,
-		},
-		{
 			numP2PKHInputs: 1,
 			numP2SHOutputs: 1,
 		},
 		{
-			numNestedP2WKHInputs: 1,
-			numP2WKHOutputs:      1,
+			numP2SHInputs:   1,
+			numP2PKHOutputs: 1,
 		},
 		{
-			numNestedP2WSHInputs: 1,
-			numP2WKHOutputs:      1,
+			numP2SHInputs:  1,
+			numP2SHOutputs: 1,
+		},
+		{
+			numP2SHInputs:   1,
+			numP2PKHOutputs: 1,
+			numP2SHOutputs:  2,
 		},
 	}
 
 	for i, test := range testCases {
-		var weightEstimate lnwallet.TxWeightEstimator
+		var sizeEstimate lnwallet.TxSizeEstimator
 		tx := wire.NewMsgTx()
 
+		// Inputs.
+
 		for j := 0; j < test.numP2PKHInputs; j++ {
-			weightEstimate.AddP2PKHInput()
-
-			signature := make([]byte, 73)
-			compressedPubKey := make([]byte, 33)
-			scriptSig, err := txscript.NewScriptBuilder().AddData(signature).
-				AddData(compressedPubKey).Script()
-			if err != nil {
-				t.Fatalf("Failed to generate scriptSig: %v", err)
-			}
-
-			tx.AddTxIn(&wire.TxIn{SignatureScript: scriptSig})
+			sizeEstimate.AddP2PKHInput()
+			tx.AddTxIn(&wire.TxIn{SignatureScript: p2pkhSigScript})
 		}
-		for j := 0; j < test.numP2WKHInputs; j++ {
-			weightEstimate.AddP2WKHInput()
-
-			signature := make([]byte, 73)
-			compressedPubKey := make([]byte, 33)
-			witness := txWitnessToReplace{signature, compressedPubKey}
-			tx.AddTxIn(&wire.TxIn{Witness: witness})
+		for j := 0; j < test.numP2SHInputs; j++ {
+			sizeEstimate.AddCustomInput(int64(len(p2shSigScript)))
+			tx.AddTxIn(&wire.TxIn{SignatureScript: p2shSigScript})
 		}
-		for j := 0; j < test.numP2WSHInputs; j++ {
-			weightEstimate.AddWitnessInput(42)
 
-			witnessScript := make([]byte, 40)
-			witness := txWitnessToReplace{witnessScript}
-			tx.AddTxIn(&wire.TxIn{Witness: witness})
-		}
-		for j := 0; j < test.numNestedP2WKHInputs; j++ {
-			weightEstimate.AddNestedP2WKHInput()
+		// Outputs.
 
-			signature := make([]byte, 73)
-			compressedPubKey := make([]byte, 33)
-			witness := txWitnessToReplace{signature, compressedPubKey}
-			scriptSig, err := txscript.NewScriptBuilder().AddData(p2wkhScript).
-				Script()
-			if err != nil {
-				t.Fatalf("Failed to generate scriptSig: %v", err)
-			}
-
-			tx.AddTxIn(&wire.TxIn{SignatureScript: scriptSig, Witness: witness})
-		}
-		for j := 0; j < test.numNestedP2WSHInputs; j++ {
-			weightEstimate.AddNestedP2WSHInput(42)
-
-			witnessScript := make([]byte, 40)
-			witness := txWitnessToReplace{witnessScript}
-			scriptSig, err := txscript.NewScriptBuilder().AddData(p2wshScript).
-				Script()
-			if err != nil {
-				t.Fatalf("Failed to generate scriptSig: %v", err)
-			}
-
-			tx.AddTxIn(&wire.TxIn{SignatureScript: scriptSig, Witness: witness})
-		}
 		for j := 0; j < test.numP2PKHOutputs; j++ {
-			weightEstimate.AddP2PKHOutput()
-			tx.AddTxOut(&wire.TxOut{PkScript: p2pkhScript})
-		}
-		for j := 0; j < test.numP2WKHOutputs; j++ {
-			weightEstimate.AddP2WKHOutput()
-			tx.AddTxOut(&wire.TxOut{PkScript: p2wkhScript})
-		}
-		for j := 0; j < test.numP2WSHOutputs; j++ {
-			weightEstimate.AddP2WSHOutput()
-			tx.AddTxOut(&wire.TxOut{PkScript: p2wshScript})
+			sizeEstimate.AddP2PKHOutput()
+			tx.AddTxOut(&wire.TxOut{PkScript: p2pkhPkScript})
 		}
 		for j := 0; j < test.numP2SHOutputs; j++ {
-			weightEstimate.AddP2SHOutput()
-			tx.AddTxOut(&wire.TxOut{PkScript: p2shScript})
+			sizeEstimate.AddP2SHOutput()
+			tx.AddTxOut(&wire.TxOut{PkScript: p2shPkScript})
 		}
 
-		// TODO(matheusd) weight to size
-		// expectedWeight := blockchain.GetTransactionWeight(dcrutil.NewTx(tx))
-		expectedWeight := tx.SerializeSize()
-		if weightEstimate.Weight() != int(expectedWeight) {
-			t.Errorf("Case %d: Got wrong weight: expected %d, got %d",
-				i, expectedWeight, weightEstimate.Weight())
+		expectedSize := int64(tx.SerializeSize())
+		actualSize := sizeEstimate.Size()
+		if actualSize != expectedSize {
+			t.Errorf("Case %d: Got wrong size: expected %d, got %d",
+				i, expectedSize, actualSize)
 		}
 	}
 }

@@ -17,11 +17,19 @@ type AddressType uint8
 
 const (
 	// WitnessPubKey represents a p2wkh address.
+	// TODO(decred) remove this type of address
 	WitnessPubKey AddressType = iota
 
 	// NestedWitnessPubKey represents a p2sh output which is itself a
 	// nested p2wkh output.
+	// TODO(decred) remove this type of address
 	NestedWitnessPubKey
+
+	// PubKeyHash represents a p2pkh address
+	PubKeyHash
+
+	// ScriptHash represents a p2sh address
+	ScriptHash
 
 	// UnknownAddressType represents an output with an unknown or non-standard
 	// script.

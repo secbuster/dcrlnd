@@ -145,7 +145,7 @@ func NewChannelReservation(capacity, fundingAmt dcrutil.Amount,
 		initiator    bool
 	)
 
-	commitFee := commitFeePerKw.FeeForSize(CommitWeight)
+	commitFee := commitFeePerKw.FeeForSize(CommitmentTxSize)
 
 	fundingMSat := lnwire.NewMSatFromSatoshis(fundingAmt)
 	capacityMSat := lnwire.NewMSatFromSatoshis(capacity)

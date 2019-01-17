@@ -37,11 +37,11 @@ var (
 	ErrNoWindow = fmt.Errorf("unable to sign new commitment, the current" +
 		" revocation window is exhausted")
 
-	// ErrMaxWeightCost is returned when the cost/weight (see segwit)
-	// exceeds the widely used maximum allowed policy weight limit. In this
+	// ErrMaxSizeCost is returned when the cost/size
+	// exceeds the widely used maximum allowed policy size limit. In this
 	// case the commitment transaction can't be propagated through the
 	// network.
-	ErrMaxWeightCost = fmt.Errorf("commitment transaction exceed max " +
+	ErrMaxSizeCost = fmt.Errorf("commitment transaction exceed max " +
 		"available cost")
 
 	// ErrMaxHTLCNumber is returned when a proposed HTLC would exceed the
@@ -2125,13 +2125,13 @@ func NewBreachRetribution(chanState *channeldb.OpenChannel, stateNum uint64,
 // htlcTimeoutFee returns the fee in satoshis required for an HTLC timeout
 // transaction based on the current fee rate.
 func htlcTimeoutFee(feePerKB AtomPerKByte) dcrutil.Amount {
-	return feePerKB.FeeForSize(HtlcTimeoutWeight)
+	return feePerKB.FeeForSize(htlcTimeoutTxSize)
 }
 
 // htlcSuccessFee returns the fee in satoshis required for an HTLC success
 // transaction based on the current fee rate.
 func htlcSuccessFee(feePerKB AtomPerKByte) dcrutil.Amount {
-	return feePerKB.FeeForSize(HtlcSuccessWeight)
+	return feePerKB.FeeForSize(htlcSuccessTxSize)
 }
 
 // htlcIsDust determines if an HTLC output is dust or not depending on two
@@ -2139,8 +2139,8 @@ func htlcSuccessFee(feePerKB AtomPerKByte) dcrutil.Amount {
 // commitment transaction, or theirs. These two pieces of information are
 // require as we currently used second-level HTLC transactions as off-chain
 // covenants. Depending on the two bits, we'll either be using a timeout or
-// success transaction which have different weights.
-func htlcIsDust(incoming, ourCommit bool, feePerKw AtomPerKByte,
+// success transaction which have different sizes.
+func htlcIsDust(incoming, ourCommit bool, feePerKB AtomPerKByte,
 	htlcAmt, dustLimit dcrutil.Amount) bool {
 
 	// First we'll determine the fee required for this HTLC based on if this is
@@ -2152,25 +2152,25 @@ func htlcIsDust(incoming, ourCommit bool, feePerKw AtomPerKByte,
 	// If this is an incoming HTLC on our commitment transaction, then the
 	// second-level transaction will be a success transaction.
 	case incoming && ourCommit:
-		htlcFee = htlcSuccessFee(feePerKw)
+		htlcFee = htlcSuccessFee(feePerKB)
 
 	// If this is an incoming HTLC on their commitment transaction, then
 	// we'll be using a second-level timeout transaction as they've added
 	// this HTLC.
 	case incoming && !ourCommit:
-		htlcFee = htlcTimeoutFee(feePerKw)
+		htlcFee = htlcTimeoutFee(feePerKB)
 
 	// If this is an outgoing HTLC on our commitment transaction, then
 	// we'll be using a timeout transaction as we're the sender of the
 	// HTLC.
 	case !incoming && ourCommit:
-		htlcFee = htlcTimeoutFee(feePerKw)
+		htlcFee = htlcTimeoutFee(feePerKB)
 
 	// If this is an outgoing HTLC on their commitment transaction, then
 	// we'll be using an HTLC success transaction as they're the receiver
 	// of this HTLC.
 	case !incoming && !ourCommit:
-		htlcFee = htlcSuccessFee(feePerKw)
+		htlcFee = htlcSuccessFee(feePerKB)
 	}
 
 	return (htlcAmt - htlcFee) < dustLimit
@@ -2238,7 +2238,7 @@ func (lc *LightningChannel) fetchCommitmentView(remoteChain bool,
 	// in order to update their commitment addition height, and to adjust
 	// the balances on the commitment transaction accordingly.
 	htlcView := lc.fetchHTLCView(theirLogIndex, ourLogIndex)
-	ourBalance, theirBalance, _, filteredHTLCView, feePerKw :=
+	ourBalance, theirBalance, _, filteredHTLCView, feePerKB :=
 		lc.computeView(htlcView, remoteChain, true)
 
 	// Determine how many current HTLCs are over the dust limit, and should
@@ -2258,7 +2258,7 @@ func (lc *LightningChannel) fetchCommitmentView(remoteChain bool,
 		theirMessageIndex: theirLogIndex,
 		theirHtlcIndex:    theirHtlcIndex,
 		height:            nextHeight,
-		feePerKw:          feePerKw,
+		feePerKw:          feePerKB,
 		dustLimit:         dustLimit,
 		isOurs:            !remoteChain,
 	}
@@ -2321,16 +2321,15 @@ func (lc *LightningChannel) createCommitmentTx(c *commitment,
 		numHTLCs++
 	}
 
-	// TODO(decred): Weight -> Size?
 	// Next, we'll calculate the fee for the commitment transaction based
-	// on its total weight. Once we have the total weight, we'll multiply
-	// by the current fee-per-kw, then divide by 1000 to get the proper
+	// on its total size. Once we have the total size, we'll multiply
+	// by the current fee-per-kb, then divide by 1000 to get the proper
 	// fee.
-	totalCommitWeight := CommitWeight + (HtlcWeight * numHTLCs)
+	totalCommitSize := CommitmentTxSize + (HTLCOutputSize * numHTLCs)
 
-	// With the weight known, we can now calculate the commitment fee,
+	// With the size known, we can now calculate the commitment fee,
 	// ensuring that we account for any dust outputs trimmed above.
-	commitFee := c.feePerKw.FeeForSize(totalCommitWeight)
+	commitFee := c.feePerKw.FeeForSize(totalCommitSize)
 	commitFeeMSat := lnwire.NewMSatFromSatoshis(commitFee)
 
 	// Currently, within the protocol, the initiator always pays the fees.
@@ -2665,7 +2664,7 @@ func genRemoteHtlcSigJobs(keyRing *CommitmentKeyRing,
 
 	txHash := remoteCommitView.txn.TxHash()
 	dustLimit := remoteChanCfg.DustLimit
-	feePerKw := remoteCommitView.feePerKw // TODO(decred): feePerKb?
+	feePerKB := remoteCommitView.feePerKw
 
 	// With the keys generated, we'll make a slice with enough capacity to
 	// hold potentially all the HTLCs. The actual slice may be a bit
@@ -2681,7 +2680,7 @@ func genRemoteHtlcSigJobs(keyRing *CommitmentKeyRing,
 	// dust output after taking into account second-level HTLC fees, then a
 	// sigJob will be generated and appended to the current batch.
 	for _, htlc := range remoteCommitView.incomingHTLCs {
-		if htlcIsDust(true, false, feePerKw, htlc.Amount.ToSatoshis(),
+		if htlcIsDust(true, false, feePerKB, htlc.Amount.ToSatoshis(),
 			dustLimit) {
 			continue
 		}
@@ -2697,7 +2696,7 @@ func genRemoteHtlcSigJobs(keyRing *CommitmentKeyRing,
 		// HTLC timeout transaction for them. The output of the timeout
 		// transaction needs to account for fees, so we'll compute the
 		// required fee and output now.
-		htlcFee := htlcTimeoutFee(feePerKw)
+		htlcFee := htlcTimeoutFee(feePerKB)
 		outputAmt := htlc.Amount.ToSatoshis() - htlcFee
 
 		// With the fee calculate, we can properly create the HTLC
@@ -2733,7 +2732,7 @@ func genRemoteHtlcSigJobs(keyRing *CommitmentKeyRing,
 		sigBatch = append(sigBatch, sigJob)
 	}
 	for _, htlc := range remoteCommitView.outgoingHTLCs {
-		if htlcIsDust(false, false, feePerKw, htlc.Amount.ToSatoshis(),
+		if htlcIsDust(false, false, feePerKB, htlc.Amount.ToSatoshis(),
 			dustLimit) {
 			continue
 		}
@@ -2747,7 +2746,7 @@ func genRemoteHtlcSigJobs(keyRing *CommitmentKeyRing,
 		// HTLC success transaction for them. The output of the timeout
 		// transaction needs to account for fees, so we'll compute the
 		// required fee and output now.
-		htlcFee := htlcSuccessFee(feePerKw)
+		htlcFee := htlcSuccessFee(feePerKB)
 		outputAmt := htlc.Amount.ToSatoshis() - htlcFee
 
 		// With the proper output amount calculated, we can now
@@ -3482,7 +3481,7 @@ func ChanSyncMsg(c *channeldb.OpenChannel) (*lnwire.ChannelReestablish, error) {
 }
 
 // computeView takes the given htlcView, and calculates the balances, filtered
-// view (settling unsettled HTLCs), commitment weight and feePerKw, after
+// view (settling unsettled HTLCs), commitment size and feePerKB, after
 // applying the HTLCs to the latest commitment. The returned balances are the
 // balances *before* subtracting the commitment fee from the initiator's
 // balance.
@@ -3526,10 +3525,10 @@ func (lc *LightningChannel) computeView(view *htlcView, remoteChain bool,
 	filteredHTLCView := lc.evaluateHTLCView(view, &ourBalance,
 		&theirBalance, nextHeight, remoteChain, updateState)
 
-	// Initiate feePerKw to the last committed fee for this chain as we'll
+	// Initiate feePerKB to the last committed fee for this chain as we'll
 	// need this to determine which HTLCs are dust, and also the final fee
 	// rate.
-	feePerKw := commitChain.tip().feePerKw
+	feePerKB := commitChain.tip().feePerKw
 
 	// Check if any fee updates have taken place since that last
 	// commitment.
@@ -3539,50 +3538,50 @@ func (lc *LightningChannel) computeView(view *htlcView, remoteChain bool,
 		// and now are now creating a commitment that reflects the new
 		// fee update.
 		case remoteChain && lc.pendingFeeUpdate != nil:
-			feePerKw = *lc.pendingFeeUpdate
+			feePerKB = *lc.pendingFeeUpdate
 
 		// We've created a new commitment for the remote chain that
 		// includes a fee update, and have not received a commitment
 		// after the fee update has been ACKed.
 		case !remoteChain && lc.pendingAckFeeUpdate != nil:
-			feePerKw = *lc.pendingAckFeeUpdate
+			feePerKB = *lc.pendingAckFeeUpdate
 		}
 	} else {
 		switch {
 		// We've received a fee update since the last local commitment,
 		// so we'll include the fee update in the current view.
 		case !remoteChain && lc.pendingFeeUpdate != nil:
-			feePerKw = *lc.pendingFeeUpdate
+			feePerKB = *lc.pendingFeeUpdate
 
 		// Earlier we received a commitment that signed an earlier fee
 		// update, and now we must ACK that update.
 		case remoteChain && lc.pendingAckFeeUpdate != nil:
-			feePerKw = *lc.pendingAckFeeUpdate
+			feePerKB = *lc.pendingAckFeeUpdate
 		}
 	}
 
 	// Now go through all HTLCs at this stage, to calculate the total
-	// weight, needed to calculate the transaction fee.
-	var totalHtlcWeight int64
+	// size, needed to calculate the transaction fee.
+	var totalHtlcSize int64
 	for _, htlc := range filteredHTLCView.ourUpdates {
-		if htlcIsDust(remoteChain, !remoteChain, feePerKw,
+		if htlcIsDust(remoteChain, !remoteChain, feePerKB,
 			htlc.Amount.ToSatoshis(), dustLimit) {
 			continue
 		}
 
-		totalHtlcWeight += HtlcWeight
+		totalHtlcSize += HTLCOutputSize
 	}
 	for _, htlc := range filteredHTLCView.theirUpdates {
-		if htlcIsDust(!remoteChain, !remoteChain, feePerKw,
+		if htlcIsDust(!remoteChain, !remoteChain, feePerKB,
 			htlc.Amount.ToSatoshis(), dustLimit) {
 			continue
 		}
 
-		totalHtlcWeight += HtlcWeight
+		totalHtlcSize += HTLCOutputSize
 	}
 
-	totalCommitWeight := CommitWeight + totalHtlcWeight
-	return ourBalance, theirBalance, totalCommitWeight, filteredHTLCView, feePerKw
+	totalCommitSize := CommitmentTxSize + totalHtlcSize
+	return ourBalance, theirBalance, totalCommitSize, filteredHTLCView, feePerKB
 }
 
 // validateCommitmentSanity is used to validate the current state of the
@@ -3613,13 +3612,13 @@ func (lc *LightningChannel) validateCommitmentSanity(theirLogCounter,
 	ourInitialBalance := commitChain.tip().ourBalance
 	theirInitialBalance := commitChain.tip().theirBalance
 
-	ourBalance, theirBalance, commitWeight, filteredView, feePerKw := lc.computeView(
+	ourBalance, theirBalance, commitSize, filteredView, feePerKB := lc.computeView(
 		view, remoteChain, false,
 	)
 
 	// Calculate the commitment fee, and subtract it from the initiator's
 	// balance.
-	commitFee := feePerKw.FeeForSize(commitWeight)
+	commitFee := feePerKB.FeeForSize(commitSize)
 	commitFeeMsat := lnwire.NewMSatFromSatoshis(commitFee)
 	if lc.channelState.IsInitiator {
 		ourBalance -= commitFeeMsat
@@ -3725,7 +3724,7 @@ func genHtlcSigValidationJobs(localCommitmentView *commitment,
 	localChanCfg, remoteChanCfg *channeldb.ChannelConfig) ([]VerifyJob, error) {
 
 	txHash := localCommitmentView.txn.TxHash()
-	feePerKw := localCommitmentView.feePerKw
+	feePerKB := localCommitmentView.feePerKw
 
 	// With the required state generated, we'll create a slice with large
 	// enough capacity to hold verification jobs for all HTLC's in this
@@ -3765,7 +3764,7 @@ func genHtlcSigValidationJobs(localCommitmentView *commitment,
 					Index: uint32(htlc.localOutputIndex),
 				}
 
-				htlcFee := htlcSuccessFee(feePerKw)
+				htlcFee := htlcSuccessFee(feePerKB)
 				outputAmt := htlc.Amount.ToSatoshis() - htlcFee
 
 				successTx, err := createHtlcSuccessTx(op,
@@ -3815,7 +3814,7 @@ func genHtlcSigValidationJobs(localCommitmentView *commitment,
 					Index: uint32(htlc.localOutputIndex),
 				}
 
-				htlcFee := htlcTimeoutFee(feePerKw)
+				htlcFee := htlcTimeoutFee(feePerKB)
 				outputAmt := htlc.Amount.ToSatoshis() - htlcFee
 
 				timeoutTx, err := createHtlcTimeoutTx(op,
@@ -5213,7 +5212,7 @@ type HtlcResolutions struct {
 // the remote party's commitment transaction.
 func newOutgoingHtlcResolution(signer Signer, localChanCfg *channeldb.ChannelConfig,
 	commitHash chainhash.Hash, htlc *channeldb.HTLC, keyRing *CommitmentKeyRing,
-	feePerKw AtomPerKByte, dustLimit dcrutil.Amount, csvDelay uint32, localCommit bool,
+	feePerKB AtomPerKByte, dustLimit dcrutil.Amount, csvDelay uint32, localCommit bool,
 ) (*OutgoingHtlcResolution, error) {
 
 	op := wire.OutPoint{
@@ -5263,7 +5262,7 @@ func newOutgoingHtlcResolution(signer Signer, localChanCfg *channeldb.ChannelCon
 	// In order to properly reconstruct the HTLC transaction, we'll need to
 	// re-calculate the fee required at this state, so we can add the
 	// correct output value amount to the transaction.
-	htlcFee := htlcTimeoutFee(feePerKw)
+	htlcFee := htlcTimeoutFee(feePerKB)
 	secondLevelOutputAmt := htlc.Amt.ToSatoshis() - htlcFee
 
 	// With the fee calculated, re-construct the second level timeout
@@ -5356,7 +5355,7 @@ func newOutgoingHtlcResolution(signer Signer, localChanCfg *channeldb.ChannelCon
 // TODO(roasbeef) consolidate code with above func
 func newIncomingHtlcResolution(signer Signer, localChanCfg *channeldb.ChannelConfig,
 	commitHash chainhash.Hash, htlc *channeldb.HTLC, keyRing *CommitmentKeyRing,
-	feePerKw AtomPerKByte, dustLimit dcrutil.Amount, csvDelay uint32,
+	feePerKB AtomPerKByte, dustLimit dcrutil.Amount, csvDelay uint32,
 	localCommit bool, preimage [32]byte) (*IncomingHtlcResolution, error) {
 
 	op := wire.OutPoint{
@@ -5404,7 +5403,7 @@ func newIncomingHtlcResolution(signer Signer, localChanCfg *channeldb.ChannelCon
 
 	// First, we'll reconstruct the original HTLC success transaction,
 	// taking into account the fee rate used.
-	htlcFee := htlcSuccessFee(feePerKw)
+	htlcFee := htlcSuccessFee(feePerKB)
 	secondLevelOutputAmt := htlc.Amt.ToSatoshis() - htlcFee
 	successTx, err := createHtlcSuccessTx(
 		op, secondLevelOutputAmt, csvDelay,
@@ -5486,7 +5485,7 @@ func newIncomingHtlcResolution(signer Signer, localChanCfg *channeldb.ChannelCon
 // extractHtlcResolutions creates a series of outgoing HTLC resolutions, and
 // the local key used when generating the HTLC scrips. This function is to be
 // used in two cases: force close, or a unilateral close.
-func extractHtlcResolutions(feePerKw AtomPerKByte, ourCommit bool,
+func extractHtlcResolutions(feePerKB AtomPerKByte, ourCommit bool,
 	signer Signer, htlcs []channeldb.HTLC, keyRing *CommitmentKeyRing,
 	localChanCfg, remoteChanCfg *channeldb.ChannelConfig,
 	commitHash chainhash.Hash, pCache PreimageCache) (*HtlcResolutions, error) {
@@ -5505,7 +5504,7 @@ func extractHtlcResolutions(feePerKw AtomPerKByte, ourCommit bool,
 		// We'll skip any HTLC's which were dust on the commitment
 		// transaction, as these don't have a corresponding output
 		// within the commitment transaction.
-		if htlcIsDust(htlc.Incoming, ourCommit, feePerKw,
+		if htlcIsDust(htlc.Incoming, ourCommit, feePerKB,
 			htlc.Amt.ToSatoshis(), dustLimit) {
 			continue
 		}
@@ -5524,7 +5523,7 @@ func extractHtlcResolutions(feePerKw AtomPerKByte, ourCommit bool,
 			copy(pre[:], preimage)
 			ihr, err := newIncomingHtlcResolution(
 				signer, localChanCfg, commitHash, &htlc, keyRing,
-				feePerKw, dustLimit, uint32(csvDelay), ourCommit,
+				feePerKB, dustLimit, uint32(csvDelay), ourCommit,
 				pre,
 			)
 			if err != nil {
@@ -5537,7 +5536,7 @@ func extractHtlcResolutions(feePerKw AtomPerKByte, ourCommit bool,
 
 		ohr, err := newOutgoingHtlcResolution(
 			signer, localChanCfg, commitHash, &htlc, keyRing,
-			feePerKw, dustLimit, uint32(csvDelay), ourCommit,
+			feePerKB, dustLimit, uint32(csvDelay), ourCommit,
 		)
 		if err != nil {
 			return nil, err
@@ -5887,7 +5886,7 @@ func (lc *LightningChannel) AvailableBalance() lnwire.MilliSatoshi {
 
 // availableBalance is the private, non mutexed version of AvailableBalance.
 // This method is provided so methods that already hold the lock can access
-// this method. Additionally, the total weight of the next to be created
+// this method. Additionally, the total size of the next to be created
 // commitment is returned for accounting purposes.
 func (lc *LightningChannel) availableBalance() (lnwire.MilliSatoshi, int64) {
 	// We'll grab the current set of log updates that the remote has
@@ -5897,17 +5896,17 @@ func (lc *LightningChannel) availableBalance() (lnwire.MilliSatoshi, int64) {
 		lc.localUpdateLog.logIndex)
 
 	// Then compute our current balance for that view.
-	ourBalance, _, commitWeight, _, feePerKw :=
+	ourBalance, _, commitSize, _, feePerKB :=
 		lc.computeView(htlcView, false, false)
 
 	// If we are the channel initiator, we must remember to subtract the
 	// commitment fee from our available balance.
-	commitFee := feePerKw.FeeForSize(commitWeight)
+	commitFee := feePerKB.FeeForSize(commitSize)
 	if lc.channelState.IsInitiator {
 		ourBalance -= lnwire.NewMSatFromSatoshis(commitFee)
 	}
 
-	return ourBalance, commitWeight
+	return ourBalance, commitSize
 }
 
 // StateSnapshot returns a snapshot of the current fully committed state within
@@ -5922,22 +5921,22 @@ func (lc *LightningChannel) StateSnapshot() *channeldb.ChannelSnapshot {
 // validateFeeRate ensures that if the passed fee is applied to the channel,
 // and a new commitment is created (which evaluates this fee), then the
 // initiator of the channel does not dip below their reserve.
-func (lc *LightningChannel) validateFeeRate(feePerKw AtomPerKByte) error {
+func (lc *LightningChannel) validateFeeRate(feePerKB AtomPerKByte) error {
 	// We'll ensure that we can accommodate this new fee change, yet still
 	// be above our reserve balance. Otherwise, we'll reject the fee
 	// update.
-	availableBalance, txWeight := lc.availableBalance()
+	availableBalance, txSize := lc.availableBalance()
 	oldFee := lnwire.NewMSatFromSatoshis(lc.localCommitChain.tip().fee)
 
 	// Our base balance is the total amount of satoshis we can commit
 	// towards fees before factoring in the channel reserve.
 	baseBalance := availableBalance + oldFee
 
-	// Using the weight of the commitment transaction if we were to create
+	// Using the size of the commitment transaction if we were to create
 	// a commitment now, we'll compute our remaining balance if we apply
 	// this new fee update.
 	newFee := lnwire.NewMSatFromSatoshis(
-		feePerKw.FeeForSize(txWeight),
+		feePerKB.FeeForSize(txSize),
 	)
 
 	// If the total fee exceeds our available balance (taking into account
@@ -5945,7 +5944,7 @@ func (lc *LightningChannel) validateFeeRate(feePerKw AtomPerKByte) error {
 	// would mean we need to trim our entire output.
 	if newFee > baseBalance {
 		return fmt.Errorf("cannot apply fee_update=%v sat/kw, new fee "+
-			"of %v is greater than balance of %v", int64(feePerKw),
+			"of %v is greater than balance of %v", int64(feePerKB),
 			newFee, baseBalance)
 	}
 
@@ -5955,7 +5954,7 @@ func (lc *LightningChannel) validateFeeRate(feePerKw AtomPerKByte) error {
 	if balanceAfterFee.ToSatoshis() < lc.channelState.LocalChanCfg.ChanReserve {
 		return fmt.Errorf("cannot apply fee_update=%v sat/kw, "+
 			"new balance=%v would dip below channel reserve=%v",
-			int64(feePerKw),
+			int64(feePerKB),
 			balanceAfterFee.ToSatoshis(),
 			lc.channelState.LocalChanCfg.ChanReserve)
 	}
@@ -5970,7 +5969,7 @@ func (lc *LightningChannel) validateFeeRate(feePerKw AtomPerKByte) error {
 // UpdateFee initiates a fee update for this channel. Must only be called by
 // the channel initiator, and must be called before sending update_fee to
 // the remote.
-func (lc *LightningChannel) UpdateFee(feePerKw AtomPerKByte) error {
+func (lc *LightningChannel) UpdateFee(feePerKB AtomPerKByte) error {
 	lc.Lock()
 	defer lc.Unlock()
 
@@ -5981,18 +5980,18 @@ func (lc *LightningChannel) UpdateFee(feePerKw AtomPerKByte) error {
 	}
 
 	// Ensure that the passed fee rate meets our current requirements.
-	if err := lc.validateFeeRate(feePerKw); err != nil {
+	if err := lc.validateFeeRate(feePerKB); err != nil {
 		return err
 	}
 
-	lc.pendingFeeUpdate = &feePerKw
+	lc.pendingFeeUpdate = &feePerKB
 
 	return nil
 }
 
 // ReceiveUpdateFee handles an updated fee sent from remote. This method will
 // return an error if called as channel initiator.
-func (lc *LightningChannel) ReceiveUpdateFee(feePerKw AtomPerKByte) error {
+func (lc *LightningChannel) ReceiveUpdateFee(feePerKB AtomPerKByte) error {
 	lc.Lock()
 	defer lc.Unlock()
 
@@ -6004,7 +6003,7 @@ func (lc *LightningChannel) ReceiveUpdateFee(feePerKw AtomPerKByte) error {
 
 	// TODO(roasbeef): or just modify to use the other balance?
 
-	lc.pendingFeeUpdate = &feePerKw
+	lc.pendingFeeUpdate = &feePerKB
 
 	return nil
 }
@@ -6148,7 +6147,7 @@ func CreateCooperativeCloseTx(fundingTxIn wire.TxIn,
 // CalcFee returns the commitment fee to use for the given
 // fee rate (fee-per-kw).
 func (lc *LightningChannel) CalcFee(feeRate AtomPerKByte) dcrutil.Amount {
-	return feeRate.FeeForSize(CommitWeight)
+	return feeRate.FeeForSize(CommitmentTxSize)
 }
 
 // RemoteNextRevocation returns the channelState's RemoteNextRevocation.
