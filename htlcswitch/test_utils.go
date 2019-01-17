@@ -880,7 +880,7 @@ func newThreeHopNetwork(t testing.TB, aliceChannel, firstBobChannel,
 	carolDecoder := newMockIteratorDecoder()
 
 	feeEstimator := &mockFeeEstimator{
-		byteFeeIn: make(chan lnwallet.SatPerKWeight),
+		byteFeeIn: make(chan lnwallet.AtomPerKByte),
 		quit:      make(chan struct{}),
 	}
 

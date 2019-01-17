@@ -1804,7 +1804,7 @@ func TestChannelLinkBandwidthConsistency(t *testing.T) {
 		t.Fatalf("unable to query fee estimator: %v", err)
 	}
 	htlcFee := lnwire.NewMSatFromSatoshis(
-		feePerKw.FeeForSize(lnwallet.HtlcWeight),
+		feePerKw.FeeForSize(lnwallet.HTLCOutputSize),
 	)
 
 	// The starting bandwidth of the channel should be exactly the amount
@@ -2282,9 +2282,9 @@ func TestChannelLinkBandwidthConsistencyOverflow(t *testing.T) {
 
 	// TODO(roasbeef): increase sleep
 	time.Sleep(time.Second * 1)
-	commitWeight := lnwallet.CommitWeight + lnwallet.HtlcWeight*numHTLCs
+	commitSize := lnwallet.CommitmentTxSize + lnwallet.HTLCOutputSize*numHTLCs
 	htlcFee := lnwire.NewMSatFromSatoshis(
-		feePerKw.FeeForSize(commitWeight),
+		feePerKw.FeeForSize(commitSize),
 	)
 	expectedBandwidth := aliceStartingBandwidth - totalHtlcAmt - htlcFee
 	expectedBandwidth += lnwire.NewMSatFromSatoshis(defaultCommitFee)
@@ -2464,7 +2464,7 @@ func TestChannelLinkTrimCircuitsPending(t *testing.T) {
 
 	defaultCommitFee := alice.channel.StateSnapshot().CommitFee
 	htlcFee := lnwire.NewMSatFromSatoshis(
-		feePerKw.FeeForSize(lnwallet.HtlcWeight),
+		feePerKw.FeeForSize(lnwallet.HTLCOutputSize),
 	)
 
 	// The starting bandwidth of the channel should be exactly the amount
@@ -2742,7 +2742,7 @@ func TestChannelLinkTrimCircuitsNoCommit(t *testing.T) {
 
 	defaultCommitFee := alice.channel.StateSnapshot().CommitFee
 	htlcFee := lnwire.NewMSatFromSatoshis(
-		feePerKw.FeeForSize(lnwallet.HtlcWeight),
+		feePerKw.FeeForSize(lnwallet.HTLCOutputSize),
 	)
 
 	// The starting bandwidth of the channel should be exactly the amount
@@ -2998,7 +2998,7 @@ func TestChannelLinkBandwidthChanReserve(t *testing.T) {
 		t.Fatalf("unable to query fee estimator: %v", err)
 	}
 	htlcFee := lnwire.NewMSatFromSatoshis(
-		feePerKw.FeeForSize(lnwallet.HtlcWeight),
+		feePerKw.FeeForSize(lnwallet.HTLCOutputSize),
 	)
 
 	// The starting bandwidth of the channel should be exactly the amount
@@ -3379,8 +3379,8 @@ func TestChannelRetransmission(t *testing.T) {
 // deviates from our current fee by more 10% or more.
 func TestShouldAdjustCommitFee(t *testing.T) {
 	tests := []struct {
-		netFee       lnwallet.SatPerKWeight
-		chanFee      lnwallet.SatPerKWeight
+		netFee       lnwallet.AtomPerKByte
+		chanFee      lnwallet.AtomPerKByte
 		shouldAdjust bool
 	}{
 

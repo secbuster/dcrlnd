@@ -470,27 +470,27 @@ func (l *channelLink) EligibleToForward() bool {
 }
 
 // sampleNetworkFee samples the current fee rate on the network to get into the
-// chain in a timely manner. The returned value is expressed in fee-per-kw, as
+// chain in a timely manner. The returned value is expressed in atoms-per-KB, as
 // this is the native rate used when computing the fee for commitment
 // transactions, and the second-level HTLC transactions.
-func (l *channelLink) sampleNetworkFee() (lnwallet.SatPerKWeight, error) {
-	// We'll first query for the sat/kw recommended to be confirmed within 3
+func (l *channelLink) sampleNetworkFee() (lnwallet.AtomPerKByte, error) {
+	// We'll first query for the atoms/KB recommended to be confirmed within 3
 	// blocks.
-	feePerKw, err := l.cfg.FeeEstimator.EstimateFeePerKW(3)
+	feePerKB, err := l.cfg.FeeEstimator.EstimateFeePerKB(3)
 	if err != nil {
 		return 0, err
 	}
 
-	log.Debugf("ChannelLink(%v): sampled fee rate for 3 block conf: %v "+
-		"sat/kw", l, int64(feePerKw))
+	log.Debugf("ChannelLink(%v): sampled fee rate for 3 block conf: %s ",
+		l, feePerKB)
 
-	return feePerKw, nil
+	return feePerKB, nil
 }
 
 // shouldAdjustCommitFee returns true if we should update our commitment fee to
 // match that of the network fee. We'll only update our commitment fee if the
 // network fee is +/- 10% to our network fee.
-func shouldAdjustCommitFee(netFee, chanFee lnwallet.SatPerKWeight) bool {
+func shouldAdjustCommitFee(netFee, chanFee lnwallet.AtomPerKByte) bool {
 	switch {
 	// If the network fee is greater than the commitment fee, then we'll
 	// switch to it if it's at least 10% greater than the commit fee.
@@ -900,7 +900,7 @@ out:
 			// If we are the initiator, then we'll sample the
 			// current fee rate to get into the chain within 3
 			// blocks.
-			feePerKw, err := l.sampleNetworkFee()
+			feePerKB, err := l.sampleNetworkFee()
 			if err != nil {
 				log.Errorf("unable to sample network fee: %v", err)
 				continue
@@ -909,13 +909,13 @@ out:
 			// We'll check to see if we should update the fee rate
 			// based on our current set fee rate.
 			commitFee := l.channel.CommitFeeRate()
-			if !shouldAdjustCommitFee(feePerKw, commitFee) {
+			if !shouldAdjustCommitFee(feePerKB, commitFee) {
 				continue
 			}
 
 			// If we do, then we'll send a new UpdateFee message to
 			// the remote party, to be locked in with a new update.
-			if err := l.updateChannelFee(feePerKw); err != nil {
+			if err := l.updateChannelFee(feePerKB); err != nil {
 				log.Errorf("unable to update fee rate: %v", err)
 				continue
 			}
@@ -1579,7 +1579,7 @@ func (l *channelLink) handleUpstreamMsg(msg lnwire.Message) {
 	case *lnwire.UpdateFee:
 		// We received fee update from peer. If we are the initiator we
 		// will fail the channel, if not we will apply the update.
-		fee := lnwallet.SatPerKWeight(msg.FeePerKw)
+		fee := lnwallet.AtomPerKByte(msg.FeePerKw)
 		if err := l.channel.ReceiveUpdateFee(fee); err != nil {
 			l.fail(LinkFailureError{code: ErrInvalidUpdate},
 				"error receiving fee update: %v", err)
@@ -2039,10 +2039,10 @@ func (l *channelLink) HandleChannelUpdate(message lnwire.Message) {
 
 // updateChannelFee updates the commitment fee-per-kw on this channel by
 // committing to an update_fee message.
-func (l *channelLink) updateChannelFee(feePerKw lnwallet.SatPerKWeight) error {
+func (l *channelLink) updateChannelFee(feePerKB lnwallet.AtomPerKByte) error {
 
-	log.Infof("ChannelPoint(%v): updating commit fee to %v sat/kw", l,
-		feePerKw)
+	log.Infof("ChannelPoint(%v): updating commit fee to %s", l,
+		feePerKB)
 
 	// We skip sending the UpdateFee message if the channel is not
 	// currently eligible to forward messages.
@@ -2053,13 +2053,13 @@ func (l *channelLink) updateChannelFee(feePerKw lnwallet.SatPerKWeight) error {
 	}
 
 	// First, we'll update the local fee on our commitment.
-	if err := l.channel.UpdateFee(feePerKw); err != nil {
+	if err := l.channel.UpdateFee(feePerKB); err != nil {
 		return err
 	}
 
 	// We'll then attempt to send a new UpdateFee message, and also lock it
 	// in immediately by triggering a commitment update.
-	msg := lnwire.NewUpdateFee(l.ChanID(), uint32(feePerKw))
+	msg := lnwire.NewUpdateFee(l.ChanID(), uint32(feePerKB))
 	if err := l.cfg.Peer.SendMessage(false, msg); err != nil {
 		return err
 	}

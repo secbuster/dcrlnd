@@ -110,11 +110,11 @@ type ChanClose struct {
 	// ChanPoint represent the id of the channel which should be closed.
 	ChanPoint *wire.OutPoint
 
-	// TargetFeePerKw is the ideal fee that was specified by the caller.
+	// TargetFeePerKB is the ideal fee that was specified by the caller.
 	// This value is only utilized if the closure type is CloseRegular.
 	// This will be the starting offered fee when the fee negotiation
 	// process for the cooperative closure transaction kicks off.
-	TargetFeePerKw lnwallet.SatPerKWeight
+	TargetFeePerKB lnwallet.AtomPerKByte
 
 	// Updates is used by request creator to receive the notifications about
 	// execution of the close channel request.
@@ -1414,7 +1414,7 @@ func (s *Switch) teardownCircuit(pkt *htlcPacket) error {
 // then the last parameter should be the ideal fee-per-kw that will be used as
 // a starting point for close negotiation.
 func (s *Switch) CloseLink(chanPoint *wire.OutPoint, closeType ChannelCloseType,
-	targetFeePerKw lnwallet.SatPerKWeight) (chan interface{},
+	targetFeePerKB lnwallet.AtomPerKByte) (chan interface{},
 	chan error) {
 
 	// TODO(roasbeef) abstract out the close updates.
@@ -1425,7 +1425,7 @@ func (s *Switch) CloseLink(chanPoint *wire.OutPoint, closeType ChannelCloseType,
 		CloseType:      closeType,
 		ChanPoint:      chanPoint,
 		Updates:        updateChan,
-		TargetFeePerKw: targetFeePerKw,
+		TargetFeePerKB: targetFeePerKB,
 		Err:            errChan,
 	}
 
