@@ -300,7 +300,7 @@ func (w *WalletKit) SendOutputs(ctx context.Context,
 	// Now that we have the outputs mapped, we can request that the wallet
 	// attempt to create this transaction.
 	tx, err := w.cfg.Wallet.SendOutputs(
-		outputsToCreate, lnwallet.SatPerKWeight(req.SatPerKw),
+		outputsToCreate, lnwallet.AtomPerKByte(req.SatPerKw),
 	)
 	if err != nil {
 		return nil, err
