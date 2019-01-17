@@ -31,6 +31,7 @@ import (
 	"github.com/decred/dcrlnd/lnrpc"
 	"github.com/decred/dcrlnd/lntest"
 	"github.com/decred/dcrlnd/lnwire"
+	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/go-errors/errors"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -505,13 +506,16 @@ func shutdownAndAssert(net *lntest.NetworkHarness, t *harnessTest,
 // TODO(conner) remove code duplication
 func calcStaticFee(numHTLCs int) dcrutil.Amount {
 	const (
-		commitWeight = dcrutil.Amount(724)
-		htlcWeight   = 172
-		feePerKw     = dcrutil.Amount(50 * 1000 / 4)
+		// TODO(decred) This was hardcoded here. Should I use static, hardcoded
+		// values instead of estimateCommitmentTxSize?
+		// commitWeight = dcrutil.Amount(724)
+		// htlcWeight   = 172
+		feePerKB     = dcrutil.Amount(50) * 1000
 	)
-	return feePerKw * (commitWeight +
-		dcrutil.Amount(htlcWeight*numHTLCs)) / 1000
+	commitSize := lnwallet.EstimateCommitmentTxSize(numHTLCs)
+	return feePerKB * dcrutil.Amount(commitSize / 1000)
 }
+
 
 // completePaymentRequests sends payments from a lightning node to complete all
 // payment requests. If the awaitResponse parameter is true, this function

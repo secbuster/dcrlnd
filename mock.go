@@ -230,7 +230,7 @@ func (*mockWalletController) IsOurAddress(a dcrutil.Address) bool {
 }
 
 func (*mockWalletController) SendOutputs(outputs []*wire.TxOut,
-	_ lnwallet.SatPerKWeight) (*wire.MsgTx, error) {
+	_ lnwallet.AtomPerKByte) (*wire.MsgTx, error) {
 
 	return nil, nil
 }

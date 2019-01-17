@@ -1937,6 +1937,7 @@ func (r *rpcServer) PendingChannels(ctx context.Context,
 		// broadcast.
 		// TODO(roasbeef): query for funding tx from wallet, display
 		// that also?
+		// TODO(decred) review usage of weight vs size
 		localCommitment := pendingChan.LocalCommitment
 		utx := dcrutil.NewTx(localCommitment.CommitTx)
 		commitBaseWeight := blockchain.GetTransactionWeight(utx)

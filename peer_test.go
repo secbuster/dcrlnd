@@ -126,7 +126,7 @@ func TestPeerChannelClosureAcceptFeeInitiator(t *testing.T) {
 		CloseType:      htlcswitch.CloseRegular,
 		ChanPoint:      initiatorChan.ChannelPoint(),
 		Updates:        updateChan,
-		TargetFeePerKw: 12500,
+		TargetFeePerKB: 12500,
 		Err:            errChan,
 	}
 	initiator.localCloseChanReqs <- closeCommand
@@ -415,7 +415,7 @@ func TestPeerChannelClosureFeeNegotiationsInitiator(t *testing.T) {
 		CloseType:      htlcswitch.CloseRegular,
 		ChanPoint:      initiatorChan.ChannelPoint(),
 		Updates:        updateChan,
-		TargetFeePerKw: 12500,
+		TargetFeePerKB: 12500,
 		Err:            errChan,
 	}
 

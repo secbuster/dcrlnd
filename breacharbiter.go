@@ -952,49 +952,49 @@ func (b *breachArbiter) createJusticeTx(
 	r *retributionInfo) (*wire.MsgTx, error) {
 
 	// We will assemble the breached outputs into a slice of spendable
-	// outputs, while simultaneously computing the estimated weight of the
+	// outputs, while simultaneously computing the estimated size of the
 	// transaction.
 	var (
 		spendableOutputs []sweep.Input
-		weightEstimate   lnwallet.TxWeightEstimator
+		sizeEstimate   lnwallet.TxSizeEstimator
 	)
 
 	// Allocate enough space to potentially hold each of the breached
 	// outputs in the retribution info.
 	spendableOutputs = make([]sweep.Input, 0, len(r.breachedOutputs))
 
-	// The justice transaction we construct will be a segwit transaction
-	// that pays to a p2wkh output. Components such as the version,
-	// nLockTime, and output are already included in the TxWeightEstimator.
-	weightEstimate.AddP2WKHOutput()
+	// The justice transaction we construct will be a transaction
+	// that pays to a p2pkh output. Components such as the version,
+	// nLockTime, and output are already included in the TxSizeEstimator.
+	sizeEstimate.AddP2PKHOutput()
 
 	// Next, we iterate over the breached outputs contained in the
 	// retribution info.  For each, we switch over the witness type such
-	// that we contribute the appropriate weight for each input and witness,
+	// that we contribute the appropriate size for each input and witness,
 	// finally adding to our list of spendable outputs.
 	for i := range r.breachedOutputs {
 		// Grab locally scoped reference to breached output.
 		input := &r.breachedOutputs[i]
 
-		// First, select the appropriate estimated witness weight for
+		// First, select the appropriate estimated sig script size for
 		// the give witness type of this breached output. If the witness
 		// type is unrecognized, we will omit it from the transaction.
-		var witnessWeight int
+		var sigScriptSize int64
 		switch input.WitnessType() {
 		case lnwallet.CommitmentNoDelay:
-			witnessWeight = lnwallet.P2WKHWitnessSize
+			sigScriptSize = lnwallet.P2WKHWitnessSize
 
 		case lnwallet.CommitmentRevoke:
-			witnessWeight = lnwallet.ToLocalPenaltyWitnessSize
+			sigScriptSize = lnwallet.ToLocalPenaltySigScriptSize
 
 		case lnwallet.HtlcOfferedRevoke:
-			witnessWeight = lnwallet.OfferedHtlcPenaltyWitnessSize
+			sigScriptSize = lnwallet.OfferedHtlcPenaltySigScriptSize
 
 		case lnwallet.HtlcAcceptedRevoke:
-			witnessWeight = lnwallet.AcceptedHtlcPenaltyWitnessSize
+			sigScriptSize = lnwallet.AcceptedHtlcPenaltySigScriptSize
 
 		case lnwallet.HtlcSecondLevelRevoke:
-			witnessWeight = lnwallet.ToLocalPenaltyWitnessSize
+			sigScriptSize = lnwallet.ToLocalPenaltySigScriptSize
 
 		default:
 			brarLog.Warnf("breached output in retribution info "+
@@ -1002,19 +1002,19 @@ func (b *breachArbiter) createJusticeTx(
 				input.WitnessType())
 			continue
 		}
-		weightEstimate.AddWitnessInput(witnessWeight)
+		sizeEstimate.AddCustomInput(sigScriptSize)
 
 		// Finally, append this input to our list of spendable outputs.
 		spendableOutputs = append(spendableOutputs, input)
 	}
 
-	txWeight := int64(weightEstimate.Weight())
-	return b.sweepSpendableOutputsTxn(txWeight, spendableOutputs...)
+	txSize := int64(sizeEstimate.Size())
+	return b.sweepSpendableOutputsTxn(txSize, spendableOutputs...)
 }
 
 // sweepSpendableOutputsTxn creates a signed transaction from a sequence of
 // spendable outputs by sweeping the funds into a single p2wkh output.
-func (b *breachArbiter) sweepSpendableOutputsTxn(txWeight int64,
+func (b *breachArbiter) sweepSpendableOutputsTxn(txSize int64,
 	inputs ...sweep.Input) (*wire.MsgTx, error) {
 
 	// First, we obtain a new public key script from the wallet which we'll
@@ -1038,14 +1038,14 @@ func (b *breachArbiter) sweepSpendableOutputsTxn(txWeight int64,
 	if err != nil {
 		return nil, err
 	}
-	txFee := feePerKw.FeeForSize(txWeight)
+	txFee := feePerKw.FeeForSize(txSize)
 
 	// TODO(roasbeef): already start to siphon their funds into fees
 	sweepAmt := int64(totalAmt - txFee)
 
 	// With the fee calculated, we can now create the transaction using the
 	// information gathered above and the provided retribution information.
-	txn := wire.NewMsgTx(2)
+	txn := wire.NewMsgTx()
 
 	// We begin by adding the output to which our funds will be deposited.
 	txn.AddTxOut(&wire.TxOut{

@@ -1905,7 +1905,7 @@ func (p *peer) handleLocalCloseReq(req *htlcswitch.ChanClose) {
 				quit: p.quit,
 			},
 			deliveryAddr,
-			req.TargetFeePerKw,
+			req.TargetFeePerKB,
 			uint32(startingHeight),
 			req,
 		)
