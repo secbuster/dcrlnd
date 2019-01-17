@@ -5,7 +5,6 @@ import (
 	"sync"
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/dcrjson"
 	"github.com/decred/dcrd/wire"
 )
 
@@ -58,13 +57,15 @@ func (t TxConfStatus) String() string {
 }
 
 // ChainNotifier represents a trusted source to receive notifications concerning
-// targeted events on the Bitcoin blockchain. The interface specification is
+// targeted events on the Decred blockchain. The interface specification is
 // intentionally general in order to support a wide array of chain notification
-// implementations such as: dcrd's websockets notifications, Bitcoin Core's
-// ZeroMQ notifications, various Bitcoin API services, Electrum servers, etc.
+// implementations such as: dcrd's websockets notifications, various Decred API
+// services, Electrum servers, etc.
 //
 // Concrete implementations of ChainNotifier should be able to support multiple
-// concurrent client requests, as well as multiple concurrent notification events.
+// concurrent client requests, as well as multiple concurrent notification
+// events.
+//
 // TODO(roasbeef): all events should have a Cancel() method to free up the
 // resource
 type ChainNotifier interface {
@@ -195,10 +196,10 @@ func NewConfirmationEvent(numConfs uint32) *ConfirmationEvent {
 }
 
 // SpendDetail contains details pertaining to a spent output. This struct itself
-// is the spentness notification. It includes the original outpoint which triggered
-// the notification, the hash of the transaction spending the output, the
-// spending transaction itself, and finally the input index which spent the
-// target output.
+// is the spentness notification. It includes the original outpoint which
+// triggered the notification, the hash of the transaction spending the output,
+// the spending transaction itself, the height of the spending transaction, and
+// finally the input index which spent the target output.
 type SpendDetail struct {
 	SpentOutPoint     *wire.OutPoint
 	SpenderTxHash     *chainhash.Hash
@@ -349,10 +350,6 @@ type ChainConn interface {
 	// GetBlockHeader returns the block header for a hash.
 	GetBlockHeader(blockHash *chainhash.Hash) (*wire.BlockHeader, error)
 
-	// GetBlockHeaderVerbose returns the verbose block header for a hash.
-	GetBlockHeaderVerbose(blockHash *chainhash.Hash) (
-		*dcrjson.GetBlockHeaderVerboseResult, error)
-
 	// GetBlockHash returns the hash from a block height.
 	GetBlockHash(blockHeight int64) (*chainhash.Hash, error)
 }
@@ -380,18 +377,18 @@ func GetCommonBlockAncestorHeight(chainConn ChainConn, reorgHash,
 		chainHash = chainHeader.PrevBlock
 	}
 
-	verboseHeader, err := chainConn.GetBlockHeaderVerbose(&chainHash)
+	header, err := chainConn.GetBlockHeader(&chainHash)
 	if err != nil {
-		return 0, fmt.Errorf("unable to get verbose header for hash=%v: %v",
+		return 0, fmt.Errorf("unable to get header for hash=%v: %v",
 			chainHash, err)
 	}
 
 	// TODO(decred): Deal with block height differences
-	return int32(verboseHeader.Height), nil
+	return int32(header.Height), nil
 }
 
 // GetClientMissedBlocks uses a client's best block to determine what blocks
-// it missed being notified about, and returns them in a slice. Its
+// it missed being notified about, and returns them in a slice. The
 // backendStoresReorgs parameter tells it whether or not the notifier's
 // chainConn stores information about blocks that have been reorged out of the
 // chain, which allows GetClientMissedBlocks to find out whether the client's
@@ -433,7 +430,7 @@ func GetClientMissedBlocks(chainConn ChainConn, clientBestBlock *BlockEpoch,
 	return missedBlocks, nil
 }
 
-// RewindChain handles internal state updates for the notifier's TxNotifier It
+// RewindChain handles internal state updates for the notifier's TxNotifier. It
 // has no effect if given a height greater than or equal to our current best
 // known height. It returns the new best block for the notifier.
 func RewindChain(chainConn ChainConn, txNotifier *TxNotifier,

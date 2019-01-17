@@ -99,6 +99,14 @@ func newMockHintCache() *mockHintCache {
 	}
 }
 
+// newWireTxWithVersion returns a new wire transaction with a full serialization
+// type and the provided transaction version set.
+func newWireTxWithVersion(version uint16) *wire.MsgTx {
+	tx := wire.NewMsgTx()
+	tx.Version = version
+	return tx
+}
+
 // TestTxNotifierFutureConfDispatch tests that the TxNotifier dispatches
 // registered notifications when a transaction confirms after registration.
 func TestTxNotifierFutureConfDispatch(t *testing.T) {
@@ -110,9 +118,9 @@ func TestTxNotifierFutureConfDispatch(t *testing.T) {
 	)
 
 	var (
-		tx1 = wire.MsgTx{Version: 1}
-		tx2 = wire.MsgTx{Version: 2}
-		tx3 = wire.MsgTx{Version: 3}
+		tx1 = *newWireTxWithVersion(1)
+		tx2 = *newWireTxWithVersion(2)
+		tx3 = *newWireTxWithVersion(3)
 	)
 
 	hintCache := newMockHintCache()
@@ -288,9 +296,9 @@ func TestTxNotifierHistoricalConfDispatch(t *testing.T) {
 	)
 
 	var (
-		tx1 = wire.MsgTx{Version: 1}
-		tx2 = wire.MsgTx{Version: 2}
-		tx3 = wire.MsgTx{Version: 3}
+		tx1 = *newWireTxWithVersion(1)
+		tx2 = *newWireTxWithVersion(2)
+		tx3 = *newWireTxWithVersion(3)
 	)
 
 	hintCache := newMockHintCache()
@@ -459,7 +467,7 @@ func TestTxNotifierFutureSpendDispatch(t *testing.T) {
 	// Construct the details of the spending transaction of the outpoint
 	// above. We'll include it in the next block, which should trigger a
 	// spend notification.
-	spendTx := wire.NewMsgTx(2)
+	spendTx := newWireTxWithVersion(2)
 	spendTx.AddTxIn(&wire.TxIn{PreviousOutPoint: zeroOutPoint})
 	spendTxHash := spendTx.TxHash()
 	block := dcrutil.NewBlock(&wire.MsgBlock{
@@ -492,7 +500,7 @@ func TestTxNotifierFutureSpendDispatch(t *testing.T) {
 	// Finally, we'll ensure that if the spending transaction has also been
 	// spent, then we don't receive another spend notification.
 	prevOut := wire.OutPoint{Hash: spendTxHash, Index: 0}
-	spendOfSpend := wire.NewMsgTx(2)
+	spendOfSpend := newWireTxWithVersion(2)
 	spendOfSpend.AddTxIn(&wire.TxIn{PreviousOutPoint: prevOut})
 	block = dcrutil.NewBlock(&wire.MsgBlock{
 		Transactions: []*wire.MsgTx{spendOfSpend},
@@ -525,7 +533,7 @@ func TestTxNotifierHistoricalSpendDispatch(t *testing.T) {
 	// We'll start by constructing the spending details of the outpoint
 	// below.
 	spentOutpoint := zeroOutPoint
-	spendTx := wire.NewMsgTx(2)
+	spendTx := newWireTxWithVersion(2)
 	spendTx.AddTxIn(&wire.TxIn{PreviousOutPoint: zeroOutPoint})
 	spendTxHash := spendTx.TxHash()
 
@@ -574,7 +582,7 @@ func TestTxNotifierHistoricalSpendDispatch(t *testing.T) {
 	// Finally, we'll ensure that if the spending transaction has also been
 	// spent, then we don't receive another spend notification.
 	prevOut := wire.OutPoint{Hash: spendTxHash, Index: 0}
-	spendOfSpend := wire.NewMsgTx(2)
+	spendOfSpend := newWireTxWithVersion(2)
 	spendOfSpend.AddTxIn(&wire.TxIn{PreviousOutPoint: prevOut})
 	block := dcrutil.NewBlock(&wire.MsgBlock{
 		Transactions: []*wire.MsgTx{spendOfSpend},
@@ -708,7 +716,7 @@ func TestTxNotifierMultipleHistoricalSpendRescans(t *testing.T) {
 	spendDetails := &chainntnfs.SpendDetail{
 		SpentOutPoint:     &ntfn2.OutPoint,
 		SpenderTxHash:     &zeroHash,
-		SpendingTx:        wire.NewMsgTx(2),
+		SpendingTx:        newWireTxWithVersion(2),
 		SpenderInputIndex: 0,
 		SpendingHeight:    startingHeight - 1,
 	}
@@ -847,7 +855,7 @@ func TestTxNotifierMultipleHistoricalNtfns(t *testing.T) {
 	expectedSpendDetails := &chainntnfs.SpendDetail{
 		SpentOutPoint:     &spendNtfns[0].OutPoint,
 		SpenderTxHash:     &zeroHash,
-		SpendingTx:        wire.NewMsgTx(2),
+		SpendingTx:        newWireTxWithVersion(2),
 		SpenderInputIndex: 0,
 		SpendingHeight:    startingHeight - 1,
 	}
@@ -924,7 +932,7 @@ func TestTxNotifierCancelSpend(t *testing.T) {
 
 	// Construct the spending details of the outpoint and create a dummy
 	// block containing it.
-	spendTx := wire.NewMsgTx(2)
+	spendTx := newWireTxWithVersion(2)
 	spendTx.AddTxIn(&wire.TxIn{PreviousOutPoint: ntfn1.OutPoint})
 	spendTxHash := spendTx.TxHash()
 	expectedSpendDetails := &chainntnfs.SpendDetail{
@@ -986,9 +994,9 @@ func TestTxNotifierConfReorg(t *testing.T) {
 	)
 
 	var (
-		tx1 = wire.MsgTx{Version: 1}
-		tx2 = wire.MsgTx{Version: 2}
-		tx3 = wire.MsgTx{Version: 3}
+		tx1 = *newWireTxWithVersion(1)
+		tx2 = *newWireTxWithVersion(2)
+		tx3 = *newWireTxWithVersion(3)
 	)
 
 	hintCache := newMockHintCache()
@@ -1269,7 +1277,7 @@ func TestTxNotifierSpendReorg(t *testing.T) {
 	// one will.
 	op1 := zeroOutPoint
 	op1.Index = 1
-	spendTx1 := wire.NewMsgTx(2)
+	spendTx1 := newWireTxWithVersion(2)
 	spendTx1.AddTxIn(&wire.TxIn{PreviousOutPoint: op1})
 	spendTxHash1 := spendTx1.TxHash()
 	expectedSpendDetails1 := &chainntnfs.SpendDetail{
@@ -1282,7 +1290,7 @@ func TestTxNotifierSpendReorg(t *testing.T) {
 
 	op2 := zeroOutPoint
 	op2.Index = 2
-	spendTx2 := wire.NewMsgTx(2)
+	spendTx2 := newWireTxWithVersion(2)
 	spendTx2.AddTxIn(&wire.TxIn{PreviousOutPoint: zeroOutPoint})
 	spendTx2.AddTxIn(&wire.TxIn{PreviousOutPoint: op2})
 	spendTxHash2 := spendTx2.TxHash()
@@ -1485,7 +1493,7 @@ func TestTxNotifierConfirmHintCache(t *testing.T) {
 	n := chainntnfs.NewTxNotifier(startingHeight, 100, hintCache, hintCache)
 
 	// Create two test transactions and register them for notifications.
-	tx1 := wire.MsgTx{Version: 1}
+	tx1 := *newWireTxWithVersion(1)
 	tx1Hash := tx1.TxHash()
 	ntfn1 := &chainntnfs.ConfNtfn{
 		TxID:             &tx1Hash,
@@ -1493,7 +1501,7 @@ func TestTxNotifierConfirmHintCache(t *testing.T) {
 		Event:            chainntnfs.NewConfirmationEvent(1),
 	}
 
-	tx2 := wire.MsgTx{Version: 2}
+	tx2 := *newWireTxWithVersion(2)
 	tx2Hash := tx2.TxHash()
 	ntfn2 := &chainntnfs.ConfNtfn{
 		TxID:             &tx2Hash,
@@ -1526,7 +1534,7 @@ func TestTxNotifierConfirmHintCache(t *testing.T) {
 
 	// Create a new block that will include the dummy transaction and extend
 	// the chain.
-	txDummy := wire.MsgTx{Version: 3}
+	txDummy := *newWireTxWithVersion(3)
 	block1 := dcrutil.NewBlock(&wire.MsgBlock{
 		Transactions: []*wire.MsgTx{&txDummy},
 	})
@@ -1759,7 +1767,7 @@ func TestTxNotifierSpendHintCache(t *testing.T) {
 
 	// We'll create a new block that only contains the spending transaction
 	// of the first outpoint.
-	spendTx1 := wire.NewMsgTx(2)
+	spendTx1 := newWireTxWithVersion(2)
 	spendTx1.AddTxIn(&wire.TxIn{PreviousOutPoint: ntfn1.OutPoint})
 	block1 := dcrutil.NewBlock(&wire.MsgBlock{
 		Transactions: []*wire.MsgTx{spendTx1},
@@ -1791,7 +1799,7 @@ func TestTxNotifierSpendHintCache(t *testing.T) {
 	}
 
 	// Then, we'll create another block that spends the second outpoint.
-	spendTx2 := wire.NewMsgTx(2)
+	spendTx2 := newWireTxWithVersion(2)
 	spendTx2.AddTxIn(&wire.TxIn{PreviousOutPoint: ntfn2.OutPoint})
 	block2 := dcrutil.NewBlock(&wire.MsgBlock{
 		Transactions: []*wire.MsgTx{spendTx2},

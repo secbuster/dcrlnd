@@ -13,7 +13,7 @@ import (
 func initHintCache(t *testing.T) *HeightHintCache {
 	t.Helper()
 
-	tempDir, err := ioutil.TempDir("", "kek")
+	tempDir, err := ioutil.TempDir("", "hintcache")
 	if err != nil {
 		t.Fatalf("unable to create temp dir: %v", err)
 	}

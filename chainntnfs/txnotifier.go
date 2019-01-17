@@ -42,7 +42,7 @@ const (
 )
 
 // confNtfnSet holds all known, registered confirmation notifications for a
-// single txid. If duplicates notifications are requested, only one historical
+// single txid. If duplicate notifications are requested, only one historical
 // dispatch will be spawned to ensure redundant scans are not permitted. A
 // single conf detail will be constructed and dispatched to all interested
 // clients.
@@ -69,7 +69,7 @@ func newConfNtfnSet() *confNtfnSet {
 	}
 }
 
-// spendNtfnSet holds all known, registered spend notifications for an outpoint.
+// spendNtfnSet holds all known registered spend notifications for an outpoint.
 // If duplicate notifications are requested, only one historical dispatch will
 // be spawned to ensure redundant scans are not permitted.
 type spendNtfnSet struct {

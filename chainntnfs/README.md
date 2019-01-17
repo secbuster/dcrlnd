@@ -12,15 +12,15 @@ notifications available include:
   * Notifications for each new block connected to the current best chain.
   * Notifications once a `txid` has reached a specified number of
     confirmations.
-  * Notifications once a target outpoint (`txid:index`) has been spent.
+  * Notifications once a target outpoint (`txid:index:tree`) has been spent.
 
-These notifications are used within `lnd` in order to properly handle the
+These notifications are used within `dcrlnd` in order to properly handle the
 workflows for: channel funding, cooperative channel closures, forced channel
 closures, channel contract breaches, sweeping time-locked outputs, and finally
 pruning the channel graph. 
 
 This package is intentionally general enough to be applicable outside the
-specific use cases within `lnd` outlined above. The current sole concrete
+specific use cases within `dcrlnd` outlined above. The current sole concrete
 implementation of the `ChainNotifier` interface depends on `dcrd`.
 
 ## Installation and Updating
