@@ -10,42 +10,42 @@ import (
 // lnwallet.StaticFeeEstimator with the addition that fees can be changed for
 // testing purposes in a thread safe manner.
 type mockFeeEstimator struct {
-	feePerKW lnwallet.SatPerKWeight
+	feePerKB lnwallet.AtomPerKByte
 
-	relayFee lnwallet.SatPerKWeight
+	relayFee lnwallet.AtomPerKByte
 
 	lock sync.Mutex
 }
 
-func newMockFeeEstimator(feePerKW,
-	relayFee lnwallet.SatPerKWeight) *mockFeeEstimator {
+func newMockFeeEstimator(feePerKB,
+	relayFee lnwallet.AtomPerKByte) *mockFeeEstimator {
 
 	return &mockFeeEstimator{
-		feePerKW: feePerKW,
+		feePerKB: feePerKB,
 		relayFee: relayFee,
 	}
 }
 
-func (e *mockFeeEstimator) updateFees(feePerKW,
-	relayFee lnwallet.SatPerKWeight) {
+func (e *mockFeeEstimator) updateFees(feePerKB,
+	relayFee lnwallet.AtomPerKByte) {
 
 	e.lock.Lock()
 	defer e.lock.Unlock()
 
-	e.feePerKW = feePerKW
+	e.feePerKB = feePerKB
 	e.relayFee = relayFee
 }
 
-func (e *mockFeeEstimator) EstimateFeePerKW(numBlocks uint32) (
-	lnwallet.SatPerKWeight, error) {
+func (e *mockFeeEstimator) EstimateFeePerKB(numBlocks uint32) (
+	lnwallet.AtomPerKByte, error) {
 
 	e.lock.Lock()
 	defer e.lock.Unlock()
 
-	return e.feePerKW, nil
+	return e.feePerKB, nil
 }
 
-func (e *mockFeeEstimator) RelayFeePerKW() lnwallet.SatPerKWeight {
+func (e *mockFeeEstimator) RelayFeePerKB() lnwallet.AtomPerKByte {
 	e.lock.Lock()
 	defer e.lock.Unlock()
 

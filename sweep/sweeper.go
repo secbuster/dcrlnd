@@ -73,7 +73,7 @@ type UtxoSweeper struct {
 
 	currentOutputScript []byte
 
-	relayFeePerKW lnwallet.SatPerKWeight
+	relayFeePerKW lnwallet.AtomPerKByte
 
 	quit chan struct{}
 	wg   sync.WaitGroup
@@ -538,7 +538,7 @@ func (s *UtxoSweeper) signalAndRemove(outpoint *wire.OutPoint, result Result) {
 // Those inputs remain pending and will be bundled with future inputs if
 // possible.
 func (s *UtxoSweeper) getInputLists(currentHeight int32,
-	satPerKW lnwallet.SatPerKWeight) ([]inputSet, error) {
+	satPerKW lnwallet.AtomPerKByte) ([]inputSet, error) {
 
 	// Filter for inputs that need to be swept. Create two lists: all
 	// sweepable inputs and a list containing only the new, never tried
@@ -602,7 +602,7 @@ func (s *UtxoSweeper) getInputLists(currentHeight int32,
 // sweep takes a set of preselected inputs, creates a sweep tx and publishes the
 // tx. The output address is only marked as used if the publish succeeds.
 func (s *UtxoSweeper) sweep(inputs inputSet,
-	satPerKW lnwallet.SatPerKWeight, currentHeight int32) error {
+	satPerKW lnwallet.AtomPerKByte, currentHeight int32) error {
 
 	var err error
 

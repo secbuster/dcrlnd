@@ -291,6 +291,7 @@ func TestSuccess(t *testing.T) {
 	}
 }
 
+// TODO(decred) review this test
 // TestDust asserts that inputs that are not big enough to raise above the dust
 // limit, are held back until the total set does surpass the limit.
 func TestDust(t *testing.T) {

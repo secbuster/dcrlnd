@@ -29,7 +29,7 @@ type inputSet []Input
 // inputs are skipped. No input sets with a total value after fees below the
 // dust limit are returned.
 func generateInputPartitionings(sweepableInputs []Input,
-	relayFeePerKW, feePerKW lnwallet.SatPerKWeight,
+	relayFeePerKW, feePerKW lnwallet.AtomPerKByte,
 	maxInputsPerTx int) ([]inputSet, error) {
 
 	// Calculate dust limit based on the P2WPKH output script of the sweep
@@ -55,10 +55,10 @@ func generateInputPartitionings(sweepableInputs []Input,
 	// on the signature length, which is not known yet at this point.
 	yields := make(map[wire.OutPoint]int64)
 	for _, input := range sweepableInputs {
-		size, err := getInputWitnessSizeUpperBound(input)
+		size, err := getInputSigScriptSizeUpperBound(input)
 		if err != nil {
 			return nil, fmt.Errorf(
-				"failed adding input weight: %v", err)
+				"failed adding input size: %v", err)
 		}
 
 		yields[*input.OutPoint()] = input.SignDesc().Output.Value -
@@ -114,26 +114,26 @@ func generateInputPartitionings(sweepableInputs []Input,
 // minimizing any negative externalities we cause for the Bitcoin system as a
 // whole.
 func getPositiveYieldInputs(sweepableInputs []Input, maxInputs int,
-	feePerKW lnwallet.SatPerKWeight) (int, dcrutil.Amount) {
+	feePerKW lnwallet.AtomPerKByte) (int, dcrutil.Amount) {
 
-	var weightEstimate lnwallet.TxWeightEstimator
+	var sizeEstimate lnwallet.TxSizeEstimator
 
-	// Add the sweep tx output to the weight estimate.
-	weightEstimate.AddP2WKHOutput()
+	// Add the sweep tx output to the size estimate.
+	sizeEstimate.AddP2PKHOutput()
 
 	var total, outputValue dcrutil.Amount
 	for idx, input := range sweepableInputs {
 		// Can ignore error, because it has already been checked when
 		// calculating the yields.
-		size, _ := getInputWitnessSizeUpperBound(input)
+		size, _ := getInputSigScriptSizeUpperBound(input)
 
-		// Keep a running weight estimate of the input set.
-		weightEstimate.AddWitnessInput(size)
+		// Keep a running size estimate of the input set.
+		sizeEstimate.AddCustomInput(size)
 
 		newTotal := total + dcrutil.Amount(input.SignDesc().Output.Value)
 
-		weight := weightEstimate.Weight()
-		fee := feePerKW.FeeForSize(int64(weight))
+		size := sizeEstimate.Size()
+		fee := feePerKW.FeeForSize(size)
 
 		// Calculate the output value if the current input would be
 		// added to the set.
@@ -163,16 +163,16 @@ func getPositiveYieldInputs(sweepableInputs []Input, maxInputs int,
 
 // createSweepTx builds a signed tx spending the inputs to a the output script.
 func createSweepTx(inputs []Input, outputPkScript []byte,
-	currentBlockHeight uint32, feePerKw lnwallet.SatPerKWeight,
+	currentBlockHeight uint32, feePerKw lnwallet.AtomPerKByte,
 	signer lnwallet.Signer) (*wire.MsgTx, error) {
 
-	inputs, txWeight, csvCount, cltvCount := getWeightEstimate(inputs)
+	inputs, txSize, csvCount, cltvCount := getSizeEstimate(inputs)
 
 	log.Infof("Creating sweep transaction for %v inputs (%v CSV, %v CLTV) "+
 		"using %v sat/kw", len(inputs), csvCount, cltvCount,
 		int64(feePerKw))
 
-	txFee := feePerKw.FeeForSize(txWeight)
+	txFee := feePerKw.FeeForSize(txSize)
 
 	// Sum up the total value contained in the inputs.
 	var totalSum dcrutil.Amount
@@ -242,9 +242,9 @@ func createSweepTx(inputs []Input, outputPkScript []byte,
 	return sweepTx, nil
 }
 
-// getInputWitnessSizeUpperBound returns the maximum length of the witness for
-// the given input if it would be included in a tx.
-func getInputWitnessSizeUpperBound(input Input) (int, error) {
+// getInputSigScriptSizeUpperBound returns the maximum length of the sig script
+// for the given input if it would be included in a tx.
+func getInputSigScriptSizeUpperBound(input Input) (int64, error) {
 	switch input.WitnessType() {
 
 	// Outputs on a remote commitment transaction that pay directly
@@ -255,51 +255,51 @@ func getInputWitnessSizeUpperBound(input Input) (int, error) {
 	// Outputs on a past commitment transaction that pay directly
 	// to us.
 	case lnwallet.CommitmentTimeLock:
-		return lnwallet.ToLocalTimeoutWitnessSize, nil
+		return lnwallet.ToLocalTimeoutSigScriptSize, nil
 
 	// Outgoing second layer HTLC's that have confirmed within the
 	// chain, and the output they produced is now mature enough to
 	// sweep.
 	case lnwallet.HtlcOfferedTimeoutSecondLevel:
-		return lnwallet.ToLocalTimeoutWitnessSize, nil
+		return lnwallet.ToLocalTimeoutSigScriptSize, nil
 
 	// Incoming second layer HTLC's that have confirmed within the
 	// chain, and the output they produced is now mature enough to
 	// sweep.
 	case lnwallet.HtlcAcceptedSuccessSecondLevel:
-		return lnwallet.ToLocalTimeoutWitnessSize, nil
+		return lnwallet.ToLocalTimeoutSigScriptSize, nil
 
 	// An HTLC on the commitment transaction of the remote party,
 	// that has had its absolute timelock expire.
 	case lnwallet.HtlcOfferedRemoteTimeout:
-		return lnwallet.AcceptedHtlcTimeoutWitnessSize, nil
+		return lnwallet.AcceptedHtlcTimeoutSigScriptSize, nil
 
 	// An HTLC on the commitment transaction of the remote party,
 	// that can be swept with the preimage.
 	case lnwallet.HtlcAcceptedRemoteSuccess:
-		return lnwallet.OfferedHtlcSuccessWitnessSize, nil
+		return lnwallet.OfferedHtlcSuccessSigScriptSize, nil
 
 	}
 
 	return 0, fmt.Errorf("unexpected witness type: %v", input.WitnessType())
 }
 
-// getWeightEstimate returns a weight estimate for the given inputs.
+// getSizeEstimate returns a size estimate for the given inputs.
 // Additionally, it returns counts for the number of csv and cltv inputs.
-func getWeightEstimate(inputs []Input) ([]Input, int64, int, int) {
-	// We initialize a weight estimator so we can accurately asses the
+func getSizeEstimate(inputs []Input) ([]Input, int64, int, int) {
+	// We initialize a size estimator so we can accurately asses the
 	// amount of fees we need to pay for this sweep transaction.
 	//
 	// TODO(roasbeef): can be more intelligent about buffering outputs to
 	// be more efficient on-chain.
-	var weightEstimate lnwallet.TxWeightEstimator
+	var sizeEstimate lnwallet.TxSizeEstimator
 
-	// Our sweep transaction will pay to a single segwit p2wkh address,
-	// ensure it contributes to our weight estimate.
-	weightEstimate.AddP2WKHOutput()
+	// Our sweep transaction will pay to a single p2pkh address,
+	// ensure it contributes to our size estimate.
+	sizeEstimate.AddP2PKHOutput()
 
 	// For each output, use its witness type to determine the estimate
-	// weight of its witness, and add it to the proper set of spendable
+	// size of its witness, and add it to the proper set of spendable
 	// outputs.
 	var (
 		sweepInputs         []Input
@@ -308,15 +308,15 @@ func getWeightEstimate(inputs []Input) ([]Input, int64, int, int) {
 	for i := range inputs {
 		input := inputs[i]
 
-		size, err := getInputWitnessSizeUpperBound(input)
+		size, err := getInputSigScriptSizeUpperBound(input)
 		if err != nil {
 			log.Warn(err)
 
-			// Skip inputs for which no weight estimate can be
+			// Skip inputs for which no size estimate can be
 			// given.
 			continue
 		}
-		weightEstimate.AddWitnessInput(size)
+		sizeEstimate.AddCustomInput(size)
 
 		switch input.WitnessType() {
 		case lnwallet.CommitmentTimeLock,
@@ -329,7 +329,7 @@ func getWeightEstimate(inputs []Input) ([]Input, int64, int, int) {
 		sweepInputs = append(sweepInputs, input)
 	}
 
-	txWeight := int64(weightEstimate.Weight())
+	txSize := sizeEstimate.Size()
 
-	return sweepInputs, txWeight, csvCount, cltvCount
+	return sweepInputs, txSize, csvCount, cltvCount
 }
