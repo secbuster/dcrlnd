@@ -689,11 +689,15 @@ func TestForceClose(t *testing.T) {
 		Value:    htlcResolution.SweepSignDesc.Output.Value,
 	})
 	htlcResolution.SweepSignDesc.InputIndex = 0
-	sweepTx.TxIn[0].Witness, err = htlcSpendSuccess(aliceChannel.Signer,
+	witness, err := htlcSpendSuccess(aliceChannel.Signer,
 		&htlcResolution.SweepSignDesc, sweepTx,
 		uint32(aliceChannel.channelState.LocalChanCfg.CsvDelay))
 	if err != nil {
 		t.Fatalf("unable to gen witness for timeout output: %v", err)
+	}
+	sweepTx.TxIn[0].SignatureScript, err = WitnessStackToSigScript(witness)
+	if err != nil {
+		t.Fatalf("unable to convert witness stack to sigScript: %v", err)
 	}
 
 	// With the witness fully populated for the success spend from the
@@ -750,11 +754,15 @@ func TestForceClose(t *testing.T) {
 		Value:    inHtlcResolution.SweepSignDesc.Output.Value,
 	})
 	inHtlcResolution.SweepSignDesc.InputIndex = 0
-	sweepTx.TxIn[0].Witness, err = htlcSpendSuccess(aliceChannel.Signer,
+	witness, err = htlcSpendSuccess(aliceChannel.Signer,
 		&inHtlcResolution.SweepSignDesc, sweepTx,
 		uint32(aliceChannel.channelState.LocalChanCfg.CsvDelay))
 	if err != nil {
 		t.Fatalf("unable to gen witness for timeout output: %v", err)
+	}
+	sweepTx.TxIn[0].SignatureScript, err = WitnessStackToSigScript(witness)
+	if err != nil {
+		t.Fatalf("unable to convert witness stack to sigScript: %v", err)
 	}
 
 	// The spend we create above spending the second level HTLC output
@@ -4664,13 +4672,18 @@ func TestChannelUnilateralCloseHtlcResolution(t *testing.T) {
 
 	// With the transaction constructed, we'll generate a witness that
 	// should be valid for it, and verify using an instance of Script.
-	sweepTx.TxIn[0].Witness, err = receiverHtlcSpendTimeout(
+	witness, err := receiverHtlcSpendTimeout(
 		aliceChannel.Signer, &outHtlcResolution.SweepSignDesc,
 		sweepTx, int32(outHtlcResolution.Expiry),
 	)
 	if err != nil {
 		t.Fatalf("unable to witness: %v", err)
 	}
+	sweepTx.TxIn[0].SignatureScript, err = WitnessStackToSigScript(witness)
+	if err != nil {
+		t.Fatalf("unable to convert witness stack to sigScript: %v", err)
+	}
+
 	vm, err := txscript.NewEngine(
 		outHtlcResolution.SweepSignDesc.Output.PkScript,
 		sweepTx, 0, scriptFlagsForTest,
@@ -4695,10 +4708,11 @@ func TestChannelUnilateralCloseHtlcResolution(t *testing.T) {
 		Value:    inHtlcResolution.SweepSignDesc.Output.Value,
 	})
 	inHtlcResolution.SweepSignDesc.InputIndex = 0
-	sweepTx.TxIn[0].Witness, err = SenderHtlcSpendRedeem(
+	witness, err = SenderHtlcSpendRedeem(
 		aliceChannel.Signer, &inHtlcResolution.SweepSignDesc,
 		sweepTx, preimageBob[:],
 	)
+	sweepTx.TxIn[0].SignatureScript, err = WitnessStackToSigScript(witness)
 	if err != nil {
 		t.Fatalf("unable to generate witness for success "+
 			"output: %v", err)
@@ -4825,11 +4839,15 @@ func TestChannelUnilateralClosePendingCommit(t *testing.T) {
 		PkScript: testHdSeed[:],
 		Value:    aliceSignDesc.Output.Value,
 	})
-	sweepTx.TxIn[0].Witness, err = CommitSpendNoDelay(
+	witness, err := CommitSpendNoDelay(
 		aliceChannel.Signer, &aliceSignDesc, sweepTx,
 	)
 	if err != nil {
 		t.Fatalf("unable to generate sweep witness: %v", err)
+	}
+	sweepTx.TxIn[0].SignatureScript, err = WitnessStackToSigScript(witness)
+	if err != nil {
+		t.Fatalf("unable to convert witness stack to sigScript: %v", err)
 	}
 
 	// If we validate the signature on the new sweep transaction, it should

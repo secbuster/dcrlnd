@@ -125,7 +125,11 @@ func TestCommitmentSpendValidation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to generate delay commit spend witness: %v", err)
 	}
-	sweepTx.TxIn[0].Witness = aliceWitnessSpend
+	sweepTx.TxIn[0].SignatureScript, err = WitnessStackToSigScript(aliceWitnessSpend)
+	if err != nil {
+		t.Fatalf("unable to convert witness stack to sigScript: %v", err)
+	}
+
 	vm, err := txscript.NewEngine(delayOutput.PkScript,
 		sweepTx, 0, scriptFlagsForTest, delayOutput.Version, nil)
 	if err != nil {
@@ -157,7 +161,11 @@ func TestCommitmentSpendValidation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to generate revocation witness: %v", err)
 	}
-	sweepTx.TxIn[0].Witness = bobWitnessSpend
+	sweepTx.TxIn[0].SignatureScript, err = WitnessStackToSigScript(bobWitnessSpend)
+	if err != nil {
+		t.Fatalf("unable to convert witness stack to sigScript: %v", err)
+	}
+
 	vm, err = txscript.NewEngine(delayOutput.PkScript,
 		sweepTx, 0, scriptFlagsForTest, delayOutput.Version, nil)
 	if err != nil {
@@ -201,7 +209,11 @@ func TestCommitmentSpendValidation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to create bob regular spend: %v", err)
 	}
-	sweepTx.TxIn[0].Witness = bobRegularSpend
+	sweepTx.TxIn[0].SignatureScript, err = WitnessStackToSigScript(bobRegularSpend)
+	if err != nil {
+		t.Fatalf("unable to convert witness stack to sigScript: %v", err)
+	}
+
 	vm, err = txscript.NewEngine(regularOutput.PkScript,
 		sweepTx, 0, scriptFlagsForTest, regularOutput.Version, nil)
 	if err != nil {
@@ -492,7 +504,10 @@ func TestHTLCSenderSpendValidation(t *testing.T) {
 	// not
 
 	for i, testCase := range testCases {
-		sweepTx.TxIn[0].Witness = testCase.witness()
+		sweepTx.TxIn[0].SignatureScript, err = WitnessStackToSigScript(testCase.witness())
+		if err != nil {
+			t.Fatalf("unable to convert witness stack to sigScript: %v", err)
+		}
 
 		vm, err := txscript.NewEngine(htlcPkScript,
 			sweepTx, 0, scriptFlagsForTest, htlcOutput.Version, nil)
@@ -756,7 +771,10 @@ func TestHTLCReceiverSpendValidation(t *testing.T) {
 	}
 
 	for i, testCase := range testCases {
-		sweepTx.TxIn[0].Witness = testCase.witness()
+		sweepTx.TxIn[0].SignatureScript, err = WitnessStackToSigScript(testCase.witness())
+		if err != nil {
+			t.Fatalf("unable to convert witness stack to sigScript: %v", err)
+		}
 
 		vm, err := txscript.NewEngine(htlcPkScript,
 			sweepTx, 0, scriptFlagsForTest, txscript.DefaultScriptVersion,
@@ -977,7 +995,10 @@ func TestSecondLevelHtlcSpends(t *testing.T) {
 	}
 
 	for i, testCase := range testCases {
-		sweepTx.TxIn[0].Witness = testCase.witness()
+		sweepTx.TxIn[0].SignatureScript, err = WitnessStackToSigScript(testCase.witness())
+		if err != nil {
+			t.Fatalf("unable to convert witness stack to sigScript: %v", err)
+		}
 
 		vm, err := txscript.NewEngine(htlcPkScript,
 			sweepTx, 0, scriptFlagsForTest, txscript.DefaultScriptVersion, nil)

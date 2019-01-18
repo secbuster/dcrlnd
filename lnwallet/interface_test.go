@@ -1559,7 +1559,10 @@ func testPublishTransaction(r *rpctest.Harness,
 		witness := make([][]byte, 2)
 		witness[0] = append(spendSig, byte(txscript.SigHashAll))
 		witness[1] = pubKey.PubKey.SerializeCompressed()
-		tx1.TxIn[0].Witness = witness
+		tx1.TxIn[0].SignatureScript, err = lnwallet.WitnessStackToSigScript(witness)
+		if err != nil {
+			t.Fatalf("unable to convert witness stack to sigScript: %v", err)
+		}
 
 		// Finally, attempt to validate the completed transaction. This
 		// should succeed if the wallet was able to properly generate
@@ -1895,7 +1898,10 @@ func testSignOutputUsingTweaks(r *rpctest.Harness,
 		witness := make([][]byte, 2)
 		witness[0] = append(spendSig, byte(txscript.SigHashAll))
 		witness[1] = tweakedKey.SerializeCompressed()
-		sweepTx.TxIn[0].Witness = witness
+		sweepTx.TxIn[0].SignatureScript, err = lnwallet.WitnessStackToSigScript(witness)
+		if err != nil {
+			t.Fatalf("unable to convert witness stack to sigScript: %v", err)
+		}
 
 		// Finally, attempt to validate the completed transaction. This
 		// should succeed if the wallet was able to properly generate
