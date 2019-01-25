@@ -5,13 +5,14 @@ import (
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/dcrutil"
 	"github.com/decred/dcrd/txscript"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrwallet/errors"
 	base "github.com/decred/dcrwallet/wallet"
 	"github.com/decred/dcrwallet/wallet/udb"
-	"github.com/go-errors/errors"
 )
 
 // FetchInputInfo queries for the WalletController's knowledge of the passed
@@ -39,6 +40,9 @@ func (b *DcrWallet) FetchInputInfo(prevOut *wire.OutPoint) (*wire.TxOut, error) 
 	txid := &prevOut.Hash
 	txDetail, err := base.UnstableAPI(b.wallet).TxDetails(txid)
 	if err != nil {
+		if errors.Is(errors.NotExist, err) {
+			return nil, lnwallet.ErrNotMine
+		}
 		return nil, err
 	} else if txDetail == nil {
 		return nil, lnwallet.ErrNotMine
@@ -83,11 +87,6 @@ func (b *DcrWallet) fetchOutputAddr(scriptVersion uint16, script []byte) (udb.Ma
 	return nil, lnwallet.ErrNotMine
 }
 
-// fetchPrivKey attempts to retrieve the raw private key corresponding to the
-// passed public key if populated, or the key descriptor path (if non-empty).
-func (b *DcrWallet) fetchPrivKey(keyDesc *keychain.KeyDescriptor) (*secp256k1.PrivateKey, error) {
-	return b.keyring.DerivePrivKey(*keyDesc)
-}
 
 // maybeTweakPrivKey examines the single and double tweak parameters on the
 // passed sign descriptor and may perform a mapping on the passed private key
@@ -124,7 +123,7 @@ func (b *DcrWallet) SignOutputRaw(tx *wire.MsgTx,
 
 	// First attempt to fetch the private key which corresponds to the
 	// specified public key.
-	privKey, err := b.fetchPrivKey(&signDesc.KeyDesc)
+	privKey, err := b.keyring.DerivePrivKey(signDesc.KeyDesc)
 	if err != nil {
 		return nil, err
 	}
@@ -152,8 +151,8 @@ func (b *DcrWallet) SignOutputRaw(tx *wire.MsgTx,
 
 // ComputeInputScript generates a complete InputScript for the passed
 // transaction with the signature as defined within the passed SignDescriptor.
-// This method is capable of generating the proper input script for both
-// regular p2wkh output and p2wkh outputs nested within a regular p2sh output.
+// This method is capable of generating the proper input script only for
+// regular p2pkh outputs.
 //
 // This is a part of the WalletController interface.
 func (b *DcrWallet) ComputeInputScript(tx *wire.MsgTx,
@@ -166,61 +165,18 @@ func (b *DcrWallet) ComputeInputScript(tx *wire.MsgTx,
 		return nil, err
 	}
 
-	mpka, isMPKA := walletAddr.(udb.ManagedPubKeyAddress)
-	if !isMPKA {
-		return nil, fmt.Errorf("Address is not from a public key")
-	}
-
-	pubKey := mpka.PubKey().(*secp256k1.PublicKey)
-	privKey, err := b.fetchPrivKey(&keychain.KeyDescriptor{PubKey: pubKey})
+	// Fetch the private key for the given wallet address.
+	privKeyWifStr, err := b.wallet.DumpWIFPrivateKey(walletAddr.Address())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Invalid wif string for address: %v", err)
 	}
-
-	var witnessProgram []byte
-	inputScript := &lnwallet.InputScript{}
-
-	switch {
-
-	// TODO(matheusd) decide what to do with this.
-
-	// If we're spending p2wkh output nested within a p2sh output, then
-	// we'll need to attach a sigScript in addition to witness data.
-	// case pka.IsNestedWitness():
-
-	// pubKey := privKey.PubKey()
-	// pubKeyHash := dcrutil.Hash160(pubKey.SerializeCompressed())
-
-	// // Next, we'll generate a valid sigScript that'll allow us to
-	// // spend the p2sh output. The sigScript will contain only a
-	// // single push of the p2wkh witness program corresponding to
-	// // the matching public key of this address.
-	// p2wkhAddr, err := dcrutil.NewAddressWitnessPubKeyHash(pubKeyHash,
-	// 	b.netParams)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// witnessProgram, err = txscript.PayToAddrScript(p2wkhAddr)
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	// bldr := txscript.NewScriptBuilder()
-	// bldr.AddData(witnessProgram)
-	// sigScript, err := bldr.Script()
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	// inputScript.ScriptSig = sigScript
-
-	// Otherwise, this is a regular p2wkh output, so we include the
-	// witness program itself as the subscript to generate the proper
-	// sighash digest. As part of the new sighash digest algorithm, the
-	// p2wkh witness program will be expanded into a regular p2kh
-	// script.
-	default:
-		witnessProgram = outputScript
+	privKeyWif, err := dcrutil.DecodeWIF(privKeyWifStr)
+	if err != nil {
+		return nil, fmt.Errorf("Error decoding wif string for address: %v", err)
+	}
+	privKey, isSecp := privKeyWif.PrivKey.(*secp256k1.PrivateKey)
+	if !isSecp {
+		return nil, fmt.Errorf("Private key returned is not secp256k1")
 	}
 
 	// If a tweak (single or double) is specified, then we'll need to use
@@ -234,14 +190,12 @@ func (b *DcrWallet) ComputeInputScript(tx *wire.MsgTx,
 	// Generate a valid witness stack for the input.
 	// TODO(roasbeef): adhere to passed HashType
 	scriptSig, err := txscript.SignatureScript(tx, signDesc.InputIndex,
-		witnessProgram, signDesc.HashType, privKey, true)
+		outputScript, signDesc.HashType, privKey, true)
 	if err != nil {
 		return nil, err
 	}
 
-	inputScript.ScriptSig = scriptSig
-
-	return inputScript, nil
+	return &lnwallet.InputScript{ScriptSig: scriptSig}, nil
 }
 
 // A compile time check to ensure that DcrWallet implements the Signer
@@ -257,11 +211,13 @@ var _ lnwallet.Signer = (*DcrWallet)(nil)
 func (b *DcrWallet) SignMessage(pubKey *secp256k1.PublicKey,
 	msg []byte) (*secp256k1.Signature, error) {
 
+	keyDesc := keychain.KeyDescriptor{
+		PubKey: pubKey,
+	}
+
 	// First attempt to fetch the private key which corresponds to the
 	// specified public key.
-	privKey, err := b.fetchPrivKey(&keychain.KeyDescriptor{
-		PubKey: pubKey,
-	})
+	privKey, err := b.keyring.DerivePrivKey(keyDesc)
 	if err != nil {
 		return nil, err
 	}

@@ -1435,7 +1435,7 @@ func (lc *LightningChannel) createSignDesc() error {
 		return err
 	}
 
-	fundingPkScript, err := WitnessScriptHash(multiSigScript) // TODO(decred): payToScriptHash?
+	fundingPkScript, err := ScriptHashPkScript(multiSigScript)
 	if err != nil {
 		return err
 	}
@@ -1954,7 +1954,7 @@ func NewBreachRetribution(chanState *channeldb.OpenChannel, stateNum uint64,
 	if err != nil {
 		return nil, err
 	}
-	remoteWitnessHash, err := WitnessScriptHash(remotePkScript) // TODO(decred): should be a p2sh
+	remoteWitnessHash, err := ScriptHashPkScript(remotePkScript)
 	if err != nil {
 		return nil, err
 	}
@@ -2080,7 +2080,7 @@ func NewBreachRetribution(chanState *channeldb.OpenChannel, stateNum uint64,
 			}
 		}
 
-		htlcPkScript, err := WitnessScriptHash(htlcWitnessScript)
+		htlcPkScript, err := ScriptHashPkScript(htlcWitnessScript)
 		if err != nil {
 			return nil, err
 		}
@@ -4571,7 +4571,7 @@ func (lc *LightningChannel) SettleHTLC(preimage [32]byte,
 		return ErrHtlcIndexAlreadySettled(htlcIndex)
 	}
 
-	if htlc.RHash != sha256.Sum256(preimage[:]) {
+	if htlc.RHash != PaymentHash(chainhash.HashH(preimage[:])) {
 		return ErrInvalidSettlePreimage{preimage[:], htlc.RHash[:]}
 	}
 
@@ -4616,7 +4616,7 @@ func (lc *LightningChannel) ReceiveHTLCSettle(preimage [32]byte, htlcIndex uint6
 		return ErrHtlcIndexAlreadySettled(htlcIndex)
 	}
 
-	if htlc.RHash != sha256.Sum256(preimage[:]) {
+	if htlc.RHash != PaymentHash(chainhash.HashH(preimage[:])) {
 		return ErrInvalidSettlePreimage{preimage[:], htlc.RHash[:]}
 	}
 
@@ -4806,8 +4806,7 @@ func (lc *LightningChannel) ShortChanID() lnwire.ShortChannelID {
 	return lc.channelState.ShortChanID()
 }
 
-// TODO(decred): p2wsh -> p2sh
-// genHtlcScript generates the proper P2WSH public key scripts for the HTLC
+// genHtlcScript generates the proper P2SH public key scripts for the HTLC
 // output modified by two-bits denoting if this is an incoming HTLC, and if the
 // HTLC is being applied to their commitment transaction or ours.
 func genHtlcScript(isIncoming, ourCommit bool, timeout uint32, rHash [32]byte,
@@ -4855,15 +4854,14 @@ func genHtlcScript(isIncoming, ourCommit bool, timeout uint32, rHash [32]byte,
 		return nil, nil, err
 	}
 
-	// TODO(decred): p2wsh -> p2sh
 	// Now that we have the redeem scripts, create the P2WSH public key
 	// script for the output itself.
-	htlcP2WSH, err := WitnessScriptHash(witnessScript)
+	htlcP2SH, err := ScriptHashPkScript(witnessScript)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	return htlcP2WSH, witnessScript, nil
+	return htlcP2SH, witnessScript, nil
 }
 
 // addHTLC adds a new HTLC to the passed commitment transaction. One of four
@@ -4880,8 +4878,7 @@ func (lc *LightningChannel) addHTLC(commitTx *wire.MsgTx, ourCommit bool,
 	timeout := paymentDesc.Timeout
 	rHash := paymentDesc.RHash
 
-	// TODO(decred): p2wsh -> p2sh
-	p2wsh, witnessScript, err := genHtlcScript(isIncoming, ourCommit,
+	p2sh, witnessScript, err := genHtlcScript(isIncoming, ourCommit,
 		timeout, rHash, keyRing)
 	if err != nil {
 		return err
@@ -4889,15 +4886,15 @@ func (lc *LightningChannel) addHTLC(commitTx *wire.MsgTx, ourCommit bool,
 
 	// Add the new HTLC outputs to the respective commitment transactions.
 	amountPending := int64(paymentDesc.Amount.ToSatoshis())
-	commitTx.AddTxOut(wire.NewTxOut(amountPending, p2wsh))
+	commitTx.AddTxOut(wire.NewTxOut(amountPending, p2sh))
 
 	// Store the pkScript of this particular PaymentDescriptor so we can
 	// quickly locate it within the commitment transaction later.
 	if ourCommit {
-		paymentDesc.ourPkScript = p2wsh
+		paymentDesc.ourPkScript = p2sh
 		paymentDesc.ourWitnessScript = witnessScript
 	} else {
-		paymentDesc.theirPkScript = p2wsh
+		paymentDesc.theirPkScript = p2sh
 		paymentDesc.theirWitnessScript = witnessScript
 	}
 
@@ -5233,7 +5230,7 @@ func newOutgoingHtlcResolution(signer Signer, localChanCfg *channeldb.ChannelCon
 		if err != nil {
 			return nil, err
 		}
-		htlcScriptHash, err := WitnessScriptHash(htlcReceiverScript)
+		htlcScriptHash, err := ScriptHashPkScript(htlcReceiverScript)
 		if err != nil {
 			return nil, err
 		}
@@ -5317,7 +5314,7 @@ func newOutgoingHtlcResolution(signer Signer, localChanCfg *channeldb.ChannelCon
 	if err != nil {
 		return nil, err
 	}
-	htlcScriptHash, err := WitnessScriptHash(htlcSweepScript)
+	htlcScriptHash, err := ScriptHashPkScript(htlcSweepScript)
 	if err != nil {
 		return nil, err
 	}
@@ -5375,7 +5372,7 @@ func newIncomingHtlcResolution(signer Signer, localChanCfg *channeldb.ChannelCon
 		if err != nil {
 			return nil, err
 		}
-		htlcScriptHash, err := WitnessScriptHash(htlcSenderScript)
+		htlcScriptHash, err := ScriptHashPkScript(htlcSenderScript)
 		if err != nil {
 			return nil, err
 		}
@@ -5435,14 +5432,16 @@ func newIncomingHtlcResolution(signer Signer, localChanCfg *channeldb.ChannelCon
 
 	// Next, we'll construct the full witness needed to satisfy the input
 	// of the success transaction.
-	// TODO(decred) convert to ScriptSig instead of TxWitness
 	successWitness, err := receiverHtlcSpendRedeem(
 		htlc.Signature, preimage[:], signer, &successSignDesc, successTx,
 	)
 	if err != nil {
 		return nil, err
 	}
-	successTx.TxIn[0].SignatureScript = successWitness[0]
+	successTx.TxIn[0].SignatureScript, err = WitnessStackToSigScript(successWitness)
+	if err != nil {
+		return nil, err
+	}
 
 	// Finally, we'll generate the script that the second-level transaction
 	// creates so we can generate the proper signDesc to sweep it after the
@@ -5453,7 +5452,7 @@ func newIncomingHtlcResolution(signer Signer, localChanCfg *channeldb.ChannelCon
 	if err != nil {
 		return nil, err
 	}
-	htlcScriptHash, err := WitnessScriptHash(htlcSweepScript)
+	htlcScriptHash, err := ScriptHashPkScript(htlcSweepScript)
 	if err != nil {
 		return nil, err
 	}
@@ -5644,7 +5643,7 @@ func NewLocalForceCloseSummary(chanState *channeldb.OpenChannel, signer Signer,
 	if err != nil {
 		return nil, err
 	}
-	payToUsScriptHash, err := WitnessScriptHash(selfScript)
+	payToUsScriptHash, err := ScriptHashPkScript(selfScript)
 	if err != nil {
 		return nil, err
 	}
@@ -5849,13 +5848,11 @@ func (lc *LightningChannel) CompleteCooperativeClose(localSig, remoteSig []byte,
 	}
 	closeTx.TxIn[0].SignatureScript = sigScript
 
-	// TODO(decred): script version constant or part of tx?
-	//
 	// Validate the finalized transaction to ensure the output script is
 	// properly met, and that the remote peer supplied a valid signature.
 	prevOut := lc.signDesc.Output
 	vm, err := txscript.NewEngine(prevOut.PkScript, closeTx, 0,
-		scriptFlags, scriptVersion, nil)
+		scriptFlags, prevOut.Version, nil)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -6067,25 +6064,23 @@ func CreateCommitTx(fundingOutput wire.TxIn,
 	if err != nil {
 		return nil, err
 	}
-	payToUsScriptHash, err := WitnessScriptHash(ourRedeemScript)
+	payToUsScriptHash, err := ScriptHashPkScript(ourRedeemScript)
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO(decred): p2wpkh -> p2pkh
 	// Next, we create the script paying to them. This is just a regular
-	// P2WPKH output, without any added CSV delay.
+	// P2PKH output, without any added CSV delay.
 	theirWitnessKeyHash, err := CommitScriptUnencumbered(keyRing.NoDelayKey)
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO(decred): Verify...
 	// Now that both output scripts have been created, we can finally create
 	// the transaction itself. We use a transaction version of 2 since CSV
 	// will fail unless the tx version is >= 2.
 	commitTx := wire.NewMsgTx()
-	commitTx.Version = 2
+	commitTx.Version = lnTxVersion
 	commitTx.AddTxIn(&fundingOutput)
 
 	// Avoid creating dust outputs within the commitment transaction.
@@ -6093,12 +6088,14 @@ func CreateCommitTx(fundingOutput wire.TxIn,
 		commitTx.AddTxOut(&wire.TxOut{
 			PkScript: payToUsScriptHash,
 			Value:    int64(amountToSelf),
+			Version:  txscript.DefaultScriptVersion,
 		})
 	}
 	if amountToThem >= dustLimit {
 		commitTx.AddTxOut(&wire.TxOut{
 			PkScript: theirWitnessKeyHash,
 			Value:    int64(amountToThem),
+			Version:  txscript.DefaultScriptVersion,
 		})
 	}
 

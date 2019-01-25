@@ -752,11 +752,7 @@ func (l *LightningWallet) handleContributionMsg(req *addContributionMsg) {
 			return
 		}
 
-		// TODO(jrick): Port -- Need to adjust ComputeInputScript
-		/*
-			txIn.SignatureScript = inputScript.ScriptSig
-			txIn.Witness = inputScript.Witness
-		*/
+		txIn.SignatureScript = inputScript.ScriptSig
 		pendingReservation.ourFundingInputScripts = append(
 			pendingReservation.ourFundingInputScripts,
 			inputScript,
@@ -952,60 +948,54 @@ func (l *LightningWallet) handleFundingCounterPartySigs(msg *addCounterPartySigs
 	// Now we can complete the funding transaction by adding their
 	// signatures to their inputs.
 	res.theirFundingInputScripts = msg.theirFundingInputScripts
-	//inputScripts := msg.theirFundingInputScripts // TODO(jrick): Port
+	inputScripts := msg.theirFundingInputScripts
 	fundingTx := res.fundingTx
-	// TODO(decred): Port
-	// *FundingInputScripts.ScriptSig will have been filled by
-	// txscript.SignatureScript
-	/*
-		sigIndex := 0
-		for i, txin := range fundingTx.TxIn {
-			if len(inputScripts) != 0 && len(txin.Witness) == 0 {
-				// Attach the input scripts so we can verify it below.
-				txin.Witness = inputScripts[sigIndex].Witness
-				txin.SignatureScript = inputScripts[sigIndex].ScriptSig
+	sigIndex := 0
+	for i, txin := range fundingTx.TxIn {
+		if len(inputScripts) != 0 && len(txin.SignatureScript) == 0 {
+			// Attach the input scripts so we can verify it below.
+			txin.SignatureScript = inputScripts[sigIndex].ScriptSig
 
-				// Fetch the alleged previous output along with the
-				// pkscript referenced by this input.
-				//
-				// TODO(roasbeef): when dual funder pass actual
-				// height-hint
-				pkScript, err := WitnessScriptHash(
-					txin.Witness[len(txin.Witness)-1],
-				)
-				if err != nil {
-				}
-				output, err := l.Cfg.ChainIO.GetUtxo(
-					&txin.PreviousOutPoint,
-					pkScript, 0,
-				)
-				if output == nil {
-					msg.err <- fmt.Errorf("input to funding tx "+
-						"does not exist: %v", err)
-					msg.completeChan <- nil
-					return
-				}
-
-				// TODO(decred): Use output.Value
-				// Ensure that the witness+sigScript combo is valid.
-				vm, err := txscript.NewEngine(output.PkScript,
-					fundingTx, i, scriptFlags, scriptVersion, nil)
-				if err != nil {
-					msg.err <- fmt.Errorf("cannot create script "+
-						"engine: %s", err)
-					msg.completeChan <- nil
-					return
-				}
-				if err = vm.Execute(); err != nil {
-					msg.err <- fmt.Errorf("cannot validate "+
-						"transaction: %s", err)
-					msg.completeChan <- nil
-					return
-				}
-
-				sigIndex++
+			// Fetch the alleged previous output along with the
+			// pkscript referenced by this input.
+			//
+			// TODO(roasbeef): when dual funder pass actual
+			// height-hint
+			//
+			// (decred): The pkscript is only used on neutrino clients and is
+			// overwritten by he currentt GetUTXO() implementations, so we can
+			// ignore this for now.
+			var pkScript []byte
+			output, err := l.Cfg.ChainIO.GetUtxo(
+				&txin.PreviousOutPoint,
+				pkScript, 0,
+			)
+			if output == nil {
+				msg.err <- fmt.Errorf("input to funding tx "+
+					"does not exist: %v", err)
+				msg.completeChan <- nil
+				return
 			}
-	*/
+
+			// Ensure that the witness+sigScript combo is valid.
+			vm, err := txscript.NewEngine(output.PkScript,
+				fundingTx, i, scriptFlags, output.Version, nil)
+			if err != nil {
+				msg.err <- fmt.Errorf("cannot create script "+
+					"engine: %s", err)
+				msg.completeChan <- nil
+				return
+			}
+			if err = vm.Execute(); err != nil {
+				msg.err <- fmt.Errorf("cannot validate "+
+					"transaction: %s", err)
+				msg.completeChan <- nil
+				return
+			}
+
+			sigIndex++
+		}
+	}
 
 	// At this point, we can also record and verify their signature for our
 	// commitment transaction.
@@ -1203,7 +1193,7 @@ func (l *LightningWallet) handleSingleFunderSigs(req *addSingleFunderSigsMsg) {
 	// With their signature for our version of the commitment transactions
 	// verified, we can now generate a signature for their version,
 	// allowing the funding transaction to be safely broadcast.
-	p2wsh, err := WitnessScriptHash(witnessScript)
+	p2sh, err := ScriptHashPkScript(witnessScript)
 	if err != nil {
 		req.err <- err
 		req.completeChan <- nil
@@ -1213,7 +1203,7 @@ func (l *LightningWallet) handleSingleFunderSigs(req *addSingleFunderSigsMsg) {
 		WitnessScript: witnessScript,
 		KeyDesc:       ourKey,
 		Output: &wire.TxOut{
-			PkScript: p2wsh,
+			PkScript: p2sh,
 			Value:    channelValue,
 		},
 		HashType:   txscript.SigHashAll,

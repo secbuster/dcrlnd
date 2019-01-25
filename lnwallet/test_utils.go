@@ -12,6 +12,11 @@ import (
 	"os"
 	"sync"
 
+	_ "github.com/decred/slog"
+	_ "github.com/davecgh/go-spew/spew"
+
+	"github.com/decred/dcrd/blockchain"
+	"github.com/decred/dcrd/blockchain/stake"
 	"github.com/decred/dcrd/chaincfg"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrec/secp256k1"
@@ -50,6 +55,16 @@ var (
 		0x4f, 0x2f, 0x6f, 0x25, 0x88, 0xa3, 0xef, 0xb9,
 		0x6a, 0x49, 0x18, 0x83, 0x31, 0x98, 0x47, 0x53,
 	}
+
+	alicePkScript = []byte{
+		0x76, 0xa9, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xac}
+
+	bobPkScript = []byte{
+		0x76, 0xa9, 0x14, 0x11, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xac}
 
 	// The number of confirmations required to consider any created channel
 	// open.
@@ -229,6 +244,8 @@ func CreateTestChannels() (*LightningChannel, *LightningChannel, func(), error) 
 		return nil, nil, nil, err
 	}
 
+	// The rate for this estimator must be the same as what is returned by
+	// calcStaticFee().
 	estimator := NewStaticFeeEstimator(6000, 0)
 	feePerKw, err := estimator.EstimateFeePerKB(1)
 	if err != nil {
@@ -567,6 +584,8 @@ func txFromHex(txHex string) (*dcrutil.Tx, error) {
 // function provides a simple way to allow test balance assertions to take fee
 // calculations into account.
 //
+// This uses a fixed, hard-coded value of 6000 Atoms/KB as fee.
+//
 // TODO(bvu): Refactor when dynamic fee estimation is added.
 func calcStaticFee(numHTLCs int) dcrutil.Amount {
 	const (
@@ -574,8 +593,120 @@ func calcStaticFee(numHTLCs int) dcrutil.Amount {
 		// values instead of estimateCommitmentTxSize?
 		// commitWeight = dcrutil.Amount(724)
 		// htlcWeight   = 172
-		feePerKB = dcrutil.Amount(250) * 1000
+		feePerKB = dcrutil.Amount(6000)
 	)
 	commitSize := EstimateCommitmentTxSize(numHTLCs)
-	return feePerKB * dcrutil.Amount(commitSize/1000)
+	return feePerKB * dcrutil.Amount(commitSize) / 1000
+}
+
+// checkLnTransactionSanity checks whether an ln transaction (funding,
+// commitment, etc) is reasonably sane according to consensus and standardness
+// checks that don't require a full backing blockchain to verify.
+func checkLnTransactionSanity(tx *wire.MsgTx, utxos map[wire.OutPoint]*wire.TxOut, netParams *chaincfg.Params) error {
+	scriptFlagsForTest := txscript.ScriptDiscourageUpgradableNops |
+		txscript.ScriptVerifyCleanStack |
+		txscript.ScriptVerifyCheckLockTimeVerify |
+		txscript.ScriptVerifyCheckSequenceVerify |
+		txscript.ScriptVerifySHA256
+
+
+	err := blockchain.CheckTransactionSanity(tx, netParams)
+	if err != nil {
+		return fmt.Errorf("error checking tx sanity: %v", err)
+	}
+
+	var inputSum int64
+	var outputSum int64
+
+	txType := stake.DetermineTxType(tx)
+	if txType != stake.TxTypeRegular {
+		return fmt.Errorf("transaction is not of the regular type")
+	}
+	if tx.Expiry != wire.NoExpiryValue {
+		return fmt.Errorf("expiry for the tx is not %d", wire.NoExpiryValue)
+	}
+	if tx.Version != lnTxVersion {
+		return fmt.Errorf("tx version (%d) different than expected (%d)",
+			tx.Version, lnTxVersion)
+	}
+	for i, out := range tx.TxOut {
+		if out.Version != txscript.DefaultScriptVersion {
+			return fmt.Errorf("output %d of tx does not use the "+
+				"default script version (found %d)", i, out.Version)
+		}
+
+		outputSum += out.Value
+	}
+	for i, in := range tx.TxIn {
+		utxo, hasUtxo := utxos[in.PreviousOutPoint]
+		if !hasUtxo {
+			return fmt.Errorf("utxo for input %d (%s) of tx not provided", i,
+				in.PreviousOutPoint)
+		}
+
+		engine, err := txscript.NewEngine(utxo.PkScript, tx, i,
+			scriptFlagsForTest, utxo.Version, nil)
+		if err != nil {
+			return fmt.Errorf("error creating engine to process input %d: %v",
+				i, err)
+		}
+
+		err = engine.Execute()
+		if err != nil {
+			return fmt.Errorf("error executing script of input %d: %v", i, err)
+		}
+
+		inputSum += utxo.Value
+	}
+
+	if (outputSum > inputSum) || (outputSum < 0) {
+		return fmt.Errorf("sum of output amounts > sum of input amounts")
+	}
+
+	return nil
+}
+
+// checkSignedCommitmentTxSanity checks whether a commitment transaction is
+// reasonably sane according to consensus and standardness checks that don't
+// require a full backing blockchain to verify.
+//
+// It assumes the commit transaction input previous outpoint is correctly
+// pointing to the passed fundingTxOut.
+func checkSignedCommitmentTxSanity(commitTx *wire.MsgTx, fundingTxOut *wire.TxOut, netParams *chaincfg.Params) error {
+
+	if len(commitTx.TxIn) != 1 {
+		return fmt.Errorf("commit transaction has invalid number of inputs")
+	}
+
+	utxos := make(map[wire.OutPoint]*wire.TxOut, 1)
+	utxos[commitTx.TxIn[0].PreviousOutPoint] = fundingTxOut
+
+	return checkLnTransactionSanity(commitTx, utxos, netParams)
+}
+
+// checkSignedCommitmentSpendingTxSanity checks whether a transaction spending
+// from a commitment transaction (eg: an htlc resolution transaction or a breach
+// remedy transaction ) is reasonably sane according to consensus and
+// standardness checks that don't require a full backing blockchain to verify.
+//
+// This assumes the commitment transaction is sane (ie
+// checkSignedCommitmentTxSanity returns nil).
+func checkSignedCommitmentSpendingTxSanity(spendTx, commitTx *wire.MsgTx, netParams *chaincfg.Params) error {
+
+	commitTxHash := commitTx.TxHash()
+	countCommitOuts := uint32(len(commitTx.TxOut))
+
+	utxos := make(map[wire.OutPoint]*wire.TxOut, len(spendTx.TxIn))
+	for i, in := range spendTx.TxIn {
+		outp := in.PreviousOutPoint
+		if (outp.Hash != commitTxHash) || (outp.Index >= countCommitOuts) ||
+		   (outp.Tree != wire.TxTreeRegular) {
+
+			return fmt.Errorf("input %d of spender tx does not spend from "+
+				"commit tx", i)
+		}
+		utxos[outp] = commitTx.TxOut[outp.Index]
+	}
+
+	return checkLnTransactionSanity(spendTx, utxos, netParams)
 }

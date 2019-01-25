@@ -51,12 +51,23 @@ const (
 
 // WitnessScriptHash generates a pay-to-witness-script-hash public key script
 // paying to a version 0 witness program paying to the passed redeem script.
+// TODO(decred) convert all calls to ScriptHashPkScript
 func WitnessScriptHash(witnessScript []byte) ([]byte, error) {
 	bldr := txscript.NewScriptBuilder()
 
 	bldr.AddOp(txscript.OP_0)
 	scriptHash := sha256.Sum256(witnessScript)
 	bldr.AddData(scriptHash[:])
+	return bldr.Script()
+}
+
+// ScriptHashPkScript returns the p2sh pkscript for a given redeem script. This
+// is ready to be included in a transaction output.
+func ScriptHashPkScript(redeemScript []byte) ([]byte, error) {
+	scriptHash := dcrutil.Hash160(redeemScript)
+	bldr := txscript.NewScriptBuilder()
+
+	bldr.AddOp(txscript.OP_HASH160).AddData(scriptHash).AddOp(txscript.OP_EQUAL)
 	return bldr.Script()
 }
 
@@ -95,7 +106,7 @@ func WitnessStackToSigScript(witness [][]byte) ([]byte, error) {
 	return bldr.Script()
 }
 
-// GenFundingPkScript creates a redeem script, and its matching p2wsh
+// GenFundingPkScript creates a redeem script, and its matching p2sh
 // output for the funding transaction.
 func GenFundingPkScript(aPub, bPub []byte, amt int64) ([]byte, *wire.TxOut, error) {
 	// As a sanity check, ensure that the passed amount is above zero.
@@ -110,9 +121,9 @@ func GenFundingPkScript(aPub, bPub []byte, amt int64) ([]byte, *wire.TxOut, erro
 		return nil, nil, err
 	}
 
-	// With the 2-of-2 script in had, generate a p2wsh script which pays
+	// With the 2-of-2 script in had, generate a p2sh script which pays
 	// to the funding script.
-	pkScript, err := WitnessScriptHash(witnessScript)
+	pkScript, err := ScriptHashPkScript(witnessScript)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -120,8 +131,7 @@ func GenFundingPkScript(aPub, bPub []byte, amt int64) ([]byte, *wire.TxOut, erro
 	return witnessScript, wire.NewTxOut(amt, pkScript), nil
 }
 
-// TODO(decred): p2wsh -> p2sh
-// SpendMultiSig generates the witness stack required to redeem the 2-of-2 p2wsh
+// SpendMultiSig generates the witness stack required to redeem the 2-of-2 p2sh
 // multi-sig output.
 func SpendMultiSig(witnessScript, pubA, sigA, pubB, sigB []byte) [][]byte {
 	witness := make([][]byte, 3)
@@ -653,7 +663,7 @@ func createHtlcTimeoutTx(htlcOutput wire.OutPoint, htlcAmt dcrutil.Amount,
 	// spends an output with a CSV timeout), and set the lock-time to the
 	// specified absolute lock-time in blocks.
 	timeoutTx := wire.NewMsgTx()
-	timeoutTx.Version = 2
+	timeoutTx.Version = lnTxVersion
 	timeoutTx.LockTime = cltvExpiry
 
 	// The input to the transaction is the outpoint that creates the
@@ -670,7 +680,7 @@ func createHtlcTimeoutTx(htlcOutput wire.OutPoint, htlcAmt dcrutil.Amount,
 	if err != nil {
 		return nil, err
 	}
-	pkScript, err := WitnessScriptHash(witnessScript) // TODO(decred): witnessScriptHash -> p2sh
+	pkScript, err := ScriptHashPkScript(witnessScript)
 	if err != nil {
 		return nil, err
 	}
@@ -702,7 +712,7 @@ func createHtlcSuccessTx(htlcOutput wire.OutPoint, htlcAmt dcrutil.Amount,
 	// Create a version two transaction (as the success version of this
 	// spends an output with a CSV timeout).
 	successTx := wire.NewMsgTx()
-	successTx.Version = 2
+	successTx.Version = lnTxVersion
 
 	// The input to the transaction is the outpoint that creates the
 	// original HTLC on the sender's commitment transaction.
@@ -718,7 +728,7 @@ func createHtlcSuccessTx(htlcOutput wire.OutPoint, htlcAmt dcrutil.Amount,
 	if err != nil {
 		return nil, err
 	}
-	pkScript, err := WitnessScriptHash(witnessScript)
+	pkScript, err := ScriptHashPkScript(witnessScript)
 	if err != nil {
 		return nil, err
 	}
@@ -958,15 +968,20 @@ func CommitScriptToSelf(csvTimeout uint32, selfKey, revokeKey *secp256k1.PublicK
 	return builder.Script()
 }
 
-// TODO(decred): p2pkh, not p2wkh...
 // CommitScriptUnencumbered constructs the public key script on the commitment
 // transaction paying to the "other" party. The constructed output is a normal
 // p2wkh output spendable immediately, requiring no contestation period.
 func CommitScriptUnencumbered(key *secp256k1.PublicKey) ([]byte, error) {
 	// This script goes to the "other" party, and it spendable immediately.
+
+	pkh := dcrutil.Hash160(key.SerializeCompressed())
 	builder := txscript.NewScriptBuilder()
-	builder.AddOp(txscript.OP_0)
-	builder.AddData(dcrutil.Hash160(key.SerializeCompressed()))
+	builder.
+		AddOp(txscript.OP_DUP).
+		AddOp(txscript.OP_HASH160).
+		AddData(pkh).
+		AddOp(txscript.OP_EQUALVERIFY).
+		AddOp(txscript.OP_CHECKSIG)
 
 	return builder.Script()
 }

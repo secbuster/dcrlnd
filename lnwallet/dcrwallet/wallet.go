@@ -7,13 +7,13 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
-
-	"github.com/decred/dcrd/rpcclient"
 
 	"github.com/decred/dcrd/chaincfg"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/rpcclient"
 	"github.com/decred/dcrd/txscript"
 	"github.com/decred/dcrd/wire"
 
@@ -21,6 +21,7 @@ import (
 	"github.com/decred/dcrlnd/lnwallet"
 
 	"github.com/decred/dcrwallet/chain"
+	"github.com/decred/dcrwallet/errors"
 	walletloader "github.com/decred/dcrwallet/loader"
 	base "github.com/decred/dcrwallet/wallet"
 	"github.com/decred/dcrwallet/wallet/txrules"
@@ -37,7 +38,8 @@ const (
 // operate.
 type DcrWallet struct {
 	// wallet is an active instance of dcrwallet.
-	wallet *base.Wallet
+	wallet             *base.Wallet
+	atomicWalletSynced uint32 // CAS (synced=1) when wallet syncing complete
 
 	cfg *Config
 
@@ -48,7 +50,7 @@ type DcrWallet struct {
 	utxoCache map[wire.OutPoint]*wire.TxOut
 	cacheMtx  sync.RWMutex
 
-	chain            *rpcclient.Client
+	chain            *chain.RPCClient
 	walletNetBackend base.NetworkBackend
 
 	keyring keychain.SecretKeyRing
@@ -133,18 +135,30 @@ func (b *DcrWallet) Start() error {
 
 	// Establish an RPC connection in addition to starting the goroutines
 	// in the underlying wallet.
-	err := b.chain.Connect(context.TODO(), true)
-	if err != nil && err != rpcclient.ErrClientAlreadyConnected {
-		return err
+	err := b.chain.Start(context.TODO(), true)
+	if err != nil && !errors.MatchAll(rpcclient.ErrClientAlreadyConnected, err) {
+		return fmt.Errorf("error starting chain client: %v", err)
 	}
-
-	// Start the underlying dcrwallet core.
-	b.wallet.Start()
 
 	// Pass the rpc client into the wallet so it can sync up to the
 	// current main chain.
-	b.walletNetBackend = chain.BackendFromRPCClient(b.chain)
+	b.walletNetBackend = chain.BackendFromRPCClient(b.chain.Client)
 	b.wallet.SetNetworkBackend(b.walletNetBackend)
+
+	go func() {
+		syncer := chain.NewRPCSyncer(b.wallet, b.chain)
+		syncer.SetNotifications(&chain.Notifications{
+			Synced: b.onRpcSyncerSynced,
+		})
+		ctx := context.TODO()
+		err := syncer.Run(ctx, true)
+
+		// TODO(decred) Log or surface sync errors.
+		_ = err
+		if err != nil {
+			panic(err)
+		}
+	}()
 
 	return nil
 }
@@ -172,6 +186,7 @@ func (b *DcrWallet) Stop() error {
 //
 // TODO(matheusd) Remove witness argument, given that's not applicable to decred
 func (b *DcrWallet) ConfirmedBalance(confs int32) (dcrutil.Amount, error) {
+
 	balances, err := b.wallet.CalculateAccountBalance(defaultAccount, confs)
 	if err != nil {
 		return 0, err
@@ -189,8 +204,11 @@ func (b *DcrWallet) ConfirmedBalance(confs int32) (dcrutil.Amount, error) {
 func (b *DcrWallet) NewAddress(t lnwallet.AddressType, change bool) (dcrutil.Address, error) {
 
 	switch t {
+	case lnwallet.PubKeyHash:
+		// nop
 	// lnwallet.{WitnessPubKey,PubKeyHash} are both as p2pkh in decred
-	case lnwallet.WitnessPubKey: // nop
+	case lnwallet.WitnessPubKey:
+		// TODO(decred): this should fail so we can remove lnwallet.WitnessPubKey
 	case lnwallet.NestedWitnessPubKey:
 		// TODO(matheusd) this is likely to be changed to a p2sh
 		panic("Decide what to do")
@@ -220,7 +238,7 @@ func (b *DcrWallet) IsOurAddress(a dcrutil.Address) bool {
 // This is a part of the WalletController interface.
 func (b *DcrWallet) SendOutputs(outputs []*wire.TxOut,
 	feeRate lnwallet.AtomPerKByte) (*wire.MsgTx, error) {
-	
+
 	// Ensure we haven't changed the default relay fee.
 	// TODO(decred) Potentially change to a construct/sign/publish cycle or
 	// add the fee as a parameter so that we don't risk changing the default
@@ -280,46 +298,36 @@ func (b *DcrWallet) ListUnspentWitness(minConfs, maxConfs int32) (
 			return nil, err
 		}
 
-		var addressType lnwallet.AddressType
-		if txscript.IsPayToScriptHash(pkScript) {
-			// TODO(roasbeef): This assumes all p2sh outputs returned by the
-			// wallet are nested p2pkh. We can't check the redeem script because
-			// the dcrwallet service does not include it.
-			//
-			// TODO(matheusd) decide on what to do with nested pk types
-			addressType = lnwallet.NestedWitnessPubKey
-		} else if txscript.IsPayToScriptHash(pkScript) {
-			addressType = lnwallet.WitnessPubKey
+		scriptClass := txscript.GetScriptClass(txscript.DefaultScriptVersion, pkScript)
+		if scriptClass != txscript.PubKeyHashTy {
+			continue
 		}
 
-		if addressType == lnwallet.WitnessPubKey ||
-			addressType == lnwallet.NestedWitnessPubKey {
-
-			txid, err := chainhash.NewHashFromStr(output.TxID)
-			if err != nil {
-				return nil, err
-			}
-
-			// We'll ensure we properly convert the amount given in
-			// DCR to atoms.
-			amt, err := dcrutil.NewAmount(output.Amount)
-			if err != nil {
-				return nil, err
-			}
-
-			utxo := &lnwallet.Utxo{
-				AddressType: addressType,
-				Value:       amt,
-				PkScript:    pkScript,
-				OutPoint: wire.OutPoint{
-					Hash:  *txid,
-					Index: output.Vout,
-				}, // TODO(decred): Tree
-				Confirmations: output.Confirmations,
-			}
-			witnessOutputs = append(witnessOutputs, utxo)
+		addressType := lnwallet.PubKeyHash
+		txid, err := chainhash.NewHashFromStr(output.TxID)
+		if err != nil {
+			return nil, err
 		}
 
+		// We'll ensure we properly convert the amount given in
+		// DCR to atoms.
+		amt, err := dcrutil.NewAmount(output.Amount)
+		if err != nil {
+			return nil, err
+		}
+
+		utxo := &lnwallet.Utxo{
+			AddressType: addressType,
+			Value:       amt,
+			PkScript:    pkScript,
+			OutPoint: wire.OutPoint{
+				Hash:  *txid,
+				Index: output.Vout,
+				Tree:  output.Tree,
+			},
+			Confirmations: output.Confirmations,
+		}
+		witnessOutputs = append(witnessOutputs, utxo)
 	}
 
 	return witnessOutputs, nil
@@ -366,6 +374,10 @@ func (b *DcrWallet) PublishTransaction(tx *wire.MsgTx) error {
 		if strings.Contains(err.Error(), "orphan transaction") {
 			// Transaction is spending either output that
 			// is missing or already spent.
+			return lnwallet.ErrDoubleSpend
+		}
+		if strings.Contains(err.Error(), "by double spending") {
+			// Wallet has a conflicting unmined transaction.
 			return lnwallet.ErrDoubleSpend
 		}
 		return err
@@ -674,5 +686,13 @@ func (b *DcrWallet) IsSynced() (bool, int64, error) {
 		return false, walletBestHeader.Timestamp.Unix(), nil
 	}
 
-	return true, walletBestHeader.Timestamp.Unix(), nil
+	// Check if the wallet has completed the initial sync procedure (discover
+	// addresses, load tx filter, etc).
+	walletSynced := atomic.LoadUint32(&b.atomicWalletSynced) == 1
+
+	return walletSynced, walletBestHeader.Timestamp.Unix(), nil
+}
+
+func (b *DcrWallet) onRpcSyncerSynced(synced bool) {
+	atomic.StoreUint32(&b.atomicWalletSynced, 1)
 }

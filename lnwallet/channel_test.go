@@ -3,7 +3,6 @@ package lnwallet
 import (
 	"bytes"
 	"container/list"
-	"crypto/sha256"
 	"fmt"
 
 	"reflect"
@@ -11,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
+	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrd/dcrutil"
 	"github.com/decred/dcrd/txscript"
@@ -71,7 +71,7 @@ func forceStateTransition(chanA, chanB *LightningChannel) error {
 // preimage and a given amount.
 func createHTLC(id int, amount lnwire.MilliSatoshi) (*lnwire.UpdateAddHTLC, [32]byte) {
 	preimage := bytes.Repeat([]byte{byte(id)}, 32)
-	paymentHash := sha256.Sum256(preimage)
+	paymentHash := chainhash.HashH(preimage)
 
 	var returnPreimage [32]byte
 	copy(returnPreimage[:], preimage)
@@ -119,7 +119,7 @@ func TestSimpleAddSettleWorkflow(t *testing.T) {
 	defer cleanUp()
 
 	paymentPreimage := bytes.Repeat([]byte{1}, 32)
-	paymentHash := sha256.Sum256(paymentPreimage)
+	paymentHash := chainhash.HashH(paymentPreimage)
 	htlcAmt := lnwire.NewMSatFromSatoshis(dcrutil.AtomsPerCoin)
 	htlc := &lnwire.UpdateAddHTLC{
 		PaymentHash: paymentHash,
@@ -399,22 +399,26 @@ func TestCheckCommitTxSize(t *testing.T) {
 	t.Parallel()
 
 	checkSize := func(channel *LightningChannel, count int) {
-		// Due to variable size of the signatures (70-73) in
+		// Due to the possible number of HTLC outputs being over 0xff, the
+		// varint that stores the number of outputs might be one byte off
+		// (estimation for worst case commitment tx uses 2 bytes).
+		commitTxSizeEstimationError := int64(1)
+
+		// Due to variable size of the signatures (70-72) in
 		// witness script actual size of commitment transaction might
-		// be lower on 6 weight.
-		// TODO(matheusd) review the error limit
-		BaseCommitmentTxSizeEstimationError := int64(6)
+		// be lower by 4 bytes (recall that 2 signatures are required
+		// when redeeming the funding transaction).
+		commitTxSizeEstimationError += int64(4)
 
 		commitTx, err := channel.getSignedCommitTx()
 		if err != nil {
 			t.Fatalf("unable to initiate alice force close: %v", err)
 		}
-
 		actualCost := int64(commitTx.SerializeSize())
 		estimatedCost := EstimateCommitmentTxSize(count)
 
 		diff := estimatedCost - actualCost
-		if 0 > diff || BaseCommitmentTxSizeEstimationError < diff {
+		if 0 > diff || commitTxSizeEstimationError < diff {
 			t.Fatalf("estimation is wrong, diff: %v", diff)
 		}
 
@@ -488,8 +492,10 @@ func TestCooperativeChannelClosure(t *testing.T) {
 	}
 	defer cleanUp()
 
-	aliceDeliveryScript := bobsPrivKey[:]
-	bobDeliveryScript := testHdSeed[:]
+	// We can use any dummy script, given that thist test doesn't actually
+	// verify whether the signature corresponds to the correct script.
+	aliceDeliveryScript := alicePkScript
+	bobDeliveryScript := bobPkScript
 
 	aliceFeeRate := AtomPerKByte(aliceChannel.channelState.LocalCommitment.FeePerKw)
 	bobFeeRate := AtomPerKByte(bobChannel.channelState.LocalCommitment.FeePerKw)
@@ -677,6 +683,7 @@ func TestForceClose(t *testing.T) {
 	// Next, we'll ensure that we can spend the output of the second level
 	// transaction given a properly crafted sweep transaction.
 	sweepTx := wire.NewMsgTx()
+	sweepTx.Version = lnTxVersion
 	sweepTx.AddTxIn(&wire.TxIn{
 		PreviousOutPoint: wire.OutPoint{
 			Hash:  htlcResolution.SignedTimeoutTx.TxHash(),
@@ -1303,23 +1310,28 @@ func TestChannelBalanceDustLimit(t *testing.T) {
 	}
 	defer cleanUp()
 
+	aliceDustLimit := aliceChannel.channelState.LocalChanCfg.DustLimit
+	bobDustLimit := bobChannel.channelState.LocalChanCfg.DustLimit
+	if aliceDustLimit >= bobDustLimit {
+		t.Fatalf("failed test precondition: aliceDustLimit must be < bobDustLimit")
+	}
+
 	// To allow Alice's balance to get beneath her dust limit, set the
 	// channel reserve to be 0.
 	aliceChannel.localChanCfg.ChanReserve = 0
 	bobChannel.remoteChanCfg.ChanReserve = 0
 
-	// This amount should leave an amount larger than Alice's dust limit
-	// once fees have been subtracted, but smaller than Bob's dust limit.
-	// We account in fees for the HTLC we will be adding.
-	defaultFee := calcStaticFee(1)
+	// Figure out how much it will cost to add an HTLC to the channel.
+	htlcFee := calcStaticFee(1) - calcStaticFee(0)
+
+	// Select how much to send from alice to bob. This must be enough so that
+	// the remaining balance in alice's commitment output is higher than her
+	// dust limit but lower than bob's dust limit, causing bob to remove that
+	// output from his commitment transaction.
 	aliceBalance := aliceChannel.channelState.LocalCommitment.LocalBalance.ToSatoshis()
-	htlcSat := aliceBalance - defaultFee
-	htlcSat += htlcSuccessFee(
-		AtomPerKByte(aliceChannel.channelState.LocalCommitment.FeePerKw),
-	)
+	htlcSat := aliceBalance - htlcFee - aliceDustLimit - 1
 
 	htlcAmount := lnwire.NewMSatFromSatoshis(htlcSat)
-
 	htlc, preimage := createHTLC(0, htlcAmount)
 	aliceHtlcIndex, err := aliceChannel.AddHTLC(htlc, nil)
 	if err != nil {
@@ -1347,15 +1359,21 @@ func TestChannelBalanceDustLimit(t *testing.T) {
 	// At the conclusion of this test, in Bob's commitment chains, the
 	// output for Alice's balance should have been removed as dust, leaving
 	// only a single output that will send the remaining funds in the
-	// channel to Bob.
-	commitment := bobChannel.localCommitChain.tip()
-	if len(commitment.txn.TxOut) != 1 {
-		t.Fatalf("incorrect # of outputs: expected %v, got %v",
-			1, len(commitment.txn.TxOut))
+	// channel to Bob. Alice should still have 2 outputs, given that we
+	// built the htlc to specifically leave some amount to her.
+	bobCommitment := bobChannel.localCommitChain.tip()
+	if len(bobCommitment.txn.TxOut) != 1 {
+		t.Fatalf("incorrect # of outputs for bob: expected %v, got %v",
+			1, len(bobCommitment.txn.TxOut))
 	}
 	if aliceChannel.channelState.TotalMSatSent != htlcAmount {
 		t.Fatalf("alice satoshis sent incorrect: expected %v, got %v",
 			htlcAmount, aliceChannel.channelState.TotalMSatSent)
+	}
+	aliceCommitment := aliceChannel.localCommitChain.tip()
+	if len(aliceCommitment.txn.TxOut) != 2 {
+		t.Fatalf("incorrect # of outputs for alice: expected %v, got %v",
+			2, len(aliceCommitment.txn.TxOut))
 	}
 }
 
@@ -1383,7 +1401,7 @@ func TestStateUpdatePersistence(t *testing.T) {
 	var bobPreimage [32]byte
 	copy(bobPreimage[:], bytes.Repeat([]byte{0xbb}, 32))
 	for i := 0; i < 3; i++ {
-		rHash := sha256.Sum256(alicePreimage[:])
+		rHash := chainhash.HashH(alicePreimage[:])
 		h := &lnwire.UpdateAddHTLC{
 			ID:          uint64(i),
 			PaymentHash: rHash,
@@ -1399,7 +1417,7 @@ func TestStateUpdatePersistence(t *testing.T) {
 			t.Fatalf("unable to recv alice's htlc: %v", err)
 		}
 	}
-	rHash := sha256.Sum256(bobPreimage[:])
+	rHash := chainhash.HashH(bobPreimage[:])
 	bobh := &lnwire.UpdateAddHTLC{
 		PaymentHash: rHash,
 		Amount:      htlcAmt,
@@ -1673,7 +1691,7 @@ func TestCancelHTLC(t *testing.T) {
 	var preImage [32]byte
 	copy(preImage[:], bytes.Repeat([]byte{0xaa}, 32))
 	htlc := &lnwire.UpdateAddHTLC{
-		PaymentHash: sha256.Sum256(preImage[:]),
+		PaymentHash: chainhash.HashH(preImage[:]),
 		Amount:      htlcAmt,
 		Expiry:      10,
 	}
@@ -1802,8 +1820,8 @@ func TestCooperativeCloseDustAdherence(t *testing.T) {
 		bobChannel.channelState.LocalCommitment.RemoteBalance = aliceBalance
 	}
 
-	aliceDeliveryScript := bobsPrivKey[:]
-	bobDeliveryScript := testHdSeed[:]
+	aliceDeliveryScript := alicePkScript
+	bobDeliveryScript := bobPkScript
 
 	// We'll start be initializing the limit of both Alice and Bob to 10k
 	// satoshis.
@@ -2033,7 +2051,7 @@ func TestUpdateFeeSenderCommits(t *testing.T) {
 	defer cleanUp()
 
 	paymentPreimage := bytes.Repeat([]byte{1}, 32)
-	paymentHash := sha256.Sum256(paymentPreimage)
+	paymentHash := chainhash.HashH(paymentPreimage)
 	htlc := &lnwire.UpdateAddHTLC{
 		PaymentHash: paymentHash,
 		Amount:      dcrutil.AtomsPerCoin,
@@ -2145,7 +2163,7 @@ func TestUpdateFeeReceiverCommits(t *testing.T) {
 	defer cleanUp()
 
 	paymentPreimage := bytes.Repeat([]byte{1}, 32)
-	paymentHash := sha256.Sum256(paymentPreimage)
+	paymentHash := chainhash.HashH(paymentPreimage)
 	htlc := &lnwire.UpdateAddHTLC{
 		PaymentHash: paymentHash,
 		Amount:      dcrutil.AtomsPerCoin,
@@ -2509,7 +2527,7 @@ func TestChanSyncFullySynced(t *testing.T) {
 	// Next, we'll create an HTLC for Alice to extend to Bob.
 	var paymentPreimage [32]byte
 	copy(paymentPreimage[:], bytes.Repeat([]byte{1}, 32))
-	paymentHash := sha256.Sum256(paymentPreimage[:])
+	paymentHash := chainhash.HashH(paymentPreimage[:])
 	htlcAmt := lnwire.NewMSatFromSatoshis(dcrutil.AtomsPerCoin)
 	htlc := &lnwire.UpdateAddHTLC{
 		PaymentHash: paymentHash,
@@ -2632,7 +2650,7 @@ func TestChanSyncOweCommitment(t *testing.T) {
 	var bobPreimage [32]byte
 	copy(bobPreimage[:], bytes.Repeat([]byte{0xbb}, 32))
 	for i := 0; i < 3; i++ {
-		rHash := sha256.Sum256(bobPreimage[:])
+		rHash := chainhash.HashH(bobPreimage[:])
 		h := &lnwire.UpdateAddHTLC{
 			PaymentHash: rHash,
 			Amount:      htlcAmt,
@@ -2675,7 +2693,7 @@ func TestChanSyncOweCommitment(t *testing.T) {
 	}
 	var alicePreimage [32]byte
 	copy(alicePreimage[:], bytes.Repeat([]byte{0xaa}, 32))
-	rHash := sha256.Sum256(alicePreimage[:])
+	rHash := chainhash.HashH(alicePreimage[:])
 	aliceHtlc := &lnwire.UpdateAddHTLC{
 		ChanID:      chanID,
 		PaymentHash: rHash,
@@ -2944,7 +2962,7 @@ func TestChanSyncOweRevocation(t *testing.T) {
 	htlcAmt := lnwire.NewMSatFromSatoshis(20000)
 	var bobPreimage [32]byte
 	copy(bobPreimage[:], bytes.Repeat([]byte{0xaa}, 32))
-	rHash := sha256.Sum256(bobPreimage[:])
+	rHash := chainhash.HashH(bobPreimage[:])
 	bobHtlc := &lnwire.UpdateAddHTLC{
 		ChanID:      chanID,
 		PaymentHash: rHash,
@@ -3087,7 +3105,7 @@ func TestChanSyncOweRevocation(t *testing.T) {
 	// channel can continue to receive updates.
 	var alicePreimage [32]byte
 	copy(bobPreimage[:], bytes.Repeat([]byte{0xaa}, 32))
-	rHash = sha256.Sum256(alicePreimage[:])
+	rHash = chainhash.HashH(alicePreimage[:])
 	aliceHtlc := &lnwire.UpdateAddHTLC{
 		ChanID:      chanID,
 		PaymentHash: rHash,
@@ -3130,7 +3148,7 @@ func TestChanSyncOweRevocationAndCommit(t *testing.T) {
 	// it in with a state transition.
 	var bobPreimage [32]byte
 	copy(bobPreimage[:], bytes.Repeat([]byte{0xaa}, 32))
-	rHash := sha256.Sum256(bobPreimage[:])
+	rHash := chainhash.HashH(bobPreimage[:])
 	bobHtlc := &lnwire.UpdateAddHTLC{
 		PaymentHash: rHash,
 		Amount:      htlcAmt,
@@ -3298,7 +3316,7 @@ func TestChanSyncOweRevocationAndCommitForceTransition(t *testing.T) {
 	// it in with a state transition.
 	var bobPreimage [32]byte
 	copy(bobPreimage[:], bytes.Repeat([]byte{0xaa}, 32))
-	rHash := sha256.Sum256(bobPreimage[:])
+	rHash := chainhash.HashH(bobPreimage[:])
 	var bobHtlc [2]*lnwire.UpdateAddHTLC
 	bobHtlc[0] = &lnwire.UpdateAddHTLC{
 		PaymentHash: rHash,
@@ -3321,7 +3339,7 @@ func TestChanSyncOweRevocationAndCommitForceTransition(t *testing.T) {
 	// commit chains are at different heights, we'll add another HTLC from
 	// Bob to Alice, but let Alice skip the commitment for this state
 	// update.
-	rHash = sha256.Sum256(bytes.Repeat([]byte{0xbb}, 32))
+	rHash = chainhash.HashH(bytes.Repeat([]byte{0xbb}, 32))
 	bobHtlc[1] = &lnwire.UpdateAddHTLC{
 		PaymentHash: rHash,
 		Amount:      htlcAmt,
@@ -3529,7 +3547,7 @@ func TestChanSyncFailure(t *testing.T) {
 		// then lock it in with a state transition.
 		var bobPreimage [32]byte
 		copy(bobPreimage[:], bytes.Repeat([]byte{0xaa - index}, 32))
-		rHash := sha256.Sum256(bobPreimage[:])
+		rHash := chainhash.HashH(bobPreimage[:])
 		bobHtlc := &lnwire.UpdateAddHTLC{
 			PaymentHash: rHash,
 			Amount:      htlcAmt,
@@ -3560,7 +3578,7 @@ func TestChanSyncFailure(t *testing.T) {
 		// then lock it in with a state transition.
 		var bobPreimage [32]byte
 		copy(bobPreimage[:], bytes.Repeat([]byte{0xaa - index}, 32))
-		rHash := sha256.Sum256(bobPreimage[:])
+		rHash := chainhash.HashH(bobPreimage[:])
 		bobHtlc := &lnwire.UpdateAddHTLC{
 			PaymentHash: rHash,
 			Amount:      htlcAmt,
@@ -3918,7 +3936,7 @@ func TestChannelRetransmissionFeeUpdate(t *testing.T) {
 	// transition. This should also proceed as normal.
 	var bobPreimage [32]byte
 	copy(bobPreimage[:], bytes.Repeat([]byte{0xaa}, 32))
-	rHash := sha256.Sum256(bobPreimage[:])
+	rHash := chainhash.HashH(bobPreimage[:])
 	bobHtlc := &lnwire.UpdateAddHTLC{
 		PaymentHash: rHash,
 		Amount:      lnwire.NewMSatFromSatoshis(20000),
@@ -4000,7 +4018,7 @@ func TestChanSyncInvalidLastSecret(t *testing.T) {
 	// revocation to send.
 	var paymentPreimage [32]byte
 	copy(paymentPreimage[:], bytes.Repeat([]byte{1}, 32))
-	paymentHash := sha256.Sum256(paymentPreimage[:])
+	paymentHash := chainhash.HashH(paymentPreimage[:])
 	htlcAmt := lnwire.NewMSatFromSatoshis(dcrutil.AtomsPerCoin)
 	htlc := &lnwire.UpdateAddHTLC{
 		PaymentHash: paymentHash,
@@ -5382,7 +5400,7 @@ func TestNewBreachRetributionSkipsDustHtlcs(t *testing.T) {
 	var bobPreimage [32]byte
 	copy(bobPreimage[:], bytes.Repeat([]byte{0xbb}, 32))
 	for i := 0; i < 3; i++ {
-		rHash := sha256.Sum256(bobPreimage[:])
+		rHash := chainhash.HashH(bobPreimage[:])
 		h := &lnwire.UpdateAddHTLC{
 			PaymentHash: rHash,
 			Amount:      lnwire.NewMSatFromSatoshis(dustValue),

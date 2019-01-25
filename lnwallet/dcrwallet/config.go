@@ -6,9 +6,9 @@ import (
 
 	"github.com/decred/dcrd/chaincfg"
 	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrd/rpcclient"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrwallet/chain"
 
 	//"github.com/decred/dcrlnd/lnwallet" // TODO(decred): Finish
 
@@ -87,7 +87,7 @@ type Config struct {
 	//
 	// TODO(matheusd): possibly use a NetworkBackend instead of rpcclient in
 	// order to be able to connect directly to the network via SPV.
-	ChainSource *rpcclient.Client
+	ChainSource *chain.RPCClient
 
 	// FeeEstimator is an instance of the fee estimator interface which
 	// will be used by the wallet to dynamically set transaction fees when

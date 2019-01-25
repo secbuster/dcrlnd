@@ -101,6 +101,8 @@ var (
 
 	bobAddr, _   = net.ResolveTCPAddr("tcp", "10.0.0.2:9000")
 	aliceAddr, _ = net.ResolveTCPAddr("tcp", "10.0.0.3:9000")
+
+	defaultFeeRate = lnwallet.AtomPerKByte(1e4)
 )
 
 // assertProperBalance asserts than the total value of the unspent outputs
@@ -201,7 +203,7 @@ func sendCoins(t *testing.T, miner *rpctest.Harness,
 
 	t.Helper()
 
-	tx, err := sender.SendOutputs([]*wire.TxOut{output}, 2500)
+	tx, err := sender.SendOutputs([]*wire.TxOut{output}, feeRate)
 	if err != nil {
 		t.Fatalf("unable to send transaction: %v", err)
 	}
@@ -269,10 +271,10 @@ func calcStaticFee(numHTLCs int) dcrutil.Amount {
 		// values instead of estimateCommitmentTxSize?
 		// commitWeight = dcrutil.Amount(724)
 		// htlcWeight   = 172
-		feePerKB = dcrutil.Amount(250) * 1000
+		feePerKB = dcrutil.Amount(6000)
 	)
 	commitSize := lnwallet.EstimateCommitmentTxSize(numHTLCs)
-	return feePerKB * dcrutil.Amount(commitSize/1000)
+	return feePerKB * dcrutil.Amount(commitSize) / 1000
 }
 
 // TODO(decred): Update for atomsPerOutput...
@@ -293,7 +295,7 @@ func loadTestCredits(miner *rpctest.Harness, w *lnwallet.LightningWallet,
 	addrs := make([]dcrutil.Address, 0, numOutputs)
 	for i := 0; i < numOutputs; i++ {
 		// Grab a fresh address from the wallet to house this output.
-		walletAddr, err := w.NewAddress(lnwallet.WitnessPubKey, false)
+		walletAddr, err := w.NewAddress(lnwallet.PubKeyHash, false)
 		if err != nil {
 			return err
 		}
@@ -308,10 +310,20 @@ func loadTestCredits(miner *rpctest.Harness, w *lnwallet.LightningWallet,
 		output := &wire.TxOut{
 			Value:    int64(satoshiPerOutput),
 			PkScript: script,
+			Version:  txscript.DefaultScriptVersion,
 		}
-		if _, err := miner.SendOutputs([]*wire.TxOut{output}, 2500); err != nil {
+		if _, err := miner.SendOutputs([]*wire.TxOut{output}, 1e5); err != nil {
 			return err
 		}
+
+		// Sleep for a bit to allow the wallet to receive and process the
+		// transaction. This is needed to prevent a possible deadlock condition
+		// in the wallet when generating new addresses while processing a
+		// transaction (see https://github.com/decred/dcrwallet/issues/1372).
+		// This isn't pretty, and the correct thing would be to wait until the
+		// transaction shows up from the wallet, but IME, 50ms should be more
+		// than enough to prevent triggering this bug on most dev machines.
+		time.Sleep(time.Millisecond * 50)
 	}
 
 	// TODO(roasbeef): shouldn't hardcode 10, use config param that dictates
@@ -372,7 +384,7 @@ func createTestWallet(tempTestDir string, miningNode *rpctest.Harness,
 		WalletController: wc,
 		Signer:           signer,
 		ChainIO:          bio,
-		FeeEstimator:     lnwallet.NewStaticFeeEstimator(2500, 0),
+		FeeEstimator:     lnwallet.NewStaticFeeEstimator(defaultFeeRate, 0),
 		DefaultConstraints: channeldb.ChannelConstraints{
 			DustLimit:        500,
 			MaxPendingAmount: lnwire.NewMSatFromSatoshis(dcrutil.AtomsPerCoin) * 100,
@@ -390,6 +402,22 @@ func createTestWallet(tempTestDir string, miningNode *rpctest.Harness,
 
 	if err := wallet.Startup(); err != nil {
 		return nil, err
+	}
+
+	// Wait for the initial wallet sync and rescan.
+	timeout := time.After(time.Second * 10)
+	var synced bool
+	for !synced {
+		// Do a short wait
+		select {
+		case <-timeout:
+			return nil, fmt.Errorf("timeout after 30 while performing initial sync")
+		case <-time.Tick(100 * time.Millisecond):
+			synced, _, err = wallet.IsSynced()
+			if err != nil {
+				return nil, err
+			}
+		}
 	}
 
 	// Load our test wallet with 20 outputs each holding 4DCR.
@@ -417,7 +445,6 @@ func testDualFundingReservationWorkflow(miner *rpctest.Harness,
 	if err != nil {
 		t.Fatalf("unable to query fee estimator: %v", err)
 	}
-	_ = feePerKB
 
 	aliceReq := &lnwallet.InitFundingReserveMsg{
 		ChainHash:       chainHash,
@@ -425,8 +452,8 @@ func testDualFundingReservationWorkflow(miner *rpctest.Harness,
 		NodeAddr:        bobAddr,
 		FundingAmount:   fundingAmount,
 		Capacity:        fundingAmount * 2,
-		CommitFeePerKw:  1, // TODO(decred) feePerKB
-		FundingFeePerKw: 1, // TODO(decred) feePerKB
+		CommitFeePerKw:  feePerKB,
+		FundingFeePerKw: feePerKB,
 		PushMSat:        0,
 		Flags:           lnwire.FFAnnounceChannel,
 	}
@@ -464,8 +491,8 @@ func testDualFundingReservationWorkflow(miner *rpctest.Harness,
 		NodeAddr:        aliceAddr,
 		FundingAmount:   fundingAmount,
 		Capacity:        fundingAmount * 2,
-		CommitFeePerKw:  1, // TODO(decred) feePerKB
-		FundingFeePerKw: 1, // TODO(decred) feePerKB
+		CommitFeePerKw:  feePerKB,
+		FundingFeePerKw: feePerKB,
 		PushMSat:        0,
 		Flags:           lnwire.FFAnnounceChannel,
 	}
@@ -617,7 +644,6 @@ func testFundingTransactionLockedOutputs(miner *rpctest.Harness,
 	fundingAmount := dcrutil.Amount(8 * 1e8)
 	// TODO(decred) Switch to fee per KB
 	feePerKB, err := alice.Cfg.FeeEstimator.EstimateFeePerKB(1)
-	_ = feePerKB
 	if err != nil {
 		t.Fatalf("unable to query fee estimator: %v", err)
 	}
@@ -627,8 +653,8 @@ func testFundingTransactionLockedOutputs(miner *rpctest.Harness,
 		NodeAddr:        bobAddr,
 		FundingAmount:   fundingAmount,
 		Capacity:        fundingAmount,
-		CommitFeePerKw:  1, // TODO(decred) feePerKB
-		FundingFeePerKw: 1, // TODO(decred) feePerKB
+		CommitFeePerKw:  feePerKB,
+		FundingFeePerKw: feePerKB,
 		PushMSat:        0,
 		Flags:           lnwire.FFAnnounceChannel,
 	}
@@ -649,8 +675,8 @@ func testFundingTransactionLockedOutputs(miner *rpctest.Harness,
 		NodeAddr:        bobAddr,
 		FundingAmount:   amt,
 		Capacity:        amt,
-		CommitFeePerKw:  1, // TODO(decred) feePerKB
-		FundingFeePerKw: 1, // TODO(decred) feePerKB
+		CommitFeePerKw:  feePerKB,
+		FundingFeePerKw: feePerKB,
 		PushMSat:        0,
 		Flags:           lnwire.FFAnnounceChannel,
 	}
@@ -670,7 +696,6 @@ func testFundingCancellationNotEnoughFunds(miner *rpctest.Harness,
 	alice, _ *lnwallet.LightningWallet, t *testing.T) {
 
 	feePerKB, err := alice.Cfg.FeeEstimator.EstimateFeePerKB(1)
-	_ = feePerKB
 	if err != nil {
 		t.Fatalf("unable to query fee estimator: %v", err)
 	}
@@ -686,8 +711,8 @@ func testFundingCancellationNotEnoughFunds(miner *rpctest.Harness,
 		NodeAddr:        bobAddr,
 		FundingAmount:   fundingAmount,
 		Capacity:        fundingAmount,
-		CommitFeePerKw:  1, // TODO(decred) feePerKB
-		FundingFeePerKw: 1, // TODO(decred) feePerKB
+		CommitFeePerKw:  feePerKB,
+		FundingFeePerKw: feePerKB,
 		PushMSat:        0,
 		Flags:           lnwire.FFAnnounceChannel,
 	}
@@ -735,7 +760,6 @@ func testCancelNonExistentReservation(miner *rpctest.Harness,
 	alice, _ *lnwallet.LightningWallet, t *testing.T) {
 
 	feePerKB, err := alice.Cfg.FeeEstimator.EstimateFeePerKB(1)
-	_ = feePerKB
 	if err != nil {
 		t.Fatalf("unable to query fee estimator: %v", err)
 	}
@@ -743,7 +767,7 @@ func testCancelNonExistentReservation(miner *rpctest.Harness,
 	// Create our own reservation, give it some ID.
 	res, err := lnwallet.NewChannelReservation(
 		10000, 10000,
-		1, // TODO(decred) feePerKB
+		feePerKB,
 		alice, 22, 10, &testHdSeed,
 		lnwire.FFAnnounceChannel,
 	)
@@ -851,7 +875,6 @@ func testSingleFunderReservationWorkflow(miner *rpctest.Harness,
 	}
 	pushAmt := lnwire.NewMSatFromSatoshis(dcrutil.AtomsPerCoin)
 	feePerKB, err := alice.Cfg.FeeEstimator.EstimateFeePerKB(1)
-	_ = feePerKB
 	if err != nil {
 		t.Fatalf("unable to query fee estimator: %v", err)
 	}
@@ -861,8 +884,8 @@ func testSingleFunderReservationWorkflow(miner *rpctest.Harness,
 		NodeAddr:        bobAddr,
 		FundingAmount:   fundingAmt,
 		Capacity:        fundingAmt,
-		CommitFeePerKw:  1, // TODO(decred) feePerKB
-		FundingFeePerKw: 1, // TODO(decred) feePerKB
+		CommitFeePerKw:  feePerKB,
+		FundingFeePerKw: feePerKB,
 		PushMSat:        pushAmt,
 		Flags:           lnwire.FFAnnounceChannel,
 	}
@@ -900,8 +923,8 @@ func testSingleFunderReservationWorkflow(miner *rpctest.Harness,
 		NodeAddr:        aliceAddr,
 		FundingAmount:   0,
 		Capacity:        fundingAmt,
-		CommitFeePerKw:  1, // TODO(decred) feePerKB
-		FundingFeePerKw: 1, // TODO(decred) feePerKB
+		CommitFeePerKw:  feePerKB,
+		FundingFeePerKw: feePerKB,
 		PushMSat:        pushAmt,
 		Flags:           lnwire.FFAnnounceChannel,
 	}
@@ -1092,7 +1115,8 @@ func testListTransactionDetails(miner *rpctest.Harness,
 			Value:    outputAmt,
 			PkScript: script,
 		}
-		txid, err := miner.SendOutputs([]*wire.TxOut{output}, 2500)
+		txid, err := miner.SendOutputs([]*wire.TxOut{output},
+			dcrutil.Amount(defaultFeeRate))
 		if err != nil {
 			t.Fatalf("unable to send coinbase: %v", err)
 		}
@@ -1198,7 +1222,7 @@ func testListTransactionDetails(miner *rpctest.Harness,
 		t.Fatalf("unable to make output script: %v", err)
 	}
 	burnOutput := wire.NewTxOut(outputAmt, outputScript)
-	burnTX, err := alice.SendOutputs([]*wire.TxOut{burnOutput}, 2500)
+	burnTX, err := alice.SendOutputs([]*wire.TxOut{burnOutput}, defaultFeeRate)
 	if err != nil {
 		t.Fatalf("unable to create burn tx: %v", err)
 	}
@@ -1348,7 +1372,8 @@ func testTransactionSubscriptions(miner *rpctest.Harness,
 			Value:    outputAmt,
 			PkScript: script,
 		}
-		txid, err := miner.SendOutputs([]*wire.TxOut{output}, 2500)
+		txid, err := miner.SendOutputs([]*wire.TxOut{output},
+			dcrutil.Amount(defaultFeeRate))
 		if err != nil {
 			t.Fatalf("unable to send coinbase: %v", err)
 		}
@@ -1411,7 +1436,7 @@ func testTransactionSubscriptions(miner *rpctest.Harness,
 		t.Fatalf("unable to make output script: %v", err)
 	}
 	burnOutput := wire.NewTxOut(outputAmt, outputScript)
-	tx, err := alice.SendOutputs([]*wire.TxOut{burnOutput}, 2500)
+	tx, err := alice.SendOutputs([]*wire.TxOut{burnOutput}, defaultFeeRate)
 	if err != nil {
 		t.Fatalf("unable to create burn tx: %v", err)
 	}
@@ -1447,6 +1472,11 @@ func testTransactionSubscriptions(miner *rpctest.Harness,
 // conflicts with the current mempool or chain.
 func testPublishTransaction(r *rpctest.Harness,
 	alice, _ *lnwallet.LightningWallet, t *testing.T) {
+
+	// Base tx fee rate for the transactions in this test. This is lower
+	// than the defaultRate to allow various tests to modify the fee rate used
+	// for transactions and still be below the wallet's max fee rate.
+	baseTxFee := dcrutil.Amount(1e4)
 
 	// mineAndAssert mines a block and ensures the passed TX
 	// is part of that block.
@@ -1528,6 +1558,7 @@ func testPublishTransaction(r *rpctest.Harness,
 			PreviousOutPoint: wire.OutPoint{
 				Hash:  tx.TxHash(),
 				Index: outputIndex,
+				Tree:  wire.TxTreeRegular,
 			},
 			// We don't support RBF, so set sequence to max.
 			Sequence: wire.MaxTxInSequenceNum,
@@ -1535,6 +1566,7 @@ func testPublishTransaction(r *rpctest.Harness,
 		tx1.AddTxOut(&wire.TxOut{
 			Value:    outputValue - int64(txFee),
 			PkScript: payToScript,
+			Version:  txscript.DefaultScriptVersion,
 		})
 
 		// Now we can populate the sign descriptor which we'll use to
@@ -1588,8 +1620,9 @@ func testPublishTransaction(r *rpctest.Harness,
 		newOutput := &wire.TxOut{
 			Value:    dcrutil.AtomsPerCoin,
 			PkScript: keyScript,
+			Version:  txscript.DefaultScriptVersion,
 		}
-		tx, err := alice.SendOutputs([]*wire.TxOut{newOutput}, 2500)
+		tx, err := alice.SendOutputs([]*wire.TxOut{newOutput}, defaultFeeRate)
 		if err != nil {
 			t.Fatalf("unable to create output: %v", err)
 		}
@@ -1605,8 +1638,8 @@ func testPublishTransaction(r *rpctest.Harness,
 		if err := mineAndAssert(tx); err != nil {
 			t.Fatalf("unable to mine tx: %v", err)
 		}
-		txFee := dcrutil.Amount(0.1 * dcrutil.AtomsPerCoin)
-		tx1 := txFromOutput(tx, pubKey.PubKey, txFee)
+
+		tx1 := txFromOutput(tx, pubKey.PubKey, baseTxFee)
 
 		return tx1
 	}
@@ -1692,7 +1725,7 @@ func testPublishTransaction(r *rpctest.Harness,
 	// Now we create a transaction that spends the output
 	// from the tx just mined. This should be accepted
 	// into the mempool.
-	txFee := dcrutil.Amount(0.05 * dcrutil.AtomsPerCoin)
+	txFee := baseTxFee * 5
 	tx4 := txFromOutput(tx3, pubKey.PubKey, txFee)
 	if err := alice.PublishTransaction(tx4); err != nil {
 		t.Fatalf("unable to publish: %v", err)
@@ -1831,7 +1864,7 @@ func testSignOutputUsingTweaks(r *rpctest.Harness,
 			PkScript: keyScript,
 			Version:  txscript.DefaultScriptVersion,
 		}
-		tx, err := alice.SendOutputs([]*wire.TxOut{newOutput}, 2500)
+		tx, err := alice.SendOutputs([]*wire.TxOut{newOutput}, defaultFeeRate)
 		if err != nil {
 			t.Fatalf("unable to create output: %v", err)
 		}
@@ -1956,7 +1989,7 @@ func testReorgWalletBalance(r *rpctest.Harness, w *lnwallet.LightningWallet,
 		Value:    1e8,
 		PkScript: script,
 	}
-	tx, err := w.SendOutputs([]*wire.TxOut{output}, 2500)
+	tx, err := w.SendOutputs([]*wire.TxOut{output}, defaultFeeRate)
 	if err != nil {
 		t.Fatalf("unable to send outputs: %v", err)
 	}
@@ -2105,16 +2138,16 @@ func testChangeOutputSpendConfirmation(r *rpctest.Harness,
 	if err != nil {
 		t.Fatalf("unable to retrieve alice's balance: %v", err)
 	}
-	bobPkScript := newPkScript(t, bob, lnwallet.WitnessPubKey)
+	bobPkScript := newPkScript(t, bob, lnwallet.PubKeyHash)
 
-	// We'll use a transaction fee of 13020 satoshis, which will allow us to
-	// sweep all of Alice's balance in one transaction containing 1 input
-	// and 1 output.
+	// A transaction to sweep all 80 DCR that should be in the wallet will
+	// be estimated to have ~3407 bytes, so calculate what a tx of that size
+	// will pay in fees and remove from the total amount.
 	//
 	// TODO(wilmer): replace this once SendOutputs easily supports sending
 	// all funds in one transaction.
-	txFeeRate := lnwallet.AtomPerKByte(2500)
-	txFee := dcrutil.Amount(14380)
+	txFeeRate := defaultFeeRate
+	txFee := txFeeRate.FeeForSize(3407)
 	output := &wire.TxOut{
 		Value:    int64(aliceBalance - txFee),
 		PkScript: bobPkScript,
@@ -2140,6 +2173,7 @@ func testChangeOutputSpendConfirmation(r *rpctest.Harness,
 	output = &wire.TxOut{
 		Value:    dcrutil.AtomsPerCoin,
 		PkScript: alicePkScript,
+		Version:  txscript.DefaultScriptVersion,
 	}
 	tx = sendCoins(t, r, bob, alice, output, txFeeRate)
 	txHash = tx.TxHash()
@@ -2297,11 +2331,11 @@ func waitForWalletSync(r *rpctest.Harness, w *lnwallet.LightningWallet) error {
 		// the harness it's supposed to be catching up to.
 		bestHash, bestHeight, err = r.Node.GetBestBlock()
 		if err != nil {
-			return err
+			return fmt.Errorf("error getting node best block: %v", err)
 		}
 		knownHash, knownHeight, err = w.Cfg.ChainIO.GetBestBlock()
 		if err != nil {
-			return err
+			return fmt.Errorf("error getting chainIO bestBlock: %v", err)
 		}
 		if int64(knownHeight) != bestHeight {
 			continue
@@ -2453,7 +2487,7 @@ func runTests(t *testing.T, walletDriver *lnwallet.WalletDriver,
 			HdSeed:       aliceSeedBytes,
 			DataDir:      tempTestDirAlice,
 			NetParams:    netParams,
-			ChainSource:  aliceClient.Client,
+			ChainSource:  aliceClient,
 			FeeEstimator: feeEstimator,
 		}
 		aliceWalletController, err = walletDriver.New(aliceWalletConfig)
@@ -2475,7 +2509,7 @@ func runTests(t *testing.T, walletDriver *lnwallet.WalletDriver,
 			HdSeed:       bobSeedBytes,
 			DataDir:      tempTestDirBob,
 			NetParams:    netParams,
-			ChainSource:  bobClient.Client,
+			ChainSource:  bobClient,
 			FeeEstimator: feeEstimator,
 		}
 		bobWalletController, err = walletDriver.New(bobWalletConfig)

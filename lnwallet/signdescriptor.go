@@ -56,8 +56,10 @@ type SignDescriptor struct {
 	DoubleTweak *secp256k1.PrivateKey
 
 	// WitnessScript is the full script required to properly redeem the
-	// output. This field will only be populated if a p2wsh or a p2sh // TODO(decred): p2wsh....
+	// output. This field will only be populated if a p2sh
 	// output is being signed.
+	//
+	// TODO(decred): Rename to "redeemScript"
 	WitnessScript []byte
 
 	// Output is the target output which should be signed. The PkScript and

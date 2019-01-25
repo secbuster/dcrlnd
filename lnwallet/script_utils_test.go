@@ -2,7 +2,6 @@ package lnwallet
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"testing"
@@ -92,6 +91,7 @@ func TestCommitmentSpendValidation(t *testing.T) {
 		t.Fatalf("unable to create target output: %v", err)
 	}
 	sweepTx := wire.NewMsgTx()
+	sweepTx.Version = lnTxVersion
 	sweepTx.AddTxIn(wire.NewTxIn(&wire.OutPoint{
 		Hash:  commitmentTx.TxHash(),
 		Index: 0,
@@ -187,7 +187,7 @@ func TestCommitmentSpendValidation(t *testing.T) {
 
 	// Finally, we test bob sweeping his output as normal in the case that
 	// Alice broadcasts this commitment transaction.
-	bobScriptP2WKH, err := CommitScriptUnencumbered(bobPayKey)
+	bobScriptP2PKH, err := CommitScriptUnencumbered(bobPayKey)
 	if err != nil {
 		t.Fatalf("unable to create bob p2wkh script: %v", err)
 	}
@@ -196,10 +196,10 @@ func TestCommitmentSpendValidation(t *testing.T) {
 			PubKey: bobKeyPub,
 		},
 		SingleTweak:   bobCommitTweak,
-		WitnessScript: bobScriptP2WKH,
+		WitnessScript: bobScriptP2PKH,
 		Output: &wire.TxOut{
 			Value:    int64(channelBalance),
-			PkScript: bobScriptP2WKH,
+			PkScript: bobScriptP2PKH,
 		},
 		HashType:   txscript.SigHashAll,
 		InputIndex: 0,
@@ -334,7 +334,7 @@ func TestHTLCSenderSpendValidation(t *testing.T) {
 	// Generate a payment preimage to be used below.
 	paymentPreimage := revokePreimage
 	paymentPreimage[0] ^= 1
-	paymentHash := sha256.Sum256(paymentPreimage[:])
+	paymentHash := chainhash.HashB(paymentPreimage[:])
 
 	// We'll also need some tests keys for alice and bob, and metadata of
 	// the HTLC output.
@@ -355,7 +355,7 @@ func TestHTLCSenderSpendValidation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to create htlc sender script: %v", err)
 	}
-	htlcPkScript, err := WitnessScriptHash(htlcWitnessScript)
+	htlcPkScript, err := ScriptHashPkScript(htlcWitnessScript)
 	if err != nil {
 		t.Fatalf("unable to create p2wsh htlc script: %v", err)
 	}
@@ -369,6 +369,7 @@ func TestHTLCSenderSpendValidation(t *testing.T) {
 		Version:  txscript.DefaultScriptVersion,
 	}
 	senderCommitTx := wire.NewMsgTx()
+	senderCommitTx.Version = lnTxVersion
 	senderCommitTx.AddTxIn(fakeFundingTxIn)
 	senderCommitTx.AddTxOut(htlcOutput)
 
@@ -378,6 +379,7 @@ func TestHTLCSenderSpendValidation(t *testing.T) {
 	}
 
 	sweepTx := wire.NewMsgTx()
+	sweepTx.Version = lnTxVersion
 	sweepTx.AddTxIn(wire.NewTxIn(prevOut, htlcOutput.Value, nil))
 	sweepTx.AddTxOut(
 		&wire.TxOut{
@@ -473,7 +475,7 @@ func TestHTLCSenderSpendValidation(t *testing.T) {
 				}
 
 				return SenderHtlcSpendRedeem(bobSigner, signDesc,
-					sweepTx, paymentPreimage)
+					sweepTx, paymentPreimage[:])
 			}),
 			true,
 		},
@@ -528,6 +530,12 @@ func TestHTLCSenderSpendValidation(t *testing.T) {
 			debugBuf.WriteString(fmt.Sprintf("stepping %v\n", dis))
 
 			done, err = vm.Step()
+			if done && err == nil {
+				// Check if the ending success conditions for the script are
+				// satisfied.
+				err = vm.CheckErrorCondition(true)
+			}
+
 			if err != nil && testCase.valid {
 				fmt.Println(debugBuf.String())
 				t.Fatalf("spend test case #%v failed, spend "+
@@ -538,8 +546,8 @@ func TestHTLCSenderSpendValidation(t *testing.T) {
 					"should be invalid: %v", i, err)
 			}
 
-			debugBuf.WriteString(fmt.Sprintf("Stack: %v", vm.GetStack()))
-			debugBuf.WriteString(fmt.Sprintf("AltStack: %v", vm.GetAltStack()))
+			debugBuf.WriteString(fmt.Sprintf("Stack: \n%s", vm.GetStack()))
+			debugBuf.WriteString(fmt.Sprintf("AltStack: \n%s", vm.GetAltStack()))
 		}
 	}
 }
@@ -581,7 +589,7 @@ func TestHTLCReceiverSpendValidation(t *testing.T) {
 	// Generate a payment preimage to be used below.
 	paymentPreimage := revokePreimage
 	paymentPreimage[0] ^= 1
-	paymentHash := sha256.Sum256(paymentPreimage[:])
+	paymentHash := chainhash.HashB(paymentPreimage[:])
 
 	// We'll also need some tests keys for alice and bob, and metadata of
 	// the HTLC output.
@@ -604,7 +612,7 @@ func TestHTLCReceiverSpendValidation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to create htlc sender script: %v", err)
 	}
-	htlcPkScript, err := WitnessScriptHash(htlcWitnessScript)
+	htlcPkScript, err := ScriptHashPkScript(htlcWitnessScript)
 	if err != nil {
 		t.Fatalf("unable to create p2wsh htlc script: %v", err)
 	}
@@ -619,6 +627,7 @@ func TestHTLCReceiverSpendValidation(t *testing.T) {
 	}
 
 	receiverCommitTx := wire.NewMsgTx()
+	receiverCommitTx.Version = lnTxVersion
 	receiverCommitTx.AddTxIn(fakeFundingTxIn)
 	receiverCommitTx.AddTxOut(htlcOutput)
 
@@ -628,6 +637,7 @@ func TestHTLCReceiverSpendValidation(t *testing.T) {
 	}
 
 	sweepTx := wire.NewMsgTx()
+	sweepTx.Version = lnTxVersion
 	sweepTx.AddTxIn(&wire.TxIn{
 		PreviousOutPoint: *prevOut,
 	})
@@ -796,6 +806,11 @@ func TestHTLCReceiverSpendValidation(t *testing.T) {
 			debugBuf.WriteString(fmt.Sprintf("stepping %v\n", dis))
 
 			done, err = vm.Step()
+			if done && err == nil {
+				// Check if the ending success conditions for the script are
+				// satisfied.
+				err = vm.CheckErrorCondition(true)
+			}
 			if err != nil && testCase.valid {
 				fmt.Println(debugBuf.String())
 				t.Fatalf("spend test case #%v failed, spend should be valid: %v", i, err)
@@ -846,6 +861,7 @@ func TestSecondLevelHtlcSpends(t *testing.T) {
 		Index: 0,
 	}
 	sweepTx := wire.NewMsgTx()
+	sweepTx.Version = lnTxVersion
 	sweepTx.AddTxIn(wire.NewTxIn(htlcOutPoint, 0, nil)) // TODO(decred): Need correct input value
 	sweepTx.AddTxOut(
 		&wire.TxOut{
@@ -870,7 +886,7 @@ func TestSecondLevelHtlcSpends(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to create htlc script: %v", err)
 	}
-	htlcPkScript, err := WitnessScriptHash(htlcWitnessScript)
+	htlcPkScript, err := ScriptHashPkScript(htlcWitnessScript)
 	if err != nil {
 		t.Fatalf("unable to create htlc output: %v", err)
 	}
@@ -1019,6 +1035,12 @@ func TestSecondLevelHtlcSpends(t *testing.T) {
 			debugBuf.WriteString(fmt.Sprintf("stepping %v\n", dis))
 
 			done, err = vm.Step()
+			if done && err == nil {
+				// Check if the ending success conditions for the script are
+				// satisfied.
+				err = vm.CheckErrorCondition(true)
+			}
+
 			if err != nil && testCase.valid {
 				fmt.Println(debugBuf.String())
 				t.Fatalf("spend test case #%v failed, spend "+
@@ -1029,8 +1051,8 @@ func TestSecondLevelHtlcSpends(t *testing.T) {
 					"should be invalid: %v", i, err)
 			}
 
-			debugBuf.WriteString(fmt.Sprintf("Stack: %v", vm.GetStack()))
-			debugBuf.WriteString(fmt.Sprintf("AltStack: %v", vm.GetAltStack()))
+			debugBuf.WriteString(fmt.Sprintf("Stack: %v\n", vm.GetStack()))
+			debugBuf.WriteString(fmt.Sprintf("AltStack: %v\n", vm.GetAltStack()))
 		}
 	}
 }
@@ -1079,6 +1101,7 @@ func TestCommitTxStateHint(t *testing.T) {
 
 	for _, test := range stateHintTests {
 		commitTx := wire.NewMsgTx()
+		commitTx.Version = lnTxVersion
 
 		// Add supplied number of inputs to the commitment transaction.
 		for i := 0; i < test.inputs; i++ {
