@@ -766,7 +766,7 @@ func testCancelNonExistentReservation(miner *rpctest.Harness,
 
 	// Create our own reservation, give it some ID.
 	res, err := lnwallet.NewChannelReservation(
-		10000, 10000,
+		20000, 20000,
 		feePerKB,
 		alice, 22, 10, &testHdSeed,
 		lnwire.FFAnnounceChannel,

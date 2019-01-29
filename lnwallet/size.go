@@ -104,7 +104,7 @@ const (
 	//		- compressed pubkey         33 bytes
 	//
 	// Total: 108 bytes
-	p2pkhSigScriptSize int64 = 1 + 73 + 1 + 33
+	P2PKHSigScriptSize int64 = 1 + 73 + 1 + 33
 
 	// The following **RedeemScriptSize constants record sizes for LN-specific
 	// redeem scripts that are pushed to SigScripts when redeeming LN-specific
@@ -509,7 +509,7 @@ type TxSizeEstimator struct {
 // spending a P2PKH output.
 func (twe *TxSizeEstimator) AddP2PKHInput() *TxSizeEstimator {
 	scriptLenSerSize := int64(1) // varint for the following sigScript
-	twe.inputSize += inputSize + scriptLenSerSize + p2pkhSigScriptSize
+	twe.inputSize += inputSize + scriptLenSerSize + P2PKHSigScriptSize
 	twe.inputCount++
 
 	return twe
