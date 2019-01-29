@@ -5,11 +5,10 @@ import (
 	"sort"
 
 	"github.com/decred/dcrd/blockchain"
+	"github.com/decred/dcrd/chaincfg"
 	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrd/txscript"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/lnwallet"
-	"github.com/decred/dcrwallet/wallet/txrules"
 )
 
 var (
@@ -29,15 +28,12 @@ type inputSet []Input
 // inputs are skipped. No input sets with a total value after fees below the
 // dust limit are returned.
 func generateInputPartitionings(sweepableInputs []Input,
-	relayFeePerKW, feePerKW lnwallet.AtomPerKByte,
+	relayFeePerKB, feePerKB lnwallet.AtomPerKByte,
 	maxInputsPerTx int) ([]inputSet, error) {
 
-	// Calculate dust limit based on the P2WPKH output script of the sweep
+	// Calculate dust limit based on the P2PKH output script of the sweep
 	// txes.
-	dustLimit := txrules.GetDustThreshold(
-		lnwallet.P2WPKHSize,
-		dcrutil.Amount(relayFeePerKW.FeePerKVByte()),
-	)
+	dustLimit := lnwallet.DustThresholdForRelayFee(relayFeePerKB)
 
 	// Sort input by yield. We will start constructing input sets starting
 	// with the highest yield inputs. This is to prevent the construction
@@ -62,7 +58,7 @@ func generateInputPartitionings(sweepableInputs []Input,
 		}
 
 		yields[*input.OutPoint()] = input.SignDesc().Output.Value -
-			int64(feePerKW.FeeForSize(int64(size)))
+			int64(feePerKB.FeeForSize(int64(size)))
 	}
 
 	sort.Slice(sweepableInputs, func(i, j int) bool {
@@ -76,7 +72,7 @@ func generateInputPartitionings(sweepableInputs []Input,
 		// Get the maximum number of inputs from sweepableInputs that
 		// we can use to create a positive yielding set from.
 		count, outputValue := getPositiveYieldInputs(
-			sweepableInputs, maxInputsPerTx, feePerKW,
+			sweepableInputs, maxInputsPerTx, feePerKB,
 		)
 
 		// If there are no positive yield inputs left, we can stop
@@ -114,7 +110,7 @@ func generateInputPartitionings(sweepableInputs []Input,
 // minimizing any negative externalities we cause for the Bitcoin system as a
 // whole.
 func getPositiveYieldInputs(sweepableInputs []Input, maxInputs int,
-	feePerKW lnwallet.AtomPerKByte) (int, dcrutil.Amount) {
+	feePerKB lnwallet.AtomPerKByte) (int, dcrutil.Amount) {
 
 	var sizeEstimate lnwallet.TxSizeEstimator
 
@@ -125,15 +121,15 @@ func getPositiveYieldInputs(sweepableInputs []Input, maxInputs int,
 	for idx, input := range sweepableInputs {
 		// Can ignore error, because it has already been checked when
 		// calculating the yields.
-		size, _ := getInputSigScriptSizeUpperBound(input)
+		sigScriptSize, _ := getInputSigScriptSizeUpperBound(input)
 
 		// Keep a running size estimate of the input set.
-		sizeEstimate.AddCustomInput(size)
+		sizeEstimate.AddCustomInput(sigScriptSize)
 
 		newTotal := total + dcrutil.Amount(input.SignDesc().Output.Value)
 
 		size := sizeEstimate.Size()
-		fee := feePerKW.FeeForSize(size)
+		fee := feePerKB.FeeForSize(size)
 
 		// Calculate the output value if the current input would be
 		// added to the set.
@@ -163,16 +159,16 @@ func getPositiveYieldInputs(sweepableInputs []Input, maxInputs int,
 
 // createSweepTx builds a signed tx spending the inputs to a the output script.
 func createSweepTx(inputs []Input, outputPkScript []byte,
-	currentBlockHeight uint32, feePerKw lnwallet.AtomPerKByte,
-	signer lnwallet.Signer) (*wire.MsgTx, error) {
+	currentBlockHeight uint32, feePerKB lnwallet.AtomPerKByte,
+	signer lnwallet.Signer, netParams *chaincfg.Params) (*wire.MsgTx, error) {
 
 	inputs, txSize, csvCount, cltvCount := getSizeEstimate(inputs)
 
 	log.Infof("Creating sweep transaction for %v inputs (%v CSV, %v CLTV) "+
 		"using %v sat/kw", len(inputs), csvCount, cltvCount,
-		int64(feePerKw))
+		int64(feePerKB))
 
-	txFee := feePerKw.FeeForSize(txSize)
+	txFee := feePerKB.FeeForSize(txSize)
 
 	// Sum up the total value contained in the inputs.
 	var totalSum dcrutil.Amount
@@ -186,7 +182,8 @@ func createSweepTx(inputs []Input, outputPkScript []byte,
 	// Create the sweep transaction that we will be building. We use
 	// version 2 as it is required for CSV. The txn will sweep the amount
 	// after fees to the pkscript generated above.
-	sweepTx := wire.NewMsgTx(2)
+	sweepTx := wire.NewMsgTx()
+	sweepTx.Version = 2
 	sweepTx.AddTxOut(&wire.TxOut{
 		PkScript: outputPkScript,
 		Value:    sweepAmt,
@@ -210,23 +207,25 @@ func createSweepTx(inputs []Input, outputPkScript []byte,
 	// delay spending "problem" outputs, e.g. possibly batching with other
 	// classes if fees are too low.
 	btx := dcrutil.NewTx(sweepTx)
-	if err := blockchain.CheckTransactionSanity(btx); err != nil {
+	if err := blockchain.CheckTransactionSanity(btx.MsgTx(), netParams); err != nil {
 		return nil, err
 	}
-
-	hashCache := txscript.NewTxSigHashes(sweepTx)
 
 	// With all the inputs in place, use each output's unique witness
 	// function to generate the final witness required for spending.
 	addWitness := func(idx int, tso Input) error {
 		witness, err := tso.BuildWitness(
-			signer, sweepTx, hashCache, idx,
+			signer, sweepTx, idx,
 		)
 		if err != nil {
 			return err
 		}
 
-		sweepTx.TxIn[idx].Witness = witness
+		sigScript, err := lnwallet.WitnessStackToSigScript(witness)
+		if err != nil {
+			return err
+		}
+		sweepTx.TxIn[idx].SignatureScript = sigScript
 
 		return nil
 	}
@@ -250,7 +249,7 @@ func getInputSigScriptSizeUpperBound(input Input) (int64, error) {
 	// Outputs on a remote commitment transaction that pay directly
 	// to us.
 	case lnwallet.CommitmentNoDelay:
-		return lnwallet.P2WKHWitnessSize, nil
+		return lnwallet.P2PKHSigScriptSize, nil
 
 	// Outputs on a past commitment transaction that pay directly
 	// to us.

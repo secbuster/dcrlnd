@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
+	"github.com/decred/dcrd/chaincfg"
 	"github.com/decred/dcrd/dcrutil"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
@@ -73,7 +74,7 @@ type UtxoSweeper struct {
 
 	currentOutputScript []byte
 
-	relayFeePerKW lnwallet.AtomPerKByte
+	relayFeePerKB lnwallet.AtomPerKByte
 
 	quit chan struct{}
 	wg   sync.WaitGroup
@@ -130,6 +131,10 @@ type UtxoSweeperConfig struct {
 	// NextAttemptDeltaFunc returns given the number of already attempted
 	// sweeps, how many blocks to wait before retrying to sweep.
 	NextAttemptDeltaFunc func(int) int32
+
+	// NetParams stores the specific chain configuration parameters being used
+	// for this sweeper.
+	NetParams *chaincfg.Params
 }
 
 // Result is the struct that is pushed through the result channel. Callers can
@@ -198,7 +203,7 @@ func (s *UtxoSweeper) Start() error {
 
 	// Retrieve relay fee for dust limit calculation. Assume that this will
 	// not change from here on.
-	s.relayFeePerKW = s.cfg.Estimator.RelayFeePerKW()
+	s.relayFeePerKB = s.cfg.Estimator.RelayFeePerKB()
 
 	// Register for block epochs to retry sweeping every block.
 	bestHash, bestHeight, err := s.cfg.ChainIO.GetBestBlock()
@@ -407,7 +412,7 @@ func (s *UtxoSweeper) collector(blockEpochs <-chan *chainntnfs.BlockEpoch,
 
 			// Retrieve fee estimate for input filtering and final
 			// tx fee calculation.
-			satPerKW, err := s.cfg.Estimator.EstimateFeePerKW(
+			satPerKW, err := s.cfg.Estimator.EstimateFeePerKB(
 				s.cfg.SweepTxConfTarget,
 			)
 			if err != nil {
@@ -465,7 +470,7 @@ func (s *UtxoSweeper) scheduleSweep(currentHeight int32) error {
 
 	// Retrieve fee estimate for input filtering and final tx fee
 	// calculation.
-	satPerKW, err := s.cfg.Estimator.EstimateFeePerKW(
+	satPerKW, err := s.cfg.Estimator.EstimateFeePerKB(
 		s.cfg.SweepTxConfTarget,
 	)
 	if err != nil {
@@ -573,7 +578,7 @@ func (s *UtxoSweeper) getInputLists(currentHeight int32,
 		var err error
 		allSets, err = generateInputPartitionings(
 			append(retryInputs, newInputs...),
-			s.relayFeePerKW, satPerKW,
+			s.relayFeePerKB, satPerKW,
 			s.cfg.MaxInputsPerTx,
 		)
 		if err != nil {
@@ -584,7 +589,7 @@ func (s *UtxoSweeper) getInputLists(currentHeight int32,
 	// Create sets for just the new inputs.
 	newSets, err := generateInputPartitionings(
 		newInputs,
-		s.relayFeePerKW, satPerKW,
+		s.relayFeePerKB, satPerKW,
 		s.cfg.MaxInputsPerTx,
 	)
 	if err != nil {
@@ -617,7 +622,7 @@ func (s *UtxoSweeper) sweep(inputs inputSet,
 	// Create sweep tx.
 	tx, err := createSweepTx(
 		inputs, s.currentOutputScript,
-		uint32(currentHeight), satPerKW, s.cfg.Signer,
+		uint32(currentHeight), satPerKW, s.cfg.Signer, s.cfg.NetParams,
 	)
 	if err != nil {
 		return fmt.Errorf("create sweep tx: %v", err)
@@ -753,7 +758,7 @@ func (s *UtxoSweeper) waitForSpend(outpoint wire.OutPoint,
 func (s *UtxoSweeper) CreateSweepTx(inputs []Input, confTarget uint32,
 	currentBlockHeight uint32) (*wire.MsgTx, error) {
 
-	feePerKw, err := s.cfg.Estimator.EstimateFeePerKW(confTarget)
+	feePerKB, err := s.cfg.Estimator.EstimateFeePerKB(confTarget)
 	if err != nil {
 		return nil, err
 	}
@@ -765,7 +770,7 @@ func (s *UtxoSweeper) CreateSweepTx(inputs []Input, confTarget uint32,
 	}
 
 	return createSweepTx(
-		inputs, pkScript, currentBlockHeight, feePerKw, s.cfg.Signer,
+		inputs, pkScript, currentBlockHeight, feePerKB, s.cfg.Signer, s.cfg.NetParams,
 	)
 }
 

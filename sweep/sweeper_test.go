@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/decred/dcrd/chaincfg"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrd/wire"
@@ -142,6 +143,7 @@ func createSweeperTestContext(t *testing.T) *sweeperTestContext {
 			// Use delta func without random factor.
 			return 1 << uint(attempts-1)
 		},
+		NetParams: &chaincfg.RegNetParams,
 	})
 
 	ctx.sweeper.Start()

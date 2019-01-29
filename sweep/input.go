@@ -1,7 +1,6 @@
 package sweep
 
 import (
-	"github.com/decred/dcrd/txscript"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/lnwallet"
 )
@@ -25,7 +24,6 @@ type Input interface {
 	// spent, the witness should be attached to the transaction at the
 	// location determined by the given `txinIdx`.
 	BuildWitness(signer lnwallet.Signer, txn *wire.MsgTx,
-		hashCache *txscript.TxSigHashes,
 		txinIdx int) ([][]byte, error)
 
 	// BlocksToMaturity returns the relative timelock, as a number of
@@ -96,13 +94,13 @@ func MakeBaseInput(outpoint *wire.OutPoint, witnessType lnwallet.WitnessType,
 // which is parameterized primarily by the witness type and sign descriptor.
 // The method then returns the witness computed by invoking this function.
 func (bi *BaseInput) BuildWitness(signer lnwallet.Signer, txn *wire.MsgTx,
-	hashCache *txscript.TxSigHashes, txinIdx int) ([][]byte, error) {
+	txinIdx int) ([][]byte, error) {
 
 	witnessFunc := bi.witnessType.GenWitnessFunc(
 		signer, bi.SignDesc(),
 	)
 
-	return witnessFunc(txn, hashCache, txinIdx)
+	return witnessFunc(txn, txinIdx)
 }
 
 // BlocksToMaturity returns the relative timelock, as a number of blocks, that
@@ -142,10 +140,9 @@ func MakeHtlcSucceedInput(outpoint *wire.OutPoint,
 // breached output. For HtlcSpendInput it will need to make the preimage part
 // of the witness.
 func (h *HtlcSucceedInput) BuildWitness(signer lnwallet.Signer, txn *wire.MsgTx,
-	hashCache *txscript.TxSigHashes, txinIdx int) ([][]byte, error) {
+	txinIdx int) ([][]byte, error) {
 
 	desc := h.signDesc
-	desc.SigHashes = hashCache
 	desc.InputIndex = txinIdx
 
 	return lnwallet.SenderHtlcSpendRedeem(

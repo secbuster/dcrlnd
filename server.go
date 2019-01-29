@@ -624,6 +624,7 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB, cc *chainControl,
 		MaxInputsPerTx:       sweep.DefaultMaxInputsPerTx,
 		MaxSweepAttempts:     sweep.DefaultMaxSweepAttempts,
 		NextAttemptDeltaFunc: sweep.DefaultNextAttemptDeltaFunc,
+		NetParams:            activeNetParams,
 	})
 
 	s.utxoNursery = newUtxoNursery(&NurseryConfig{
