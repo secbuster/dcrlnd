@@ -3,7 +3,6 @@ package lnwallet
 import (
 	"bytes"
 	"crypto/rand"
-	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
@@ -11,9 +10,6 @@ import (
 	"io/ioutil"
 	"os"
 	"sync"
-
-	_ "github.com/decred/slog"
-	_ "github.com/davecgh/go-spew/spew"
 
 	"github.com/decred/dcrd/blockchain"
 	"github.com/decred/dcrd/blockchain/stake"
@@ -518,7 +514,7 @@ func (m *mockPreimageCache) AddPreimage(preimage []byte) error {
 	m.Lock()
 	defer m.Unlock()
 
-	m.preimageMap[sha256.Sum256(preimage[:])] = preimage
+	m.preimageMap[chainhash.HashH(preimage[:])] = preimage
 
 	return nil
 }
@@ -608,7 +604,6 @@ func checkLnTransactionSanity(tx *wire.MsgTx, utxos map[wire.OutPoint]*wire.TxOu
 		txscript.ScriptVerifyCheckLockTimeVerify |
 		txscript.ScriptVerifyCheckSequenceVerify |
 		txscript.ScriptVerifySHA256
-
 
 	err := blockchain.CheckTransactionSanity(tx, netParams)
 	if err != nil {
@@ -700,7 +695,7 @@ func checkSignedCommitmentSpendingTxSanity(spendTx, commitTx *wire.MsgTx, netPar
 	for i, in := range spendTx.TxIn {
 		outp := in.PreviousOutPoint
 		if (outp.Hash != commitTxHash) || (outp.Index >= countCommitOuts) ||
-		   (outp.Tree != wire.TxTreeRegular) {
+			(outp.Tree != wire.TxTreeRegular) {
 
 			return fmt.Errorf("input %d of spender tx does not spend from "+
 				"commit tx", i)

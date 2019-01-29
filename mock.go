@@ -1,7 +1,6 @@
 package main
 
 import (
-	"crypto/sha256"
 	"fmt"
 	"sync"
 	"sync/atomic"
@@ -320,7 +319,7 @@ func (m *mockPreimageCache) AddPreimage(preimage []byte) error {
 	m.Lock()
 	defer m.Unlock()
 
-	m.preimageMap[sha256.Sum256(preimage[:])] = preimage
+	m.preimageMap[chainhash.HashH(preimage[:])] = preimage
 
 	return nil
 }
