@@ -13,8 +13,10 @@ import (
 	"github.com/decred/dcrlnd/lnrpc"
 	"github.com/decred/dcrlnd/lnwallet"
 
-	//"github.com/decred/dcrlnd/lnwallet/dcrwallet" // TODO(decred): Uncomment
+	"github.com/decred/dcrlnd/lnwallet/dcrwallet"
+	walletloader "github.com/decred/dcrwallet/loader"
 	"github.com/decred/dcrwallet/wallet"
+	"github.com/decred/dcrwallet/wallet/txrules"
 	"golang.org/x/net/context"
 )
 
@@ -107,7 +109,9 @@ func (u *UnlockerService) GenSeed(ctx context.Context,
 	// Before we start, we'll ensure that the wallet hasn't already created
 	// so we don't show a *new* seed to the user if one already exists.
 	netDir := dcrwallet.NetworkDir(u.chainDir, u.netParams)
-	loader := wallet.NewLoader(u.netParams, netDir, 0)
+	loader := walletloader.NewLoader(u.netParams, netDir,
+		&walletloader.StakeOptions{}, wallet.DefaultGapLimit, false,
+		txrules.DefaultRelayFeePerKb.ToCoin(), wallet.DefaultAccountGapLimit)
 	walletExists, err := loader.WalletExists()
 	if err != nil {
 		return nil, err
@@ -196,10 +200,17 @@ func (u *UnlockerService) InitWallet(ctx context.Context,
 			"non-negative", recoveryWindow)
 	}
 
+	gapLimit := wallet.DefaultGapLimit
+	if int(recoveryWindow) > gapLimit {
+		gapLimit = int(recoveryWindow)
+	}
+
 	// We'll then open up the directory that will be used to store the
 	// wallet's files so we can check if the wallet already exists.
 	netDir := dcrwallet.NetworkDir(u.chainDir, u.netParams)
-	loader := wallet.NewLoader(u.netParams, netDir, uint32(recoveryWindow))
+	loader := walletloader.NewLoader(u.netParams, netDir,
+		&walletloader.StakeOptions{}, gapLimit, false,
+		txrules.DefaultRelayFeePerKb.ToCoin(), wallet.DefaultAccountGapLimit)
 
 	walletExists, err := loader.WalletExists()
 	if err != nil {
@@ -231,7 +242,7 @@ func (u *UnlockerService) InitWallet(ctx context.Context,
 	initMsg := &WalletInitMsg{
 		Passphrase:     password,
 		WalletSeed:     cipherSeed,
-		RecoveryWindow: uint32(recoveryWindow),
+		RecoveryWindow: uint32(gapLimit),
 	}
 
 	u.InitMsgs <- initMsg
@@ -246,10 +257,12 @@ func (u *UnlockerService) UnlockWallet(ctx context.Context,
 	in *lnrpc.UnlockWalletRequest) (*lnrpc.UnlockWalletResponse, error) {
 
 	password := in.WalletPassword
-	recoveryWindow := uint32(in.RecoveryWindow)
+	gapLimit := int(in.RecoveryWindow)
 
 	netDir := dcrwallet.NetworkDir(u.chainDir, u.netParams)
-	loader := wallet.NewLoader(u.netParams, netDir, recoveryWindow)
+	loader := walletloader.NewLoader(u.netParams, netDir,
+		&walletloader.StakeOptions{}, gapLimit, false,
+		txrules.DefaultRelayFeePerKb.ToCoin(), wallet.DefaultAccountGapLimit)
 
 	// Check if wallet already exists.
 	walletExists, err := loader.WalletExists()
@@ -263,7 +276,7 @@ func (u *UnlockerService) UnlockWallet(ctx context.Context,
 	}
 
 	// Try opening the existing wallet with the provided password.
-	unlockedWallet, err := loader.OpenExistingWallet(password, false)
+	unlockedWallet, err := loader.OpenExistingWallet(password)
 	if err != nil {
 		// Could not open wallet, most likely this means that provided
 		// password was incorrect.
@@ -274,7 +287,7 @@ func (u *UnlockerService) UnlockWallet(ctx context.Context,
 	// avoid it needing to be unlocked again.
 	walletUnlockMsg := &WalletUnlockMsg{
 		Passphrase:     password,
-		RecoveryWindow: recoveryWindow,
+		RecoveryWindow: uint32(gapLimit),
 		Wallet:         unlockedWallet,
 	}
 
@@ -293,7 +306,9 @@ func (u *UnlockerService) ChangePassword(ctx context.Context,
 	in *lnrpc.ChangePasswordRequest) (*lnrpc.ChangePasswordResponse, error) {
 
 	netDir := dcrwallet.NetworkDir(u.chainDir, u.netParams)
-	loader := wallet.NewLoader(u.netParams, netDir, 0)
+	loader := walletloader.NewLoader(u.netParams, netDir,
+		&walletloader.StakeOptions{}, wallet.DefaultGapLimit, false,
+		txrules.DefaultRelayFeePerKb.ToCoin(), wallet.DefaultAccountGapLimit)
 
 	// First, we'll make sure the wallet exists for the specific chain and
 	// network.
@@ -322,7 +337,7 @@ func (u *UnlockerService) ChangePassword(ctx context.Context,
 	}
 
 	// Load the existing wallet in order to proceed with the password change.
-	w, err := loader.OpenExistingWallet(publicPw, false)
+	w, err := loader.OpenExistingWallet(publicPw)
 	if err != nil {
 		return nil, err
 	}
@@ -344,11 +359,17 @@ func (u *UnlockerService) ChangePassword(ctx context.Context,
 	// Attempt to change both the public and private passphrases for the
 	// wallet. This will be done atomically in order to prevent one
 	// passphrase change from being successful and not the other.
-	err = w.ChangePassphrases(
-		publicPw, in.NewPassword, privatePw, in.NewPassword,
-	)
+	//
+	// TODO(decred) This is not an atomic operation. Discuss whether we want to
+	// actually use the public pssword.
+	err = w.ChangePrivatePassphrase(privatePw, in.NewPassword)
 	if err != nil {
-		return nil, fmt.Errorf("unable to change wallet passphrase: "+
+		return nil, fmt.Errorf("unable to change wallet private passphrase: "+
+			"%v", err)
+	}
+	err = w.ChangePublicPassphrase(publicPw, in.NewPassword)
+	if err != nil {
+		return nil, fmt.Errorf("unable to change wallet public passphrase: "+
 			"%v", err)
 	}
 
