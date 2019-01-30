@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 
 	"github.com/davecgh/go-spew/spew"
+	"github.com/decred/dcrd/txscript"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/lnwallet"
@@ -724,6 +725,17 @@ func (h *htlcOutgoingContestResolver) Resolve() (ContractResolver, error) {
 			"HTLC with tx=%v", h, h.htlcResolution.ClaimOutpoint,
 			spew.Sdump(commitSpend.SpendingTx))
 
+		// Decode the sigScript of the spendingInput into a series of data
+		// pushes, so that we can extract the preimage.
+		//
+		// TODO(decred) verify whether we need to check the length of
+		// sigScriptPushes before trying to copy one of its elements. This
+		// depends on the particulars of how this call site is reached.
+		sigScriptPushes, err := txscript.PushedData(spendingInput.SignatureScript)
+		if err != nil {
+			return nil, err
+		}
+
 		// If this is the remote party's commitment, then we'll be
 		// looking for them to spend using the second-level success
 		// transaction.
@@ -733,14 +745,14 @@ func (h *htlcOutgoingContestResolver) Resolve() (ContractResolver, error) {
 			// output to them looks like:
 			//
 			//  * <sender sig> <recvr sig> <preimage> <witness script>
-			copy(preimage[:], spendingInput.Witness[3])
+			copy(preimage[:], sigScriptPushes[2])
 		} else {
 			// Otherwise, they'll be spending directly from our
 			// commitment output. In which case the witness stack
 			// looks like:
 			//
 			//  * <sig> <preimage> <witness script>
-			copy(preimage[:], spendingInput.Witness[1])
+			copy(preimage[:], sigScriptPushes[1])
 		}
 
 		log.Infof("%T(%v): extracting preimage=%x from on-chain "+
@@ -788,9 +800,13 @@ func (h *htlcOutgoingContestResolver) Resolve() (ContractResolver, error) {
 		// witness script (the last element of the witness stack) to
 		// re-construct the pkScipt we need to watch.
 		outPointToWatch = h.htlcResolution.SignedTimeoutTx.TxIn[0].PreviousOutPoint
-		witness := h.htlcResolution.SignedTimeoutTx.TxIn[0].Witness
-		scriptToWatch, err = lnwallet.WitnessScriptHash(
-			witness[len(witness)-1],
+		sigScript := h.htlcResolution.SignedTimeoutTx.TxIn[0].SignatureScript
+		sigScriptPushes, err := txscript.PushedData(sigScript)
+		if err != nil {
+			return nil, err
+		}
+		scriptToWatch, err = lnwallet.ScriptHashPkScript(
+			sigScriptPushes[len(sigScriptPushes)-1],
 		)
 		if err != nil {
 			return nil, err
@@ -1031,7 +1047,16 @@ func (h *htlcIncomingContestResolver) Resolve() (ContractResolver, error) {
 			// We'll populate it within the witness, as since this
 			// was a "contest" resolver, we didn't yet know of the
 			// preimage.
-			h.htlcResolution.SignedSuccessTx.TxIn[0].Witness[3] = preimage[:]
+			newSigScript, err := lnwallet.ReplaceReceiverHtlcSpendRedeemPreimage(
+				h.htlcResolution.SignedSuccessTx.TxIn[0].SignatureScript, preimage,
+			)
+			if err != nil {
+				// TODO(decred) Panic? Modify applyPreimage to return an error?
+				log.Error("%T(%v): error replacing preimage in txin: %v", h,
+					h.htlcResolution.ClaimOutpoint, err)
+			} else {
+				h.htlcResolution.SignedSuccessTx.TxIn[0].SignatureScript = newSigScript
+			}
 		}
 
 		copy(h.htlcResolution.Preimage[:], preimage[:])
