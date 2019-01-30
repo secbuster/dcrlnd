@@ -1217,3 +1217,70 @@ func TestSpecificationKeyDerivation(t *testing.T) {
 			actualRevocationPrivKeyHex)
 	}
 }
+
+// TestReplaceReceiverHtlcSpendRedeemPreimage tests whether the corresponding
+// function works as intended.
+func TestReplaceReceiverHtlcSpendRedeemPreimage(t *testing.T) {
+	t.Parallel()
+
+	// pushes generates nb data pushes of 1-byte length
+	pushes := func(nb int) []byte {
+		return bytes.Repeat([]byte{0x01, 0xff}, nb)
+	}
+
+	tests := []struct {
+		name      string
+		sigScript []byte
+		preimage  []byte
+		valid     bool
+	}{
+		{
+			name:      "sigscript with few items fail",
+			sigScript: pushes(3),
+			preimage:  []byte{},
+			valid:     false,
+		},
+		{
+			name:      "sigscript with many items fail",
+			sigScript: pushes(5),
+			preimage:  []byte{},
+			valid:     false,
+		},
+		{
+			name:      "sigscript and preimage same size",
+			sigScript: pushes(4),
+			preimage:  []byte{0xee},
+			valid:     true,
+		},
+		{
+			name:      "sigscript and preimage different sizes",
+			sigScript: pushes(4),
+			preimage:  []byte{0xee, 0xdd},
+			valid:     true,
+		},
+	}
+
+	for _, tc := range tests {
+		res, err := ReplaceReceiverHtlcSpendRedeemPreimage(tc.sigScript, tc.preimage)
+		if err != nil && tc.valid {
+			t.Errorf("case '%s' returned error when it should have been valid: %v",
+				tc.name, err)
+			continue
+		}
+
+		if err == nil && !tc.valid {
+			t.Errorf("case '%s' should have returned error but passed", tc.name)
+			continue
+		}
+
+		if err == nil {
+			// Given we know all data pushes use 2 bytes (OP_DATA_1+0xff), we
+			// can easily figure out where the preimage _should_ start.
+			sigPreImage := res[5 : len(res)-2]
+			if !bytes.Equal(sigPreImage, tc.preimage) {
+				t.Errorf("case '%s' did not include a correct preimage: "+
+					"preimage: %x return: %x\n", tc.name, tc.preimage, res)
+			}
+		}
+	}
+}

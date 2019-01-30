@@ -546,7 +546,7 @@ func TestChannelArbitratorLocalForceClosePendingHtlc(t *testing.T) {
 			TxIn: []*wire.TxIn{
 				{
 					PreviousOutPoint: htlcOp,
-					Witness:          [][]byte{{}},
+					SignatureScript:  []byte{0x01, 0xff},
 				},
 			},
 			TxOut: []*wire.TxOut{
