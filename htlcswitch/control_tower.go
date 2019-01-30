@@ -3,9 +3,9 @@ package htlcswitch
 import (
 	"errors"
 
-	bolt "go.etcd.io/bbolt"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/lnwire"
+	bolt "go.etcd.io/bbolt"
 )
 
 var (

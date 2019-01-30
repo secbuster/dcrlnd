@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"io"
 
+	"github.com/btcsuite/btcd/btcec"
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/lightningnetwork/lightning-onion" // TODO(decred): ok?
@@ -16,6 +17,8 @@ import (
 type NetworkHop uint8
 
 const (
+	//TODO(decred) remove these?
+
 	// BitcoinHop denotes that an HTLC is to be forwarded along the Bitcoin
 	// link with the specified short channel ID.
 	BitcoinHop NetworkHop = iota
@@ -23,6 +26,10 @@ const (
 	// LitecoinHop denotes that an HTLC is to be forwarded along the
 	// Litecoin link with the specified short channel ID.
 	LitecoinHop
+
+	// DecredHop denotes that an HTLC is to be forwarded along the
+	// Decred link with the specified short channel ID.
+	DecredHop
 )
 
 // String returns the string representation of the target NetworkHop.
@@ -32,6 +39,8 @@ func (c NetworkHop) String() string {
 		return "Bitcoin"
 	case LitecoinHop:
 		return "Litecoin"
+	case DecredHop:
+		return "Decred"
 	default:
 		return "Kekcoin"
 	}
@@ -168,7 +177,7 @@ func (r *sphinxHopIterator) ForwardingInstructions() ForwardingInfo {
 func (r *sphinxHopIterator) ExtractErrorEncrypter(
 	extracter ErrorEncrypterExtracter) (ErrorEncrypter, lnwire.FailCode) {
 
-	return extracter(r.ogPacket.EphemeralKey)
+	return extracter(btcecPubkey2Secp(r.ogPacket.EphemeralKey))
 }
 
 // OnionProcessor is responsible for keeping all sphinx dependent parts inside
@@ -406,7 +415,7 @@ func (p *OnionProcessor) ExtractErrorEncrypter(ephemeralKey *secp256k1.PublicKey
 	ErrorEncrypter, lnwire.FailCode) {
 
 	onionObfuscator, err := sphinx.NewOnionErrorEncrypter(
-		p.router, ephemeralKey,
+		p.router, secpPubKey2btcec(ephemeralKey),
 	)
 	if err != nil {
 		switch err {
@@ -426,4 +435,15 @@ func (p *OnionProcessor) ExtractErrorEncrypter(ephemeralKey *secp256k1.PublicKey
 		OnionErrorEncrypter: onionObfuscator,
 		EphemeralKey:        ephemeralKey,
 	}, lnwire.CodeNone
+}
+
+// TODO(decred): Feels dirty using these. Re-check whether it's better to
+// refactor to use btcec.PublicKey directly here.
+
+func btcecPubkey2Secp(pubkey *btcec.PublicKey) *secp256k1.PublicKey {
+	return secp256k1.NewPublicKey(pubkey.X, pubkey.Y)
+}
+
+func secpPubKey2btcec(pubkey *secp256k1.PublicKey) *btcec.PublicKey {
+	return &btcec.PublicKey{Curve: btcec.S256(), X: pubkey.X, Y: pubkey.Y}
 }

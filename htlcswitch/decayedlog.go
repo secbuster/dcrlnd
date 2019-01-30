@@ -8,9 +8,9 @@ import (
 	"sync"
 	"sync/atomic"
 
-	bolt "go.etcd.io/bbolt"
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/lightningnetwork/lightning-onion" // TODO(decred): ok?
+	bolt "go.etcd.io/bbolt"
 )
 
 const (

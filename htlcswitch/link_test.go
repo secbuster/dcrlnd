@@ -15,9 +15,9 @@ import (
 	"testing"
 	"time"
 
-	bolt "go.etcd.io/bbolt"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/go-errors/errors"
+	bolt "go.etcd.io/bbolt"
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrec/secp256k1"
@@ -25,7 +25,6 @@ import (
 	"github.com/decred/dcrd/wire"
 
 	"github.com/decred/dcrlnd/build"
-	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/contractcourt"
 	"github.com/decred/dcrlnd/htlcswitch/hodl"
@@ -1799,7 +1798,7 @@ func TestChannelLinkBandwidthConsistency(t *testing.T) {
 	coreLink.cfg.DebugHTLC = true
 
 	estimator := lnwallet.NewStaticFeeEstimator(6000, 0)
-	feePerKw, err := estimator.EstimateFeePerKW(1)
+	feePerKw, err := estimator.EstimateFeePerKB(1)
 	if err != nil {
 		t.Fatalf("unable to query fee estimator: %v", err)
 	}
@@ -2210,7 +2209,7 @@ func TestChannelLinkBandwidthConsistencyOverflow(t *testing.T) {
 	)
 
 	estimator := lnwallet.NewStaticFeeEstimator(6000, 0)
-	feePerKw, err := estimator.EstimateFeePerKW(1)
+	feePerKw, err := estimator.EstimateFeePerKB(1)
 	if err != nil {
 		t.Fatalf("unable to query fee estimator: %v", err)
 	}
@@ -2457,7 +2456,7 @@ func TestChannelLinkTrimCircuitsPending(t *testing.T) {
 	// Compute the static fees that will be used to determine the
 	// correctness of Alice's bandwidth when forwarding HTLCs.
 	estimator := lnwallet.NewStaticFeeEstimator(6000, 0)
-	feePerKw, err := estimator.EstimateFeePerKW(1)
+	feePerKw, err := estimator.EstimateFeePerKB(1)
 	if err != nil {
 		t.Fatalf("unable to query fee estimator: %v", err)
 	}
@@ -2735,7 +2734,7 @@ func TestChannelLinkTrimCircuitsNoCommit(t *testing.T) {
 	// Compute the static fees that will be used to determine the
 	// correctness of Alice's bandwidth when forwarding HTLCs.
 	estimator := lnwallet.NewStaticFeeEstimator(6000, 0)
-	feePerKw, err := estimator.EstimateFeePerKW(1)
+	feePerKw, err := estimator.EstimateFeePerKB(1)
 	if err != nil {
 		t.Fatalf("unable to query fee estimator: %v", err)
 	}
@@ -2993,7 +2992,7 @@ func TestChannelLinkBandwidthChanReserve(t *testing.T) {
 	)
 
 	estimator := lnwallet.NewStaticFeeEstimator(6000, 0)
-	feePerKw, err := estimator.EstimateFeePerKW(1)
+	feePerKw, err := estimator.EstimateFeePerKB(1)
 	if err != nil {
 		t.Fatalf("unable to query fee estimator: %v", err)
 	}

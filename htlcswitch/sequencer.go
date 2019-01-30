@@ -3,9 +3,9 @@ package htlcswitch
 import (
 	"sync"
 
-	bolt "go.etcd.io/bbolt"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/go-errors/errors"
+	bolt "go.etcd.io/bbolt"
 )
 
 // defaultSequenceBatchSize specifies the window of sequence numbers that are

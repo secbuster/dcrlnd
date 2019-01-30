@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"sync"
 
-	bolt "go.etcd.io/bbolt"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/go-errors/errors"
+	bolt "go.etcd.io/bbolt"
 )
 
 var (

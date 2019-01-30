@@ -15,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/decred/dcrd/chaincfg"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrd/dcrutil"
@@ -105,8 +106,8 @@ func genIDs() (lnwire.ChannelID, lnwire.ChannelID, lnwire.ShortChannelID,
 	binary.BigEndian.PutUint64(scratch[:], id+1)
 	hash2, _ := chainhash.NewHash(bytes.Repeat(scratch[:], 4))
 
-	chanPoint1 := wire.NewOutPoint(hash1, uint32(id))
-	chanPoint2 := wire.NewOutPoint(hash2, uint32(id+1))
+	chanPoint1 := wire.NewOutPoint(hash1, uint32(id), 0)
+	chanPoint2 := wire.NewOutPoint(hash2, uint32(id+1), 0)
 
 	chanID1 := lnwire.NewChanIDFromOutPoint(chanPoint1)
 	chanID2 := lnwire.NewChanIDFromOutPoint(chanPoint2)
@@ -154,6 +155,8 @@ func createTestChannel(alicePrivKey, bobPrivKey []byte,
 	func() (*lnwallet.LightningChannel, *lnwallet.LightningChannel,
 		error), error) {
 
+	netParams := &chaincfg.RegNetParams
+
 	aliceKeyPriv, aliceKeyPub := secp256k1.PrivKeyFromBytes(alicePrivKey)
 	bobKeyPriv, bobKeyPub := secp256k1.PrivKeyFromBytes(bobPrivKey)
 
@@ -190,7 +193,7 @@ func createTestChannel(alicePrivKey, bobPrivKey []byte,
 		Hash:  chainhash.Hash(hash),
 		Index: 0,
 	}
-	fundingTxIn := wire.NewTxIn(prevOut, 0, nil) // TODO(decred): Need correct input value
+	fundingTxIn := wire.NewTxIn(prevOut, int64(channelCapacity), nil)
 
 	aliceCfg := channeldb.ChannelConfig{
 		ChannelConstraints: *aliceConstraints,
@@ -235,7 +238,7 @@ func createTestChannel(alicePrivKey, bobPrivKey []byte,
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
-	bobPreimageProducer := shachain.NewRevocationProducer(*bobRoot)
+	bobPreimageProducer := shachain.NewRevocationProducer(shachain.ShaHash(*bobRoot))
 	bobFirstRevoke, err := bobPreimageProducer.AtIndex(0)
 	if err != nil {
 		return nil, nil, nil, nil, err
@@ -246,7 +249,7 @@ func createTestChannel(alicePrivKey, bobPrivKey []byte,
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
-	alicePreimageProducer := shachain.NewRevocationProducer(*aliceRoot)
+	alicePreimageProducer := shachain.NewRevocationProducer(shachain.ShaHash(*aliceRoot))
 	aliceFirstRevoke, err := alicePreimageProducer.AtIndex(0)
 	if err != nil {
 		return nil, nil, nil, nil, err
@@ -255,7 +258,7 @@ func createTestChannel(alicePrivKey, bobPrivKey []byte,
 
 	aliceCommitTx, bobCommitTx, err := lnwallet.CreateCommitmentTxns(aliceAmount,
 		bobAmount, &aliceCfg, &bobCfg, aliceCommitPoint, bobCommitPoint,
-		*fundingTxIn)
+		*fundingTxIn, netParams)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
@@ -273,7 +276,7 @@ func createTestChannel(alicePrivKey, bobPrivKey []byte,
 	}
 
 	estimator := lnwallet.NewStaticFeeEstimator(6000, 0)
-	feePerKw, err := estimator.EstimateFeePerKW(1)
+	feePerKw, err := estimator.EstimateFeePerKB(1)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}

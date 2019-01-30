@@ -6,7 +6,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/decred/dcrd/chaincfg"
+	"github.com/btcsuite/btcd/btcec"
+	bitcoinCfg "github.com/btcsuite/btcd/chaincfg"
+
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrd/dcrutil"
 	"github.com/decred/dcrlnd/channeldb"
@@ -83,7 +85,7 @@ func initTestExtracter() {
 // db and no garbage collection.
 func newOnionProcessor(t *testing.T) *htlcswitch.OnionProcessor {
 	sphinxRouter := sphinx.NewRouter(
-		sphinxPrivKey, &bitcoinCfg.SimNetParams, sphinx.NewMemoryReplayLog(),
+		secpPrivkey2btcec(sphinxPrivKey), &bitcoinCfg.SimNetParams, sphinx.NewMemoryReplayLog(),
 	)
 
 	if err := sphinxRouter.Start(); err != nil {
@@ -1403,4 +1405,8 @@ func TestCircuitMapDeleteOpenCircuit(t *testing.T) {
 		t.Fatalf("unexpected open circuit: got %v, want %v",
 			circuit2, nil)
 	}
+}
+
+func secpPrivkey2btcec(privkey *secp256k1.PrivateKey) *btcec.PrivateKey {
+	return &btcec.PrivateKey{PublicKey: privkey.PublicKey, D: privkey.D}
 }

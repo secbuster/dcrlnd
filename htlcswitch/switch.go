@@ -9,7 +9,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	bolt "go.etcd.io/bbolt"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrd/dcrutil"
@@ -20,6 +19,7 @@ import (
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/ticker"
+	bolt "go.etcd.io/bbolt"
 )
 
 const (
