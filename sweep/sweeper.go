@@ -82,7 +82,7 @@ type UtxoSweeper struct {
 
 // UtxoSweeperConfig contains dependencies of UtxoSweeper.
 type UtxoSweeperConfig struct {
-	// GenSweepScript generates a P2WKH script belonging to the wallet where
+	// GenSweepScript generates a P2PKH script belonging to the wallet where
 	// funds can be swept.
 	GenSweepScript func() ([]byte, error)
 
@@ -412,7 +412,7 @@ func (s *UtxoSweeper) collector(blockEpochs <-chan *chainntnfs.BlockEpoch,
 
 			// Retrieve fee estimate for input filtering and final
 			// tx fee calculation.
-			satPerKW, err := s.cfg.Estimator.EstimateFeePerKB(
+			feePerKB, err := s.cfg.Estimator.EstimateFeePerKB(
 				s.cfg.SweepTxConfTarget,
 			)
 			if err != nil {
@@ -422,7 +422,7 @@ func (s *UtxoSweeper) collector(blockEpochs <-chan *chainntnfs.BlockEpoch,
 
 			// Examine pending inputs and try to construct lists of
 			// inputs.
-			inputLists, err := s.getInputLists(bestHeight, satPerKW)
+			inputLists, err := s.getInputLists(bestHeight, feePerKB)
 			if err != nil {
 				log.Errorf("get input lists: %v", err)
 				continue
@@ -430,7 +430,7 @@ func (s *UtxoSweeper) collector(blockEpochs <-chan *chainntnfs.BlockEpoch,
 
 			// Sweep selected inputs.
 			for _, inputs := range inputLists {
-				err := s.sweep(inputs, satPerKW, bestHeight)
+				err := s.sweep(inputs, feePerKB, bestHeight)
 				if err != nil {
 					log.Errorf("sweep: %v", err)
 				}
@@ -470,7 +470,7 @@ func (s *UtxoSweeper) scheduleSweep(currentHeight int32) error {
 
 	// Retrieve fee estimate for input filtering and final tx fee
 	// calculation.
-	satPerKW, err := s.cfg.Estimator.EstimateFeePerKB(
+	feePerKB, err := s.cfg.Estimator.EstimateFeePerKB(
 		s.cfg.SweepTxConfTarget,
 	)
 	if err != nil {
@@ -478,7 +478,7 @@ func (s *UtxoSweeper) scheduleSweep(currentHeight int32) error {
 	}
 
 	// Examine pending inputs and try to construct lists of inputs.
-	inputLists, err := s.getInputLists(currentHeight, satPerKW)
+	inputLists, err := s.getInputLists(currentHeight, feePerKB)
 	if err != nil {
 		return fmt.Errorf("get input lists: %v", err)
 	}
@@ -543,7 +543,7 @@ func (s *UtxoSweeper) signalAndRemove(outpoint *wire.OutPoint, result Result) {
 // Those inputs remain pending and will be bundled with future inputs if
 // possible.
 func (s *UtxoSweeper) getInputLists(currentHeight int32,
-	satPerKW lnwallet.AtomPerKByte) ([]inputSet, error) {
+	feePerKB lnwallet.AtomPerKByte) ([]inputSet, error) {
 
 	// Filter for inputs that need to be swept. Create two lists: all
 	// sweepable inputs and a list containing only the new, never tried
@@ -578,7 +578,7 @@ func (s *UtxoSweeper) getInputLists(currentHeight int32,
 		var err error
 		allSets, err = generateInputPartitionings(
 			append(retryInputs, newInputs...),
-			s.relayFeePerKB, satPerKW,
+			s.relayFeePerKB, feePerKB,
 			s.cfg.MaxInputsPerTx,
 		)
 		if err != nil {
@@ -589,7 +589,7 @@ func (s *UtxoSweeper) getInputLists(currentHeight int32,
 	// Create sets for just the new inputs.
 	newSets, err := generateInputPartitionings(
 		newInputs,
-		s.relayFeePerKB, satPerKW,
+		s.relayFeePerKB, feePerKB,
 		s.cfg.MaxInputsPerTx,
 	)
 	if err != nil {
@@ -607,7 +607,7 @@ func (s *UtxoSweeper) getInputLists(currentHeight int32,
 // sweep takes a set of preselected inputs, creates a sweep tx and publishes the
 // tx. The output address is only marked as used if the publish succeeds.
 func (s *UtxoSweeper) sweep(inputs inputSet,
-	satPerKW lnwallet.AtomPerKByte, currentHeight int32) error {
+	feePerKB lnwallet.AtomPerKByte, currentHeight int32) error {
 
 	var err error
 
@@ -622,7 +622,7 @@ func (s *UtxoSweeper) sweep(inputs inputSet,
 	// Create sweep tx.
 	tx, err := createSweepTx(
 		inputs, s.currentOutputScript,
-		uint32(currentHeight), satPerKW, s.cfg.Signer, s.cfg.NetParams,
+		uint32(currentHeight), feePerKB, s.cfg.Signer, s.cfg.NetParams,
 	)
 	if err != nil {
 		return fmt.Errorf("create sweep tx: %v", err)

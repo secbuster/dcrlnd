@@ -165,7 +165,7 @@ func createSweepTx(inputs []Input, outputPkScript []byte,
 	inputs, txSize, csvCount, cltvCount := getSizeEstimate(inputs)
 
 	log.Infof("Creating sweep transaction for %v inputs (%v CSV, %v CLTV) "+
-		"using %v sat/kw", len(inputs), csvCount, cltvCount,
+		"using %v atom/kb", len(inputs), csvCount, cltvCount,
 		int64(feePerKB))
 
 	txFee := feePerKB.FeeForSize(txSize)
@@ -208,7 +208,12 @@ func createSweepTx(inputs []Input, outputPkScript []byte,
 	// classes if fees are too low.
 	btx := dcrutil.NewTx(sweepTx)
 	if err := blockchain.CheckTransactionSanity(btx.MsgTx(), netParams); err != nil {
-		return nil, err
+		if ruleErr, is := err.(blockchain.RuleError) ; is {
+			return nil, fmt.Errorf("rule error checking sweepTx sanity: %s %v",
+				ruleErr.ErrorCode, err)
+		} else {
+			return nil, fmt.Errorf("error checking sweepTx sanity: %v", err)
+		}
 	}
 
 	// With all the inputs in place, use each output's unique witness
@@ -218,7 +223,8 @@ func createSweepTx(inputs []Input, outputPkScript []byte,
 			signer, sweepTx, idx,
 		)
 		if err != nil {
-			return err
+			return fmt.Errorf("error building witness for input %d of "+
+				"type %s: %v", idx, tso.WitnessType().String(), err)
 		}
 
 		sigScript, err := lnwallet.WitnessStackToSigScript(witness)

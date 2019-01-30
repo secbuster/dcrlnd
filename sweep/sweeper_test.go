@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
+
 	"github.com/decred/dcrd/chaincfg"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrec/secp256k1"
@@ -132,7 +134,10 @@ func createSweeperTestContext(t *testing.T) *sweeperTestContext {
 		SweepTxConfTarget: 1,
 		ChainIO:           &mockChainIO{},
 		GenSweepScript: func() ([]byte, error) {
-			script := []byte{outputScriptCount}
+			// This needs to be a valid script, otherwise it fails
+			// checkTransactionSanity(). We use a simple OP_RETURN, given the
+			// tests don't check for spendability of the generated sweep output.
+			script := []byte{0x6a, 0x01, outputScriptCount}
 			outputScriptCount++
 			return script, nil
 		},
@@ -355,7 +360,7 @@ func TestNegativeInput(t *testing.T) {
 	// Sweep an additional input with a negative net yield. The weight of
 	// the HtlcAcceptedRemoteSuccess input type adds more in fees than its
 	// value at the current fee level.
-	negInput := createTestInput(2900, lnwallet.HtlcOfferedRemoteTimeout)
+	negInput := createTestInput(2500, lnwallet.HtlcOfferedRemoteTimeout)
 	negInputResult, err := ctx.sweeper.SweepInput(&negInput)
 	if err != nil {
 		t.Fatal(err)
@@ -363,7 +368,7 @@ func TestNegativeInput(t *testing.T) {
 
 	// Sweep a third input that has a smaller output than the previous one,
 	// but yields positively because of its lower weight.
-	positiveInput := createTestInput(2800, lnwallet.CommitmentNoDelay)
+	positiveInput := createTestInput(2200, lnwallet.CommitmentNoDelay)
 	positiveInputResult, err := ctx.sweeper.SweepInput(&positiveInput)
 	if err != nil {
 		t.Fatal(err)
@@ -376,7 +381,7 @@ func TestNegativeInput(t *testing.T) {
 	// until fees come down to get a positive net yield.
 	sweepTx1 := ctx.receiveTx()
 
-	if !testTxIns(&sweepTx1, []*wire.OutPoint{
+	if !testTxIns(t, &sweepTx1, []*wire.OutPoint{
 		largeInput.OutPoint(), positiveInput.OutPoint(),
 	}) {
 		t.Fatal("Tx does not contain expected inputs")
@@ -400,7 +405,7 @@ func TestNegativeInput(t *testing.T) {
 	ctx.tick()
 
 	sweepTx2 := ctx.receiveTx()
-	if !testTxIns(&sweepTx2, []*wire.OutPoint{
+	if !testTxIns(t, &sweepTx2, []*wire.OutPoint{
 		secondLargeInput.OutPoint(), negInput.OutPoint(),
 	}) {
 		t.Fatal("Tx does not contain expected inputs")
@@ -414,18 +419,22 @@ func TestNegativeInput(t *testing.T) {
 	ctx.finish(1)
 }
 
-func testTxIns(tx *wire.MsgTx, inputs []*wire.OutPoint) bool {
-	if len(tx.TxIn) != len(inputs) {
-		return false
-	}
-
-	ins := make(map[wire.OutPoint]struct{})
+func testTxIns(t *testing.T, tx *wire.MsgTx, inputs []*wire.OutPoint) bool {
+	ins := make(map[wire.OutPoint]struct{}, len(tx.TxIn))
 	for _, in := range tx.TxIn {
 		ins[in.PreviousOutPoint] = struct{}{}
 	}
 
+	if len(tx.TxIn) != len(inputs) {
+		t.Errorf("Expected Inputs:\n%s\nBut found Inputs:\n%s\n",
+		spew.Sdump(inputs), spew.Sdump(ins))
+		return false
+	}
+
 	for _, expectedIn := range inputs {
 		if _, ok := ins[*expectedIn]; !ok {
+			t.Errorf("Expected Inputs:\n%s\nBut found Inputs:\n%s\n",
+				spew.Sdump(inputs), spew.Sdump(ins))
 			return false
 		}
 	}
