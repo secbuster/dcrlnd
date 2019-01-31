@@ -1,10 +1,10 @@
 package htlcswitch
 
 import (
-	"crypto/sha256"
 	"fmt"
 	"testing"
 
+	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/lnwire"
 )
@@ -15,7 +15,7 @@ func genHtlc() (*lnwire.UpdateAddHTLC, error) {
 		return nil, fmt.Errorf("unable to generate preimage: %v", err)
 	}
 
-	rhash := sha256.Sum256(preimage[:])
+	rhash := chainhash.HashH(preimage[:])
 	htlc := &lnwire.UpdateAddHTLC{
 		PaymentHash: rhash,
 		Amount:      1,

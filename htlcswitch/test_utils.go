@@ -280,7 +280,7 @@ func createTestChannel(alicePrivKey, bobPrivKey []byte,
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
-	commitFee := feePerKw.FeeForSize(724)
+	commitFee := feePerKw.FeeForSize(lnwallet.CommitmentTxSize)
 
 	const broadcastHeight = 1
 	bobAddr := &net.TCPAddr{
@@ -535,7 +535,7 @@ func generatePayment(invoiceAmt, htlcAmt lnwire.MilliSatoshi, timelock uint32,
 	}
 	copy(preimage[:], r)
 
-	rhash := sha256.Sum256(preimage[:])
+	rhash := chainhash.HashH(preimage[:])
 
 	invoice := &channeldb.Invoice{
 		CreationDate: time.Now(),
@@ -706,7 +706,7 @@ func (n *threeHopNetwork) makePayment(sendingPeer, receivingPeer lnpeer.Peer,
 			err:   paymentErr,
 		}
 	}
-	rhash = sha256.Sum256(invoice.Terms.PaymentPreimage[:])
+	rhash = chainhash.HashH(invoice.Terms.PaymentPreimage[:])
 
 	// Check who is last in the route and add invoice to server registry.
 	if err := receiver.registry.AddInvoice(*invoice); err != nil {
