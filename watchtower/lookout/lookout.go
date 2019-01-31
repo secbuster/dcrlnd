@@ -4,6 +4,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/decred/dcrd/chaincfg"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/watchtower/blob"
@@ -30,6 +31,10 @@ type Config struct {
 	// Punisher handles the responsibility of crafting and broadcasting
 	// justice transaction for any breached transactions.
 	Punisher Punisher
+
+	// NetParams specifies the chain parameters for the chain the lookout is
+	// associated with.
+	NetParams *chaincfg.Params
 }
 
 // Lookout will check any incoming blocks against the transactions found in the
@@ -227,6 +232,7 @@ func (l *Lookout) processEpoch(epoch *chainntnfs.BlockEpoch,
 			BreachedCommitTx: commitTx,
 			SessionInfo:      match.SessionInfo,
 			JusticeKit:       justiceKit,
+			NetParams:        l.cfg.NetParams,
 		}
 		successes = append(successes, justiceDesc)
 	}

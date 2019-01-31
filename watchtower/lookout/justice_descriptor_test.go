@@ -9,6 +9,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/decred/dcrd/blockchain"
+	"github.com/decred/dcrd/chaincfg"
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrd/dcrutil"
 	"github.com/decred/dcrd/txscript"
@@ -123,7 +124,7 @@ func TestJusticeDescriptor(t *testing.T) {
 	}
 
 	// Compute the to-local witness script hash.
-	toLocalScriptHash, err := lnwallet.WitnessScriptHash(toLocalScript)
+	toLocalScriptHash, err := lnwallet.ScriptHashPkScript(toLocalScript)
 	if err != nil {
 		t.Fatalf("unable to create to-local witness script hash: %v", err)
 	}
@@ -293,6 +294,7 @@ func TestJusticeDescriptor(t *testing.T) {
 		BreachedCommitTx: breachTxn,
 		SessionInfo:      sessionInfo,
 		JusticeKit:       justiceKit,
+		NetParams:        &chaincfg.RegNetParams,
 	}
 
 	// Construct a breach punisher that will feed published transactions

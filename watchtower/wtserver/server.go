@@ -620,6 +620,6 @@ func (s *Server) removePeer(id *wtdb.SessionID) {
 }
 
 // noDial is a dummy dial method passed to the server's connmgr.
-func noDial(_ net.Addr) (net.Conn, error) {
+func noDial(string, string) (net.Conn, error) {
 	return nil, fmt.Errorf("watchtower cannot make outgoing conns")
 }

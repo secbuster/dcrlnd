@@ -64,7 +64,7 @@ func WriteElement(w io.Writer, element interface{}) error {
 			return err
 		}
 
-	case lnwallet.SatPerKByte:
+	case lnwallet.AtomPerKByte:
 		var b [8]byte
 		binary.BigEndian.PutUint64(b[:], uint64(e))
 		if _, err := w.Write(b[:]); err != nil {

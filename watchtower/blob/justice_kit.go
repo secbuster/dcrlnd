@@ -104,6 +104,20 @@ var (
 // PubKey is a 33-byte, serialized compressed public key.
 type PubKey [33]byte
 
+// isCompressedPubKey returns true the the passed serialized public key has
+// been encoded in compressed format, and false otherwise.
+func isCompressedPubKey(pubKey []byte) bool {
+	const (
+		PubKeyBytesLenCompressed      = 33
+		pubkeyCompressed         byte = 0x2 // y_bit + x coord
+	)
+
+	// The public key is only compressed if it is the correct length and
+	// the format (first byte) is one of the compressed pubkey values.
+	return len(pubKey) == PubKeyBytesLenCompressed &&
+		(pubKey[0]&^byte(0x1) == pubkeyCompressed)
+}
+
 // JusticeKit is lé Blob of Justice. The JusticeKit contains information
 // required to construct a justice transaction, that sweeps a remote party's
 // revoked commitment transaction. It supports encryption and decryption using
@@ -152,7 +166,7 @@ type JusticeKit struct {
 	CommitToRemoteSig lnwire.Sig
 }
 
-// CommitToLocalWitnessScript returns the serialized witness script for the
+// CommitToLocalWitnessScript returns the serialized redeem script for the
 // commitment to-local output.
 func (b *JusticeKit) CommitToLocalWitnessScript() ([]byte, error) {
 	revocationPubKey, err := secp256k1.ParsePubKey(b.RevocationPubKey[:])
@@ -190,13 +204,13 @@ func (b *JusticeKit) CommitToLocalRevokeWitnessStack() ([][]byte, error) {
 // HasCommitToRemoteOutput returns true if the blob contains a to-remote p2wkh
 // pubkey.
 func (b *JusticeKit) HasCommitToRemoteOutput() bool {
-	return secp256k1.IsCompressedPubKey(b.CommitToRemotePubKey[:])
+	return isCompressedPubKey(b.CommitToRemotePubKey[:])
 }
 
-// CommitToRemoteWitnessScript returns the witness script for the commitment
-// to-remote p2wkh output, which is the pubkey itself.
+// CommitToRemoteWitnessScript returns the serialized pubkey for the commitment
+// to-remote p2pkh output.
 func (b *JusticeKit) CommitToRemoteWitnessScript() ([]byte, error) {
-	if !secp256k1.IsCompressedPubKey(b.CommitToRemotePubKey[:]) {
+	if !isCompressedPubKey(b.CommitToRemotePubKey[:]) {
 		return nil, ErrNoCommitToRemoteOutput
 	}
 
@@ -483,7 +497,7 @@ func (b *JusticeKit) decodeV0(r io.Reader) error {
 
 	// Only populate the commit to-remote fields in the decoded blob if a
 	// valid compressed public key was read from the reader.
-	if secp256k1.IsCompressedPubKey(commitToRemotePubkey[:]) {
+	if isCompressedPubKey(commitToRemotePubkey[:]) {
 		b.CommitToRemotePubKey = commitToRemotePubkey
 		b.CommitToRemoteSig = commitToRemoteSig
 	}

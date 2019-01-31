@@ -11,10 +11,10 @@ import (
 	"time"
 
 	"github.com/decred/dcrd/wire"
-	"github.com/decred/lnd/chainntnfs"
-	"github.com/decred/lnd/watchtower/blob"
-	"github.com/decred/lnd/watchtower/lookout"
-	"github.com/decred/lnd/watchtower/wtdb"
+	"github.com/decred/dcrlnd/chainntnfs"
+	"github.com/decred/dcrlnd/watchtower/blob"
+	"github.com/decred/dcrlnd/watchtower/lookout"
+	"github.com/decred/dcrlnd/watchtower/wtdb"
 )
 
 type mockPunisher struct {
@@ -81,6 +81,7 @@ func TestLookoutBreachMatching(t *testing.T) {
 		DB:             db,
 		EpochRegistrar: backend,
 		Punisher:       punisher,
+		NetParams:      chaincfg.RegNetParams,
 	})
 	if err := watcher.Start(); err != nil {
 		t.Fatalf("unable to start watcher: %v", err)
