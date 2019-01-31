@@ -136,7 +136,7 @@ func (cfg nodeConfig) genArgs() []string {
 	var args []string
 
 	switch cfg.NetParams {
-	case &chaincfg.TestNet2Params:
+	case &chaincfg.TestNet3Params:
 		args = append(args, "--decred.testnet")
 	case &chaincfg.SimNetParams:
 		args = append(args, "--decred.simnet")
