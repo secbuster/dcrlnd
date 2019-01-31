@@ -40,7 +40,7 @@ var (
 
 	inputStr = "147caa76786596590baa4e98f5d9f48b86c7765e489f7a6ff3360fe5c674360b"
 	sha, _   = chainhash.NewHashFromStr(inputStr)
-	outpoint = wire.NewOutPoint(sha, 0)
+	outpoint = wire.NewOutPoint(sha, 0, 0)
 
 	bitcoinKeyPriv1, _ = secp256k1.GeneratePrivateKey()
 	bitcoinKeyPub1     = bitcoinKeyPriv1.PubKey()
@@ -51,7 +51,7 @@ var (
 	bitcoinKeyPriv2, _ = secp256k1.GeneratePrivateKey()
 	bitcoinKeyPub2     = bitcoinKeyPriv2.PubKey()
 
-	nodeKeyPriv2, _ = secp256k1.GeneratPrivateKey()
+	nodeKeyPriv2, _ = secp256k1.GeneratePrivateKey()
 	nodeKeyPub2     = nodeKeyPriv2.PubKey()
 
 	trickleDelay     = time.Millisecond * 100
@@ -95,7 +95,7 @@ func (n *mockSigner) SignMessage(pubKey *secp256k1.PublicKey,
 		return nil, fmt.Errorf("unknown public key")
 	}
 
-	digest := chainhash.DoubleHashB(msg)
+	digest := chainhash.HashB(msg)
 	sign, err := n.privKey.Sign(digest)
 	if err != nil {
 		return nil, fmt.Errorf("can't sign the message: %v", err)

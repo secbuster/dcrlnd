@@ -10,7 +10,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	bolt "go.etcd.io/bbolt"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrec/secp256k1"
@@ -19,11 +18,11 @@ import (
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/lnpeer"
 	"github.com/decred/dcrlnd/multimutex"
+	bolt "go.etcd.io/bbolt"
 
-	//"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/routing"
-	"github.com/go-errors/errors"
 )
 
 var (

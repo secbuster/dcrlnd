@@ -4,7 +4,7 @@ import (
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrlnd/channeldb"
 
-	//"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/go-errors/errors"
 )
