@@ -16,9 +16,7 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/awalterschulze/gographviz"
 	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/dcrutil"
 	"github.com/decred/dcrlnd/lnrpc"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
