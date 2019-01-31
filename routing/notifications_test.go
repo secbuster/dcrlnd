@@ -87,7 +87,8 @@ func createChannelEdge(ctx *testCtx, bitcoinKey1, bitcoinKey2 []byte,
 	chanValue dcrutil.Amount, fundingHeight uint32) (*wire.MsgTx, *wire.OutPoint,
 	*lnwire.ShortChannelID, error) {
 
-	fundingTx := wire.NewMsgTx(2)
+	fundingTx := wire.NewMsgTx()
+	fundingTx.Version = 2
 	_, tx, err := lnwallet.GenFundingPkScript(
 		bitcoinKey1,
 		bitcoinKey2,
@@ -245,7 +246,7 @@ func (m *mockChainView) Reset() {
 	m.staleBlocks = make(chan *chainview.FilteredBlock, 10)
 }
 
-func (m *mockChainView) UpdateFilter(ops []channeldb.EdgePoint, updateHeight uint32) error {
+func (m *mockChainView) UpdateFilter(ops []channeldb.EdgePoint, updateHeight int64) error {
 	m.Lock()
 	defer m.Unlock()
 
@@ -265,7 +266,7 @@ func (m *mockChainView) notifyBlock(hash chainhash.Hash, height uint32,
 	select {
 	case m.newBlocks <- &chainview.FilteredBlock{
 		Hash:         hash,
-		Height:       height,
+		Height:       int64(height),
 		Transactions: txns,
 	}:
 	case <-m.quit:
@@ -282,7 +283,7 @@ func (m *mockChainView) notifyStaleBlock(hash chainhash.Hash, height uint32,
 	select {
 	case m.staleBlocks <- &chainview.FilteredBlock{
 		Hash:         hash,
-		Height:       height,
+		Height:       int64(height),
 		Transactions: txns,
 	}:
 	case <-m.quit:

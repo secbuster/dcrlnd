@@ -1043,7 +1043,7 @@ func (r *ChannelRouter) processUpdate(msg interface{}) error {
 		if err != nil {
 			return err
 		}
-		fundingPkScript, err := lnwallet.WitnessScriptHash(witnessScript)
+		fundingPkScript, err := lnwallet.ScriptHashPkScript(witnessScript)
 		if err != nil {
 			return err
 		}

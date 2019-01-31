@@ -481,7 +481,7 @@ func TestChannelUpdateValidation(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	digest := chainhash.DoubleHashB(chanUpdateMsg)
+	digest := chainhash.HashB(chanUpdateMsg)
 	sig, err := testGraph.privKeyMap["b"].Sign(digest)
 	if err != nil {
 		t.Fatal(err)
@@ -1799,7 +1799,8 @@ func TestRouterChansClosedOfflinePruneGraph(t *testing.T) {
 			// For the second block, we'll add a transaction that
 			// closes the channel we created above by spending the
 			// output.
-			closingTx := wire.NewMsgTx(2)
+			closingTx := wire.NewMsgTx()
+			closingTx.Version = 2
 			closingTx.AddTxIn(&wire.TxIn{
 				PreviousOutPoint: *chanUTXO,
 			})
