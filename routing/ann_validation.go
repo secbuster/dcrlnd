@@ -22,7 +22,7 @@ func ValidateChannelAnn(a *lnwire.ChannelAnnouncement) error {
 	if err != nil {
 		return err
 	}
-	dataHash := chainhash.DoubleHashB(data)
+	dataHash := chainhash.HashB(data)
 
 	// First we'll verify that the passed bitcoin key signature is indeed a
 	// signature over the computed hash digest.
@@ -105,7 +105,7 @@ func ValidateNodeAnn(a *lnwire.NodeAnnouncement) error {
 
 	// Finally ensure that the passed signature is valid, if not we'll
 	// return an error so this node announcement can be rejected.
-	dataHash := chainhash.DoubleHashB(data)
+	dataHash := chainhash.HashB(data)
 	if !nodeSig.Verify(dataHash, nodeKey) {
 		var msgBuf bytes.Buffer
 		if _, err := lnwire.WriteMessage(&msgBuf, a, 0); err != nil {
@@ -128,7 +128,7 @@ func ValidateChannelUpdateAnn(pubKey *secp256k1.PublicKey, a *lnwire.ChannelUpda
 	if err != nil {
 		return errors.Errorf("unable to reconstruct message: %v", err)
 	}
-	dataHash := chainhash.DoubleHashB(data)
+	dataHash := chainhash.HashB(data)
 
 	nodeSig, err := a.Signature.ToSignature()
 	if err != nil {

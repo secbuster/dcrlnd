@@ -10,16 +10,17 @@ import (
 	"sync/atomic"
 	"time"
 
-	bolt "go.etcd.io/bbolt"
+	"github.com/btcsuite/btcd/btcec"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/multimutex"
+	bolt "go.etcd.io/bbolt"
 
-	//"github.com/decred/dcrlnd/htlcswitch" // TODO(decred): Uncomment.
 	"github.com/decred/dcrd/dcrutil"
-	//"github.com/decred/dcrlnd/lnwallet" // TODO(decred): Uncomment.
+	"github.com/decred/dcrlnd/htlcswitch"
+	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/routing/chainview"
 
@@ -431,7 +432,7 @@ func (r *ChannelRouter) Start() error {
 	log.Infof("Filtering chain using %v channels active", len(channelView))
 	if len(channelView) != 0 {
 		err = r.cfg.ChainView.UpdateFilter(
-			channelView, uint32(bestHeight),
+			channelView, int64(bestHeight),
 		)
 		if err != nil {
 			return err
@@ -826,7 +827,7 @@ func (r *ChannelRouter) networkHandler() {
 			// this block as otherwise, we may miss on-chain
 			// events.
 			currentHeight := atomic.LoadUint32(&r.bestHeight)
-			if chainUpdate.Height != currentHeight+1 {
+			if chainUpdate.Height != int64(currentHeight+1) {
 				log.Errorf("out of order block: expecting "+
 					"height=%v, got height=%v", currentHeight+1,
 					chainUpdate.Height)
@@ -857,7 +858,7 @@ func (r *ChannelRouter) networkHandler() {
 			// of the block being pruned so the prune tip can be
 			// updated.
 			chansClosed, err := r.cfg.Graph.PruneGraph(spentOutputs,
-				&chainUpdate.Hash, chainUpdate.Height)
+				&chainUpdate.Hash, uint32(chainUpdate.Height))
 			if err != nil {
 				log.Errorf("unable to prune routing table: %v", err)
 				continue
@@ -1107,7 +1108,7 @@ func (r *ChannelRouter) processUpdate(msg interface{}) error {
 			},
 		}
 		err = r.cfg.ChainView.UpdateFilter(
-			filterUpdate, atomic.LoadUint32(&r.bestHeight),
+			filterUpdate, int64(atomic.LoadUint32(&r.bestHeight)),
 		)
 		if err != nil {
 			return errors.Errorf("unable to update chain "+
@@ -1511,9 +1512,9 @@ func generateSphinxPacket(route *Route, paymentHash []byte) ([]byte,
 
 	// First obtain all the public keys along the route which are contained
 	// in each hop.
-	nodes := make([]*secp256k1.PublicKey, len(route.Hops))
+	nodes := make([]*btcec.PublicKey, len(route.Hops))
 	for i, hop := range route.Hops {
-		pub, err := secp256k1.ParsePubKey(hop.PubKeyBytes[:])
+		pub, err := btcec.ParsePubKey(hop.PubKeyBytes[:], btcec.S256())
 		if err != nil {
 			return nil, nil, err
 		}
@@ -1532,7 +1533,7 @@ func generateSphinxPacket(route *Route, paymentHash []byte) ([]byte,
 		}),
 	)
 
-	sessionKey, err := secp256k1.GeneratePrivateKey()
+	sessionKey, err := btcec.NewPrivateKey(btcec.S256())
 	if err != nil {
 		return nil, nil, err
 	}

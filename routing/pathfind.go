@@ -8,11 +8,11 @@ import (
 
 	"container/heap"
 
-	bolt "go.etcd.io/bbolt"
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/lightningnetwork/lightning-onion" // TODO(decred): ok?
+	bolt "go.etcd.io/bbolt"
 )
 
 const (

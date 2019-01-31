@@ -15,8 +15,8 @@ import (
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/channeldb"
 
-	//"github.com/decred/dcrlnd/lnwallet" // TODO(decred): Uncomment...
 	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/routing/chainview"
 	"github.com/go-errors/errors"

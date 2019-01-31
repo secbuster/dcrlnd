@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
-	bolt "go.etcd.io/bbolt"
 	"github.com/decred/dcrd/dcrec/secp256k1"
+	bolt "go.etcd.io/bbolt"
 
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/lnwire"
