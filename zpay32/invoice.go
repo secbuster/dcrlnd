@@ -10,6 +10,7 @@ import (
 	"github.com/btcsuite/btcutil/bech32" // TODO(decred): dcrutil...
 	"github.com/decred/dcrd/chaincfg"
 	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrec"
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrd/dcrutil"
 	"github.com/decred/dcrlnd/lnwire"
@@ -69,6 +70,15 @@ const (
 	// fieldTypeC contains an optional requested final CLTV delta.
 	fieldTypeC = 24
 )
+
+// decredHRPPrefixes are the prefixes that should be present on the HRP (human
+// readable part) section of ln addresses for each decred network.
+var decredHRPPrefixes = map[string]string{
+	chaincfg.MainNetParams.Name:  "dcr",
+	chaincfg.RegNetParams.Name:   "dregn",
+	chaincfg.SimNetParams.Name:   "dsimn",
+	chaincfg.TestNet3Params.Name: "dtnt",
+}
 
 // MessageSigner is passed to the Encode method to provide a signature
 // corresponding to the node's pubkey.
@@ -146,7 +156,7 @@ type Invoice struct {
 	// represent private routes.
 	//
 	// NOTE: This is optional.
-	//RouteHints [][]routing.HopHint // TODO(decred): Uncomment
+	RouteHints [][]routing.HopHint
 }
 
 // Amount is a functional option that allows callers of NewInvoice to set the
@@ -269,7 +279,7 @@ func Decode(invoice string, net *chaincfg.Params) (*Invoice, error) {
 
 	// The next characters should be a valid prefix for a segwit BIP173
 	// address that match the active network.
-	if !strings.HasPrefix(hrp[2:], net.Bech32HRPSegwit) {
+	if !strings.HasPrefix(hrp[2:], decredHRPPrefixes[net.Name]) {
 		return nil, fmt.Errorf(
 			"invoice not for current active network '%s'", net.Name)
 	}
@@ -277,7 +287,8 @@ func Decode(invoice string, net *chaincfg.Params) (*Invoice, error) {
 
 	// Optionally, if there's anything left of the HRP after ln + the segwit
 	// prefix, we try to decode this as the payment amount.
-	var netPrefixLength = len(net.Bech32HRPSegwit) + 2
+	hrpNet := decredHRPPrefixes[net.Name]
+	var netPrefixLength = len(hrpNet) + 2
 	if len(hrp) > netPrefixLength {
 		amount, err := decodeAmount(hrp[netPrefixLength:])
 		if err != nil {
@@ -390,7 +401,7 @@ func (invoice *Invoice) Encode(signer MessageSigner) (string, error) {
 	}
 
 	// The human-readable part (hrp) is "ln" + net hrp + optional amount.
-	hrp := "ln" + invoice.Net.Bech32HRPSegwit
+	hrp := "ln" + decredHRPPrefixes[invoice.Net.Name]
 	if invoice.MilliSat != nil {
 		// Encode the amount using the fewest possible characters.
 		am, err := encodeAmount(*invoice.MilliSat)
@@ -795,31 +806,14 @@ func parseFallbackAddr(data []byte, net *chaincfg.Params) (dcrutil.Address, erro
 	version := data[0]
 	switch version {
 	case 0:
-		witness, err := bech32.ConvertBits(data[1:], 5, 8, false)
-		if err != nil {
-			return nil, err
-		}
-
-		switch len(witness) {
-		case 20:
-			addr, err = dcrutil.NewAddressWitnessPubKeyHash(witness, net)
-		case 32:
-			addr, err = dcrutil.NewAddressWitnessScriptHash(witness, net)
-		default:
-			return nil, fmt.Errorf("unknown witness program length %d",
-				len(witness))
-		}
-
-		if err != nil {
-			return nil, err
-		}
+		return nil, fmt.Errorf("witness program addresses not supported")
 	case 17:
 		pubKeyHash, err := bech32.ConvertBits(data[1:], 5, 8, false)
 		if err != nil {
 			return nil, err
 		}
 
-		addr, err = dcrutil.NewAddressPubKeyHash(pubKeyHash, net)
+		addr, err = dcrutil.NewAddressPubKeyHash(pubKeyHash, net, dcrec.STEcdsaSecp256k1)
 		if err != nil {
 			return nil, err
 		}
@@ -945,15 +939,11 @@ func writeTaggedFields(bufferBase32 *bytes.Buffer, invoice *Invoice) error {
 
 	if invoice.FallbackAddr != nil {
 		var version byte
-		switch addr := invoice.FallbackAddr.(type) {
+		switch invoice.FallbackAddr.(type) {
 		case *dcrutil.AddressPubKeyHash:
 			version = 17
 		case *dcrutil.AddressScriptHash:
 			version = 18
-		case *dcrutil.AddressWitnessPubKeyHash:
-			version = addr.WitnessVersion()
-		case *dcrutil.AddressWitnessScriptHash:
-			version = addr.WitnessVersion()
 		default:
 			return fmt.Errorf("unknown fallback address type")
 		}
