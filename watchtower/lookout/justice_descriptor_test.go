@@ -62,15 +62,13 @@ func (s *mockSigner) SignOutputRaw(tx *wire.MsgTx,
 	signDesc *lnwallet.SignDescriptor) ([]byte, error) {
 
 	witnessScript := signDesc.WitnessScript
-	amt := signDesc.Output.Value
-
 	privKey, ok := s.keys[signDesc.KeyDesc.KeyLocator]
 	if !ok {
 		panic("cannot sign w/ unknown key")
 	}
 
-	sig, err := txscript.RawTxInWitnessSignature(
-		tx, signDesc.SigHashes, signDesc.InputIndex, amt,
+	sig, err := txscript.RawTxInSignature(
+		tx, signDesc.InputIndex,
 		witnessScript, signDesc.HashType, privKey,
 	)
 	if err != nil {
@@ -102,6 +100,7 @@ func TestJusticeDescriptor(t *testing.T) {
 		remoteAmount = dcrutil.Amount(200000)
 		totalAmount  = localAmount + remoteAmount
 	)
+	netParams := &chaincfg.RegNetParams
 
 	// Parse the key pairs for all keys used in the test.
 	revSK, revPK := secp256k1.PrivKeyFromBytes(revPrivBytes)
@@ -167,7 +166,7 @@ func TestJusticeDescriptor(t *testing.T) {
 	sessionInfo := &wtdb.SessionInfo{
 		SweepFeeRate:  2000,
 		RewardRate:    900000,
-		RewardAddress: makeAddrSlice(22),
+		RewardAddress: makeRandomP2PKHPkScript(),
 	}
 
 	// Given the total input amount and the size estimate, compute the
@@ -183,7 +182,7 @@ func TestJusticeDescriptor(t *testing.T) {
 	// Begin to assemble the justice kit, starting with the sweep address,
 	// pubkeys, and csv delay.
 	justiceKit := &blob.JusticeKit{
-		SweepAddress: makeAddrSlice(22),
+		SweepAddress: makeRandomP2PKHPkScript(),
 		CSVDelay:     csvDelay,
 	}
 	copy(justiceKit.RevocationPubKey[:], revPK.SerializeCompressed())
@@ -202,12 +201,14 @@ func TestJusticeDescriptor(t *testing.T) {
 					Hash:  breachTxID,
 					Index: 0,
 				},
+				ValueIn: breachTxn.TxOut[0].Value,
 			},
 			{
 				PreviousOutPoint: wire.OutPoint{
 					Hash:  breachTxID,
 					Index: 1,
 				},
+				ValueIn: breachTxn.TxOut[1].Value,
 			},
 		},
 		TxOut: []*wire.TxOut{
@@ -224,8 +225,6 @@ func TestJusticeDescriptor(t *testing.T) {
 		},
 	}
 
-	hashCache := txscript.NewTxSigHashes(justiceTxn)
-
 	// Create the sign descriptor used to sign for the to-local input.
 	toLocalSignDesc := &lnwallet.SignDescriptor{
 		KeyDesc: keychain.KeyDescriptor{
@@ -233,7 +232,6 @@ func TestJusticeDescriptor(t *testing.T) {
 		},
 		WitnessScript: toLocalScript,
 		Output:        breachTxn.TxOut[0],
-		SigHashes:     hashCache,
 		InputIndex:    0,
 		HashType:      txscript.SigHashAll,
 	}
@@ -246,14 +244,12 @@ func TestJusticeDescriptor(t *testing.T) {
 		},
 		WitnessScript: toRemoteScriptHash,
 		Output:        breachTxn.TxOut[1],
-		SigHashes:     hashCache,
 		InputIndex:    1,
 		HashType:      txscript.SigHashAll,
 	}
 
 	// Verify that our test justice transaction is sane.
-	btx := dcrutil.NewTx(justiceTxn)
-	if err := blockchain.CheckTransactionSanity(btx); err != nil {
+	if err := blockchain.CheckTransactionSanity(justiceTxn, netParams); err != nil {
 		t.Fatalf("justice txn is not sane: %v", err)
 	}
 
@@ -294,7 +290,7 @@ func TestJusticeDescriptor(t *testing.T) {
 		BreachedCommitTx: breachTxn,
 		SessionInfo:      sessionInfo,
 		JusticeKit:       justiceKit,
-		NetParams:        &chaincfg.RegNetParams,
+		NetParams:        netParams,
 	}
 
 	// Construct a breach punisher that will feed published transactions
@@ -323,17 +319,23 @@ func TestJusticeDescriptor(t *testing.T) {
 	}
 
 	// Construct the test's to-local witness.
-	justiceTxn.TxIn[0].Witness = make([][]byte, 3)
-	justiceTxn.TxIn[0].Witness[0] = append(toLocalSigRaw,
-		byte(txscript.SigHashAll))
-	justiceTxn.TxIn[0].Witness[1] = []byte{1}
-	justiceTxn.TxIn[0].Witness[2] = toLocalScript
+	wstack0 := make([][]byte, 3)
+	wstack0[0] = append(toLocalSigRaw, byte(txscript.SigHashAll))
+	wstack0[1] = []byte{1}
+	wstack0[2] = toLocalScript
+	justiceTxn.TxIn[0].SignatureScript, err = lnwallet.WitnessStackToSigScript(wstack0)
+	if err != nil {
+		t.Fatalf("error assembling wstack0: %v", err)
+	}
 
 	// Construct the test's to-remote witness.
-	justiceTxn.TxIn[1].Witness = make([][]byte, 2)
-	justiceTxn.TxIn[1].Witness[0] = append(toRemoteSigRaw,
-		byte(txscript.SigHashAll))
-	justiceTxn.TxIn[1].Witness[1] = toRemotePK.SerializeCompressed()
+	wstack1 := make([][]byte, 2)
+	wstack1[0] = append(toRemoteSigRaw, byte(txscript.SigHashAll))
+	wstack1[1] = toRemotePK.SerializeCompressed()
+	justiceTxn.TxIn[1].SignatureScript, err = lnwallet.WitnessStackToSigScript(wstack1)
+	if err != nil {
+		t.Fatalf("error assembling wstack1: %v", err)
+	}
 
 	// Assert that the watchtower derives the same justice txn.
 	if !reflect.DeepEqual(justiceTxn, wtJusticeTxn) {

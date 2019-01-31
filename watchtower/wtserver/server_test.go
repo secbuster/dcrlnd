@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/decred/dcrd/chaincfg"
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrd/dcrutil"
 	"github.com/decred/dcrlnd/lnwire"
@@ -18,9 +17,7 @@ import (
 )
 
 // addr is the server's reward address given to watchtower clients.
-var addr, _ = dcrutil.DecodeAddress(
-	"mrX9vMRYLfVy1BnZbc5gZjuyaqH3ZW2ZHz", &chaincfg.TestNet3Params,
-)
+var addr, _ = dcrutil.DecodeAddress("TsVDyY1k1N2jZ7xYuoA1PEbwSP2mQnXR9qb")
 
 // randPubKey generates a new secp keypair, and returns the public key.
 func randPubKey(t *testing.T) *secp256k1.PublicKey {

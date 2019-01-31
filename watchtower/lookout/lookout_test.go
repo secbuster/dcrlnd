@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/decred/dcrd/chaincfg"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/watchtower/blob"
@@ -56,12 +57,19 @@ func makeArray64(i uint64) [64]byte {
 	return arr
 }
 
-func makeAddrSlice(size int) []byte {
-	addr := make([]byte, size)
-	if _, err := io.ReadFull(rand.Reader, addr); err != nil {
+// makeRandomP2PKHPkScript makes a valid p2pkh pkscript using a random 20 byte
+// public key hash.
+func makeRandomP2PKHPkScript() []byte {
+	script := make([]byte, 25)
+	script[0] = 0x76
+	script[1] = 0xa9
+	script[2] = 0x14
+	if _, err := io.ReadFull(rand.Reader, script[3:23]); err != nil {
 		panic("cannot make addr")
 	}
-	return addr
+	script[23] = 0x88
+	script[24] = 0xac
+	return script
 }
 
 func TestLookoutBreachMatching(t *testing.T) {
@@ -81,7 +89,7 @@ func TestLookoutBreachMatching(t *testing.T) {
 		DB:             db,
 		EpochRegistrar: backend,
 		Punisher:       punisher,
-		NetParams:      chaincfg.RegNetParams,
+		NetParams:      &chaincfg.RegNetParams,
 	})
 	if err := watcher.Start(); err != nil {
 		t.Fatalf("unable to start watcher: %v", err)
@@ -91,12 +99,12 @@ func TestLookoutBreachMatching(t *testing.T) {
 	sessionInfo1 := &wtdb.SessionInfo{
 		ID:            makeArray33(1),
 		MaxUpdates:    10,
-		RewardAddress: makeAddrSlice(22),
+		RewardAddress: makeRandomP2PKHPkScript(),
 	}
 	sessionInfo2 := &wtdb.SessionInfo{
 		ID:            makeArray33(2),
 		MaxUpdates:    10,
-		RewardAddress: makeAddrSlice(22),
+		RewardAddress: makeRandomP2PKHPkScript(),
 	}
 
 	// Insert both sessions into the watchtower's database.
@@ -111,10 +119,12 @@ func TestLookoutBreachMatching(t *testing.T) {
 
 	// Construct two distinct transactions, that will be used to test the
 	// breach hint matching.
-	tx := wire.NewMsgTx(wire.TxVersion)
+	tx := wire.NewMsgTx()
+	tx.Version = wire.TxVersion
 	hash1 := tx.TxHash()
 
-	tx2 := wire.NewMsgTx(wire.TxVersion + 1)
+	tx2 := wire.NewMsgTx()
+	tx2.Version = wire.TxVersion + 1
 	hash2 := tx2.TxHash()
 
 	if bytes.Equal(hash1[:], hash2[:]) {
@@ -123,14 +133,14 @@ func TestLookoutBreachMatching(t *testing.T) {
 
 	// Construct a justice kit for each possible breach transaction.
 	blob1 := &blob.JusticeKit{
-		SweepAddress:     makeAddrSlice(22),
+		SweepAddress:     makeRandomP2PKHPkScript(),
 		RevocationPubKey: makePubKey(1),
 		LocalDelayPubKey: makePubKey(1),
 		CSVDelay:         144,
 		CommitToLocalSig: makeArray64(1),
 	}
 	blob2 := &blob.JusticeKit{
-		SweepAddress:     makeAddrSlice(22),
+		SweepAddress:     makeRandomP2PKHPkScript(),
 		RevocationPubKey: makePubKey(2),
 		LocalDelayPubKey: makePubKey(2),
 		CSVDelay:         144,
