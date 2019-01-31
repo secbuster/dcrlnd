@@ -27,7 +27,7 @@ func NewNodeSigner(key *secp256k1.PrivateKey) *NodeSigner {
 	}
 }
 
-// SignMessage signs a double-sha256 digest of the passed msg under the
+// SignMessage signs a chainhash digest of the passed msg under the
 // resident node's private key. If the target public key is _not_ the node's
 // private key, then an error will be returned.
 func (n *NodeSigner) SignMessage(pubKey *secp256k1.PublicKey,
@@ -39,8 +39,8 @@ func (n *NodeSigner) SignMessage(pubKey *secp256k1.PublicKey,
 		return nil, fmt.Errorf("unknown public key")
 	}
 
-	// Otherwise, we'll sign the dsha256 of the target message.
-	digest := chainhash.DoubleHashB(msg)
+	// Otherwise, we'll sign the chainhash of the target message.
+	digest := chainhash.HashB(msg)
 	sign, err := n.privKey.Sign(digest)
 	if err != nil {
 		return nil, fmt.Errorf("can't sign the message: %v", err)
@@ -49,12 +49,12 @@ func (n *NodeSigner) SignMessage(pubKey *secp256k1.PublicKey,
 	return sign, nil
 }
 
-// SignCompact signs a double-sha256 digest of the msg parameter under the
+// SignCompact signs a chainhash digest of the msg parameter under the
 // resident node's private key. The returned signature is a pubkey-recoverable
 // signature.
 func (n *NodeSigner) SignCompact(msg []byte) ([]byte, error) {
-	// We'll sign the dsha256 of the target message.
-	digest := chainhash.DoubleHashB(msg)
+	// We'll sign the chainhash of the target message.
+	digest := chainhash.HashB(msg)
 
 	return n.SignDigestCompact(digest)
 }
