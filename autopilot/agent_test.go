@@ -30,7 +30,7 @@ type mockConstraints struct {
 }
 
 func (m *mockConstraints) ChannelBudget(chans []Channel,
-	balance dcrutil.Amount) (dcrutil.Amount, bool) {
+	balance dcrutil.Amount) (dcrutil.Amount, uint32) {
 
 	if m.moreChanArgs != nil {
 		moreChan := moreChanArg{
@@ -1331,7 +1331,7 @@ func TestAgentSkipPendingConns(t *testing.T) {
 		Self:           self,
 		Heuristic:      heuristic,
 		ChanController: chanController,
-		WalletBalance: func() (btcutil.Amount, error) {
+		WalletBalance: func() (dcrutil.Amount, error) {
 			return walletBalance, nil
 		},
 		ConnectToPeer: func(*secp256k1.PublicKey, []net.Addr) (bool, error) {

@@ -12,7 +12,6 @@ import (
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrd/dcrutil"
 	"github.com/decred/dcrlnd/channeldb"
-	"github.com/decred/dcrlnd/lnwire"
 )
 
 type genGraphFunc func() (testGraph, func(), error)
@@ -295,7 +294,7 @@ func TestPrefAttachmentSelectGreedyAllocation(t *testing.T) {
 				t1.Fatalf("unable to create channel: %v", err)
 			}
 			peerPubBytes := edge1.Peer.PubKey()
-			peerPub, err := ParsePubKey(peerPubBytes[:])
+			peerPub, err := secp256k1.ParsePubKey(peerPubBytes[:])
 			if err != nil {
 				t.Fatalf("unable to parse pubkey: %v", err)
 			}
