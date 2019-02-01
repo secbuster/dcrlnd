@@ -224,11 +224,11 @@ func FallbackAddr(fallbackAddr dcrutil.Address) func(*Invoice) {
 
 // RouteHint is a functional option that allows callers of NewInvoice to add
 // one or more hop hints that represent a private route to the destination.
-//func RouteHint(routeHint []routing.HopHint) func(*Invoice) {
-//	return func(i *Invoice) {
-//		i.RouteHints = append(i.RouteHints, routeHint)
-//	}
-//}
+func RouteHint(routeHint []routing.HopHint) func(*Invoice) {
+	return func(i *Invoice) {
+		i.RouteHints = append(i.RouteHints, routeHint)
+	}
+}
 
 // NewInvoice creates a new Invoice object. The last parameter is a set of
 // variadic arguments for setting optional fields of the invoice.

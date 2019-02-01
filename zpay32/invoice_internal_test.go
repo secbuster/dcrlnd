@@ -640,17 +640,11 @@ func TestParseFallbackAddr(t *testing.T) {
 	testAddrMainnetP2SHData, _ := bech32.ConvertBits(testAddrMainnetP2SH.ScriptAddress(), 8, 5, true)
 	testAddrMainnetP2SHDataWithVersion := append([]byte{18}, testAddrMainnetP2SHData...)
 
-	testAddrMainnetP2WPKHData, _ := bech32.ConvertBits(testAddrMainnetP2WPKH.ScriptAddress(), 8, 5, true)
-	testAddrMainnetP2WPKHDataWithVersion := append([]byte{0}, testAddrMainnetP2WPKHData...)
-
-	testAddrMainnetP2WSHData, _ := bech32.ConvertBits(testAddrMainnetP2WSH.ScriptAddress(), 8, 5, true)
-	testAddrMainnetP2WSHDataWithVersion := append([]byte{0}, testAddrMainnetP2WSHData...)
-
 	tests := []struct {
 		data   []byte
 		net    *chaincfg.Params
 		valid  bool
-		result btcutil.Address
+		result dcrutil.Address
 	}{
 		{
 			data:  []byte{},
@@ -677,18 +671,6 @@ func TestParseFallbackAddr(t *testing.T) {
 			net:    &chaincfg.MainNetParams,
 			valid:  true,
 			result: testAddrMainnetP2SH,
-		},
-		{
-			data:   testAddrMainnetP2WPKHDataWithVersion,
-			net:    &chaincfg.MainNetParams,
-			valid:  true,
-			result: testAddrMainnetP2WPKH,
-		},
-		{
-			data:   testAddrMainnetP2WSHDataWithVersion,
-			net:    &chaincfg.MainNetParams,
-			valid:  true,
-			result: testAddrMainnetP2WSH,
 		},
 	}
 
