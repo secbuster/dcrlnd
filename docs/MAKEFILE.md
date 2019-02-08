@@ -1,7 +1,7 @@
 Makefile
 ========
 
-To build, verify, and install `lnd` from source, use the following
+To build, verify, and install `dcrlnd` from source, use the following
 commands:
 ```
 make
@@ -12,11 +12,11 @@ make install
 Developers
 ==========
 
-This document specifies all commands available from `lnd`'s `Makefile`.
+This document specifies all commands available from `dcrlnd`'s `Makefile`.
 The commands included handle:
 - Installation of all go-related dependencies.
-- Compilation and installation of `lnd` and `lncli`.
-- Compilation and installation of `btcd` and `btcctl`.
+- Compilation and installation of `dcrlnd` and `dcrlncli`.
+- Compilation and installation of `dcrd` and `dcrctl`.
 - Running unit and integration suites.
 - Testing, debugging, and flake hunting.
 - Formatting and linting.
@@ -50,21 +50,20 @@ Commands
 Compiles, tests, and installs `lnd` and `lncli`. Equivalent to 
 [`scratch`](#scratch) [`check`](#check) [`install`](#install).
 
-`btcd`
+`dcrd`
 ------
-Ensures that [`github.com/Masterminds/glide`][glide] is installed, and
-that the [`github.com/btcsuite/btcd`][btcd] repository is checked out
-locally. Lastly, installs the version of 
-[`github.com/btcsuite/btcd`][btcd] specified in `Gopkg.toml`
+Ensures that [`github.com/decred/dcrd`][dcrd] repository is checked out
+locally and installs the version of
+[`github.com/decred/dcrd`][dcrd] specified in `Gopkg.toml`
 
 `build`
 -------
-Compiles the current source and vendor trees, creating `./lnd` and
-`./lncli`.
+Compiles the current source and vendor trees, creating `./dcrlnd` and
+`./dcrlncli`.
 
 `check`
 -------
-Installs the version of [`github.com/btcsuite/btcd`][btcd] specified
+Installs the version of [`github.com/decred/dcrd`][dcrd] specified
 in `Gopkg.toml`, then runs the unit tests followed by the integration
 tests.
 
@@ -72,7 +71,7 @@ Related: [`unit`](#unit) [`itest`](#itest)
 
 `clean`
 -------
-Removes compiled versions of both `./lnd` and `./lncli`, and removes the
+Removes compiled versions of both `./dcrlnd` and `./dcrlncli`, and removes the
 `vendor` tree.
 
 `default`
@@ -84,7 +83,7 @@ Alias for [`scratch`](#scratch).
 Runs the unit test endlessly until a failure is detected.
 
 Arguments:
-- `pkg=<package>` 
+- `pkg=<package>`
 - `case=<testcase>`
 - `timeout=<timeout>`
 
@@ -106,12 +105,12 @@ Runs `go fmt` on the entire project.
 
 `install`
 ---------
-Copies the compiled `lnd` and `lncli` binaries into `$GOPATH/bin`.
+Copies the compiled `dcrlnd` and `dcrlncli` binaries into `$GOPATH/bin`.
 
 `itest`
 -------
-Installs the version of [`github.com/btcsuite/btcd`][btcd] specified in
-`Gopkg.toml`, builds the `./lnd` and `./lncli` binaries, then runs the
+Installs the version of [`github.com/decred/dcrd`][dcrd] specified in
+`Gopkg.toml`, builds the `./dcrlnd` and `./dcrlncli` binaries, then runs the
 integration test suite.
 
 Arguments:
@@ -133,7 +132,7 @@ Compiles the `lnrpc` proto files.
 
 `scratch`
 ---------
-Compiles all dependencies and builds the `./lnd` and `./lncli` binaries.
+Compiles all dependencies and builds the `./dcrlnd` and `./dcrlncli` binaries.
 Equivalent to [`lint`](#lint) [`dep`](#dep) [`btcd`](#btcd)
 [`unit-race`](#unit-race).
 
@@ -150,7 +149,7 @@ Arguments:
 
 `unit-cover`
 ------------
-Runs the unit test suite with test coverage, compiling the statisitics in
+Runs the unit test suite with test coverage, compiling the statistics in
 `profile.cov`.
 
 Arguments:
@@ -175,8 +174,6 @@ Arguments:
 
 Related: [`unit`](#unit)
 
-[btcd]: https://github.com/btcsuite/btcd (github.com/btcsuite/btcd")
-[glide]: https://github.com/Masterminds/glide (github.com/Masterminds/glide)
+[dcrd]: https://github.com/decred/dcrd (github.com/decred/dcrd")
 [gometalinter]: https://gopkg.in/alecthomas/gometalinter.v1 (gopkg.in/alecthomas/gometalinter.v1)
-[dep]: https://github.com/golang/dep/cmd/dep (github.com/golang/dep/cmd/dep)
 [goveralls]: https://github.com/mattn/goveralls (github.com/mattn/goveralls)

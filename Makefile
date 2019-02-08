@@ -1,23 +1,23 @@
-PKG := github.com/lightningnetwork/lnd
-ESCPKG := github.com\/lightningnetwork\/lnd
+PKG := github.com/decred/dcrlnd
+ESCPKG := github.com\/decred\/dcrlnd
 
-BTCD_PKG := github.com/btcsuite/btcd
+DCRD_PKG := github.com/decred/dcrd
 GOVERALLS_PKG := github.com/mattn/goveralls
 LINT_PKG := gopkg.in/alecthomas/gometalinter.v2
 
 GO_BIN := ${GOPATH}/bin
-BTCD_BIN := $(GO_BIN)/btcd
+DCRD_BIN := $(GO_BIN)/dcrd
 GOVERALLS_BIN := $(GO_BIN)/goveralls
 LINT_BIN := $(GO_BIN)/gometalinter.v2
 
-BTCD_DIR :=${GOPATH}/src/$(BTCD_PKG)
+DCRD_DIR :=${GOPATH}/src/$(DCRD_PKG)
 
 COMMIT := $(shell git describe --abbrev=40 --dirty)
 LDFLAGS := -ldflags "-X $(PKG)/build.Commit=$(COMMIT)"
 
-BTCD_COMMIT := $(shell cat go.mod | \
-		grep $(BTCD_PKG) | \
-		tail -n1 | \
+DCRD_COMMIT := $(shell cat go.mod | \
+		grep $(DCRD_PKG) | \
+		head -n1 | \
 		awk -F " " '{ print $$2 }' | \
 		awk -F "/" '{ print $$1 }')
 
@@ -88,9 +88,9 @@ $(LINT_BIN):
 	@$(call print, "Fetching gometalinter.v2")
 	GO111MODULE=off go get -u $(LINT_PKG)
 
-btcd:
-	@$(call print, "Installing btcd.")
-	GO111MODULE=on go get -v github.com/btcsuite/btcd/@$(BTCD_COMMIT)
+dcrd:
+	@$(call print, "Installing dcrd.")
+	GO111MODULE=on go get -v github.com/decred/dcrd/@$(DCRD_COMMIT)
 
 # ============
 # INSTALLATION
@@ -124,9 +124,9 @@ itest-only:
 	@$(call print, "Running integration tests.")
 	$(ITEST)
 
-itest: btcd build-itest itest-only
+itest: dcrd build-itest itest-only
 
-unit: btcd
+unit: dcrd
 	@$(call print, "Running unit tests.")
 	$(UNIT)
 
@@ -143,9 +143,9 @@ goveralls: $(GOVERALLS_BIN)
 	@$(call print, "Sending coverage report.")
 	$(GOVERALLS_BIN) -coverprofile=profile.cov -service=travis-ci
 
-travis-race: btcd unit-race
+travis-race: dcrd unit-race
 
-travis-cover: btcd lint unit-cover goveralls
+travis-cover: dcrd lint unit-cover goveralls
 
 # =============
 # FLAKE HUNTING
@@ -192,7 +192,7 @@ clean:
 
 
 .PHONY: all \
-	btcd \
+	dcrd \
 	default \
 	build \
 	install \
