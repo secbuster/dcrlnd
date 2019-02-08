@@ -4,10 +4,10 @@ Describe your issue here.
 
 ### Your environment
 
-* version of `dcrlnd`
-* which operating system (`uname -a` on *Nix)
-* version of `dcrd` or other backend
-* any other relevant environment details
+* Version of `dcrlnd`.
+* Which operating system (`uname -a` on *Nix).
+* Version of `dcrd` or other backend.
+* Any other relevant environment details.
 
 ### Steps to reproduce
 
@@ -15,8 +15,8 @@ Tell us how to reproduce this issue. Please provide stacktraces and links to cod
 
 ### Expected behaviour
 
-Tell us what should happen
+Tell us what should happen.
 
 ### Actual behaviour
 
-Tell us what happens instead
+Tell us what happens instead.

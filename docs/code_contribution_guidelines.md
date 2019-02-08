@@ -33,7 +33,7 @@ the entire financial system. With the advent of the [Lightning Network
 base blockchain layer which have the potential to alleviate many of the
 limitations and constraints inherent in the design of blockchains. There are
 few projects that offer this level of diversity and impact all in one code
-base. 
+base.
 
 However, as exciting as it is, one must keep in mind that cryptocurrencies
 represent real money and introducing bugs and security vulnerabilities can have
@@ -80,16 +80,26 @@ security and performance implications.
 
 ### 3. Required Reading
 
-- [Effective Go](http://golang.org/doc/effective_go.html) - The entire `lnd` 
-  project follows the guidelines in this document.  For your code to be accepted,
-  it must follow the guidelines therein.
-- [Original Satoshi Whitepaper](https://bitcoin.org/bitcoin.pdf) - This is the white paper that started it all.  Having a solid
-  foundation to build on will make the code much more comprehensible.
-- [Lightning Network Whitepaper](https://lightning.network/lightning-network-paper.pdf) - This is the white paper that kicked off the Layer 2 revolution. Having a good grasp of the concepts of Lightning will make the core logic within the daemon much more comprehensible: Bitcoin Script, off-chain blockchain protocols, payment channels, bi-directional payment channels, relative and absolute time-locks, commitment state revocations, and Segregated Witness. 
-    - The original LN was written for a rather narrow audience, the paper may be a bit unapproachable to many. Thanks to the Bitcoin community, there exist many easily accessible supplemental resources which can help one see how all the pieces fit together from double-spend protection all the way up to commitment state transitions and Hash Time Locked Contracts (HTLCs): 
+- [Effective Go](http://golang.org/doc/effective_go.html) - The entire `dcrlnd`
+  project follows the guidelines in this document.  For your code to be
+  accepted, it must follow the guidelines therein.
+- [Original Satoshi Whitepaper](https://bitcoin.org/bitcoin.pdf) - This is the
+  white paper that started it all.  Having a solid foundation to build on will
+  make the code much more comprehensible.
+- [Lightning Network Whitepaper](https://lightning.network/lightning-network-paper.pdf) - This is
+  the white paper that kicked off the Layer 2 revolution. Having a good grasp of
+  the concepts of Lightning will make the core logic within the daemon much more
+  comprehensible: Bitcoin Script, off-chain blockchain protocols, payment
+  channels, bi-directional payment channels, relative and absolute time-locks
+  and commitment state revocations.
+    - The original LN was written for a rather narrow audience, the paper may be
+      a bit unapproachable to many. Thanks to the Bitcoin community, there exist
+      many easily accessible supplemental resources which can help one see how
+      all the pieces fit together from double-spend protection all the way up to
+      commitment state transitions and Hash Time Locked Contracts (HTLCs):
          - [Lightning Network Summary](https://lightning.network/lightning-network-summary.pdf)
-        - [Understanding the Lightning Network 3-Part series](https://bitcoinmagazine.com/articles/understanding-the-lightning-network-part-building-a-bidirectional-payment-channel-1464710791) 
-        - [Deployable Lightning](https://github.com/ElementsProject/lightning/blob/master/doc/deployable-lightning.pdf) 
+        - [Understanding the Lightning Network 3-Part series](https://bitcoinmagazine.com/articles/understanding-the-lightning-network-part-building-a-bidirectional-payment-channel-1464710791)
+        - [Deployable Lightning](https://github.com/ElementsProject/lightning/blob/master/doc/deployable-lightning.pdf)
 
 
 Note that the core design of the Lightning Network has shifted over time as
@@ -121,24 +131,24 @@ reviewable commits.
 This approach has several benefits:
 
 - Announcing your plans to work on a feature **before** you begin work avoids
-  duplicate work
+  duplicate work.
 - It permits discussions which can help you achieve your goals in a way that is
-  consistent with the existing architecture
+  consistent with the existing architecture.
 - It minimizes the chances of you spending time and energy on a change that
   might not fit with the consensus of the community or existing architecture and
-  potentially be rejected as a result
+  potentially be rejected as a result.
 - The quicker your changes are merged to master, the less time you will need to
-  spend rebasing and otherwise trying to keep up with the main code base
+  spend rebasing and otherwise trying to keep up with the main code base.
 
 <a name="Testing" />
 
 #### 4.2. Testing
 
-One of the major design goals of all of `lnd`'s packages and the daemon itself is
-to aim for a high degree of test coverage.  This is financial software so bugs
-and regressions in the core logic can cost people real money.  For this reason
-every effort must be taken to ensure the code is as accurate and bug-free as
-possible.  Thorough testing is a good way to help achieve that goal.
+One of the major design goals of all of `dcrlnd`'s packages and the daemon
+itself is to aim for a high degree of test coverage.  This is financial software
+so bugs and regressions in the core logic can cost people real money.  For this
+reason every effort must be taken to ensure the code is as accurate and bug-free
+as possible. Thorough testing is a good way to help achieve that goal.
 
 Unless a new feature you submit is completely trivial, it will probably be
 rejected unless it is also accompanied by adequate test coverage for both
@@ -146,29 +156,34 @@ positive and negative conditions.  That is to say, the tests must ensure your
 code works correctly when it is fed correct data as well as incorrect data
 (error paths).
 
-
 Go provides an excellent test framework that makes writing test code and
 checking coverage statistics straightforward.  For more information about the
 test coverage tools, see the [golang cover blog post](http://blog.golang.org/cover).
 
+A simple way to check the coverage of a package and all its functions is to call
+```
+go test -coverprofile=cov.out; go tool cover -html=cov.out
+```
+in the package directory.
+
 A quick summary of test practices follows:
 - All new code should be accompanied by tests that ensure the code behaves
   correctly when given expected values, and, perhaps even more importantly, that
-  it handles errors gracefully
+  it handles errors gracefully.
 - When you fix a bug, it should be accompanied by tests which exercise the bug
-  to both prove it has been resolved and to prevent future regressions
+  to both prove it has been resolved and to prevent future regressions.
 - Changes to publicly exported packages such as
-  [brontide](https://github.com/lightningnetwork/lnd/tree/master/brontide) should
-  be accompanied by unit tests exercising the new or changed behavior.
+  [brontide](https://github.com/decred/dcrlnd/tree/master/brontide)
+  should be accompanied by unit tests exercising the new or changed behavior.
 - Changes to behavior within the daemon's interaction with the P2P protocol,
   or RPC's will need to be accompanied by integration tests which use the
-  [`networkHarness`framework](https://github.com/lightningnetwork/lnd/blob/master/lntest/harness.go)
-  contained within `lnd`. For example integration tests, see
-  [`lnd_test.go`](https://github.com/lightningnetwork/lnd/blob/master/lnd_test.go#L181). 
+  [`networkHarness`framework](https://github.com/decred/dcrlnd/blob/master/lntest/harness.go)
+  contained within `dcrlnd`. For example integration tests, see
+  [`lnd_test.go`](https://github.com/decred/dcrlnd/blob/master/lnd_test.go#L181).
 
-Throughout the process of contributing to `lnd`, you'll likely also be
-extensively using the commands within our `Makefile`. As a result, we recommned
-[perusing the make file documentation](https://github.com/lightningnetwork/lnd/blob/master/docs/MAKEFILE.md).
+Throughout the process of contributing to `dcrlnd`, you'll likely also be
+extensively using the commands within our `Makefile`. As a result, we recommend
+[perusing the make file documentation](https://github.com/decred/dcrlnd/blob/master/docs/MAKEFILE.md).
 
 <a name="CodeDocumentation" />
 
@@ -177,9 +192,9 @@ extensively using the commands within our `Makefile`. As a result, we recommned
 - At a minimum every function must be commented with its intended purpose and
   any assumptions that it makes
   - Function comments must always begin with the name of the function per
-    [Effective Go](http://golang.org/doc/effective_go.html)
+    [Effective Go](http://golang.org/doc/effective_go.html).
   - Function comments should be complete sentences since they allow a wide
-    variety of automated presentations such as [godoc.org](https://godoc.org)
+    variety of automated presentations such as [godoc.org](https://godoc.org).
   - The general rule of thumb is to look at it as if you were completely
     unfamiliar with the code and ask yourself, would this give me enough
 	information to understand what this function does and how I'd probably want
@@ -190,8 +205,8 @@ extensively using the commands within our `Makefile`. As a result, we recommned
 **WRONG**
 ```go
 // generates a revocation key
-func DeriveRevocationPubkey(commitPubKey *btcec.PublicKey,
-	revokePreimage []byte) *btcec.PublicKey {
+func DeriveRevocationPubkey(commitPubKey *secp256k1.PublicKey,
+	revokePreimage []byte) *secp256k1.PublicKey {
 ```
 **RIGHT**
 ```go
@@ -214,8 +229,8 @@ func DeriveRevocationPubkey(commitPubKey *btcec.PublicKey,
 //   revokePriv := commitPriv + revokePreimge mod N
 //
 // Where N is the order of the sub-group.
-func DeriveRevocationPubkey(commitPubKey *btcec.PublicKey,
-	revokePreimage []byte) *btcec.PublicKey {
+func DeriveRevocationPubkey(commitPubKey *secp256k1.PublicKey,
+	revokePreimage []byte) *secp256k1.PublicKey {
 ```
 - Comments in the body of the code are highly encouraged, but they should
   explain the intention of the code as opposed to just calling out the
@@ -253,7 +268,7 @@ being provided here.
 Here’s a model Git commit message:
 
 ```
-Short (50 chars or less) summary of changes
+prefix: Short (50 chars or less) summary of changes
 
 More detailed explanatory text, if necessary.  Wrap it to about 72
 characters or so.  In some contexts, the first line is treated as the
@@ -274,6 +289,18 @@ Further paragraphs come after blank lines.
 - Use a hanging indent
 ```
 
+The commit prefix is always of the form `prefix: `. It is for the sole
+purpose of indicating which package or component was touched in a
+commit.
+
+Here is how the right prefix for a commit is chosen.
+- If a commit modifies a component in the main package
+  (eg. `fundingmanager`) use the component name as the commit prefix.
+- If a commit modifies a component in any of the packages besides the main
+  package use the package name as the commit prefix (eg. `autopilot`).
+- If a commit modifies components in multiple packages use the word `multi`
+  as the commit prefix.
+
 Here are some of the reasons why wrapping your commit messages to 72 columns is
 a good thing.
 
@@ -286,15 +313,6 @@ a good thing.
   using the messages for the message body.  Good email netiquette dictates we
   wrap our plain text emails such that there’s room for a few levels of nested
   reply indicators without overflow in an 80 column terminal.
-  
-In addition to the Git commit message structure adhered to within the daemon
-all short-[commit messages are to be prefixed according to the convention
-outlined in the Go project](https://golang.org/doc/contribute.html#change). All
-commits should begin with the subsystem or package primarily affected by the
-change. In the case of a widespread change, the packages are to be delimited by
-either a '+' or a ','. This prefix seems minor but can be extremely helpful in
-determining the scope of a commit at a glance, or when bug hunting to find a
-commit which introduced a bug or regression. 
 
 <a name="IdealGitCommitStructure" />
 
@@ -308,15 +326,10 @@ single package. In this case, the commit header message should begin with the
 prefix of the modified package. For example, if a commit was made to modify the
 `lnwallet` package, it should start with `lnwallet: `. 
 
-In the case of changes that only build in tandem with changes made in other
-packages, it is permitted for a single commit to be made which contains several
-prefixes such as: `lnwallet+htlcswitch`. This prefix structure along with the
-requirement for atomic contained commits (when possible) make things like
-scanning the set of commits and debugging easier. In the case of changes that
-touch several packages, and can only compile with the change across several
-packages, a `multi: ` prefix should be used.
+In the case of changes that touch several packages, and can only compile with
+the change across several packages, a `multi: ` prefix should be used.
 
-Examples of common patterns w.r.t commit structures within the project:
+Examples of common patterns w.r.t. commit structures within the project:
 
   * It is common that during the work on a PR, existing bugs are found and
     fixed. If they can be fixed in isolation, they should have their own
@@ -328,20 +341,21 @@ Examples of common patterns w.r.t commit structures within the project:
   * Project or package wide file renamings should be in their own commit.
   * Ideally if a new package/struct/sub-system is added in a PR, there should
     be a single commit which adds the new functionality, with follow up
-    induvidual commits that begin to intergrate the functionality within the
+    individual commits that begin to integrate the functionality within the
     codebase.
 
 <a name="CodeSpacing" />
 
 #### 4.6. Code Spacing 
 
-Blocks of code within `lnd` should be segmented into logical stanzas of
+Blocks of code within `dcrlnd` should be segmented into logical stanzas of
 operation. Such spacing makes the code easier to follow at a skim, and reduces
 unnecessary line noise. Coupled with the commenting scheme specified above,
-proper spacing allows readers to quickly scan code, extracting semantics quickly.
-Functions should _not_ just be laid out as a bare contiguous block of code. 
+proper spacing allows readers to quickly scan code, extracting semantics
+quickly. Functions should _not_ just be laid out as a bare contiguous block of
+code.
 
-**WRONG**   
+**WRONG**
 ```go
 	witness := make([][]byte, 4)
 	witness[0] = nil
@@ -355,7 +369,7 @@ Functions should _not_ just be laid out as a bare contiguous block of code.
 	witness[3] = witnessScript
 	return witness
 ```
-**RIGHT** 
+**RIGHT**
 ```go
 	witness := make([][]byte, 4)
 
@@ -443,10 +457,10 @@ the comment body.
 
 #### 4.7. Protobuf Compilation
 
-The `lnd` project uses `protobuf`, and its extension [`gRPC`](www.grpc.io) in
+The `dcrlnd` project uses `protobuf`, and its extension [`gRPC`](www.grpc.io) in
 several areas and as the primary RPC interface. In order to ensure uniformity
 of all protos checked, in we require that all contributors pin against the
-_exact same_ version of `protoc`. As of the writing of this article, the `lnd`
+_exact same_ version of `protoc`. As of the writing of this article, the `dcrlnd`
 project uses [v3.4.0](https://github.com/google/protobuf/releases/tag/v3.4.0)
 of `protoc`.
 
@@ -455,8 +469,8 @@ generate identical compiled protos and related files:
    * grpc-ecosystem/grpc-gateway: `f2862b476edcef83412c7af8687c9cd8e4097c0f`
    * golang/protobuf: `ab9f9a6dab164b7d1246e0e688b0ab7b94d8553e`
 
-For detailed instructions on how to compile modifications to `lnd`'s `protobuf`
-definitions, check out the [lnrpc README](https://github.com/lightningnetwork/lnd/blob/master/lnrpc/README.md).
+For detailed instructions on how to compile modifications to `dcrlnd`'s `protobuf`
+definitions, check out the [lnrpc README](https://github.com/dcrlnd/lnd/blob/master/lnrpc/README.md).
 
 Additionally, in order to maintain a uniform display of the RPC responses
 rendered by `lncli`, all added or modified `protof` definitions, _must_ attach
@@ -511,7 +525,7 @@ adhering to the 80-character column limit.
 ### 5. Code Approval Process
 
 This section describes the code approval process that is used for code
-contributions.  This is how to get your changes into `lnd`.
+contributions.  This is how to get your changes into `dcrlnd`.
 
 <a name="CodeReview" />
 
@@ -561,7 +575,7 @@ you rework the code, but generally you will simply be given feedback for you to
 make the necessary changes.
 
 During the process of responding to review comments, we prefer that changes be
-made with [fixup commits](https://robots.thoughtbot.com/autosquashing-git-commits). 
+made with [fixup commits](https://robots.thoughtbot.com/autosquashing-git-commits).
 The reason for this is two fold: it makes it easier for the reviewer to see
 what changes have been made between versions (since Github doesn't easily show
 prior versions like Critique) and it makes it easier on the PR author as they
@@ -582,7 +596,7 @@ although this isn't a strong requirement (but we prefer it!). In order to keep
 these signatures intact, we prefer using merge commits. PR proposers can use
 `git rebase --signoff` to sign and rebase at the same time as a final step.
 
-Rejoice as you will now be listed as a [contributor](https://github.com/lightningnetwork/lnd/graphs/contributors)!
+Rejoice as you will now be listed as a [contributor](https://github.com/decred/dcrlnd/graphs/contributors)!
 
 <a name="Standards" />
 
@@ -619,11 +633,11 @@ Rejoice as you will now be listed as a [contributor](https://github.com/lightnin
 #### 6.2. Licensing of Contributions
 ****
 All contributions must be licensed with the
-[MIT license](https://github.com/lightningnetwork/lnd/blob/master/LICENSE).  This is
-the same license as all of the code found within lnd.
+[MIT license](https://github.com/decred/dcrlnd/blob/master/LICENSE).  This is
+the same license as all of the code found within dcrlnd.
 
 
 ## Acknowledgements
 This document was heavily inspired by a [similar document outlining the code
 contribution](https://github.com/btcsuite/btcd/blob/master/docs/code_contribution_guidelines.md)
-guidelines for btcd. 
+guidelines for btcd and is similar to the [one for dcrd](https://github.com/decred/dcrd/blob/master/docs/code_contribution_guidelines.md) as well.
