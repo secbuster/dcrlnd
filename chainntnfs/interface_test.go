@@ -13,7 +13,6 @@ import (
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrd/rpcclient"
 	"github.com/decred/dcrd/rpctest"
 
 	"github.com/decred/dcrd/wire"
@@ -993,7 +992,7 @@ func testReorgConf(miner *rpctest.Harness, notifier chainntnfs.TestChainNotifier
 
 	// We disconnect the two nodes, such that we can start mining on them
 	// individually without the other one learning about the new blocks.
-	err = miner.Node.AddNode(miner2.P2PAddress(), rpcclient.ANRemove)
+	err = rpctest.RemoveNode(miner, miner2)
 	if err != nil {
 		t.Fatalf("unable to remove node: %v", err)
 	}
@@ -1155,7 +1154,7 @@ func testReorgSpend(miner *rpctest.Harness,
 
 	// We disconnect the two nodes, such that we can start mining on them
 	// individually without the other one learning about the new blocks.
-	err = miner.Node.AddNode(miner2.P2PAddress(), rpcclient.ANRemove)
+	err = rpctest.RemoveNode(miner, miner2)
 	if err != nil {
 		t.Fatalf("unable to disconnect miners: %v", err)
 	}
@@ -1484,7 +1483,7 @@ func testCatchUpOnMissedBlocksWithReorg(miner1 *rpctest.Harness,
 
 	// We disconnect the two nodes, such that we can start mining on them
 	// individually without the other one learning about the new blocks.
-	err = miner1.Node.AddNode(miner2.P2PAddress(), rpcclient.ANRemove)
+	err = rpctest.RemoveNode(miner1, miner2)
 	if err != nil {
 		t.Fatalf("unable to remove node: %v", err)
 	}
@@ -1730,7 +1729,6 @@ func TestInterfaces(t *testing.T) {
 	defer tearDown()
 
 	rpcConfig := miner.RPCConfig()
-	p2pAddr := miner.P2PAddress()
 
 	log.Printf("Running %v ChainNotifier interface tests", len(ntfnTests))
 
