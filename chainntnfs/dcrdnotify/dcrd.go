@@ -2,6 +2,7 @@ package dcrdnotify
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"strings"
@@ -375,7 +376,19 @@ out:
 					}
 				}
 
-				if err := n.handleBlockConnected(update); err != nil {
+				// TODO(decred) Discuss and decide how to do this.
+				// This is necessary because in dcrd, OnBlockConnected will
+				// only return filtered transactions, so we need to actually
+				// load a watched transaction using LoadTxFilter (which is
+				// currently not done in RegisterConfirmationsNtfn).
+				bh := update.header.BlockHash()
+				filteredBlock, err := n.fetchFilteredBlockForBlockHash(&bh)
+				if err != nil {
+					chainntnfs.Log.Error(err)
+					continue
+				}
+
+				if err := n.handleBlockConnected(filteredBlock); err != nil {
 					chainntnfs.Log.Error(err)
 				}
 				continue
@@ -610,15 +623,25 @@ func (n *DcrdNotifier) handleBlockConnected(newBlock *filteredBlock) error {
 
 // fetchFilteredBlock is a utility to retrieve the full filtered block from a
 // block epoch.
-func (d *DcrdNotifier) fetchFilteredBlock(epoch chainntnfs.BlockEpoch) (*filteredBlock, error) {
-	rawBlock, err := d.chainConn.GetBlock(epoch.Hash)
+func (n *DcrdNotifier) fetchFilteredBlock(epoch chainntnfs.BlockEpoch) (*filteredBlock, error) {
+	return n.fetchFilteredBlockForBlockHash(epoch.Hash)
+}
+
+// fetchFilteredBlockForBlockHash is a utility to retrieve the full filtered
+// block (including _all_ transactions, not just the watched ones) for the
+// block identified by the provided block hash.
+func (n *DcrdNotifier) fetchFilteredBlockForBlockHash(bh *chainhash.Hash) (*filteredBlock, error) {
+	rawBlock, err := n.chainConn.GetBlock(bh)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get block: %v", err)
 	}
 
 	txns := make([]*dcrutil.Tx, 0, len(rawBlock.Transactions))
 	for i := range rawBlock.Transactions {
-		txns = append(txns, dcrutil.NewTx(rawBlock.Transactions[i]))
+		tx := dcrutil.NewTx(rawBlock.Transactions[i])
+		tx.SetIndex(i)
+		tx.SetTree(wire.TxTreeRegular)
+		txns = append(txns, tx)
 	}
 
 	block := &filteredBlock{
@@ -688,13 +711,17 @@ func (n *DcrdNotifier) RegisterSpendNtfn(outpoint *wire.OutPoint,
 		return ntfn.Event, nil
 	}
 
-	// TODO(decred): Fix!
+	// TODO(decred) This currently always only adds to the tx filter, which will
+	// make it grow unboundedly. Ideally this should be reloaded with the
+	// specific set we're interested in, but that would require rebuilding the
+	// tx filter every time this is called.
+	//
 	// We'll then request the backend to notify us when it has detected the
 	// outpoint as spent.
-	// ops := []*wire.OutPoint{outpoint}
-	// if err := n.chainConn.NotifySpent(ops); err != nil {
-	// 	return nil, err
-	// }
+	ops := []wire.OutPoint{*outpoint}
+	if err := n.chainConn.LoadTxFilter(false, nil, ops); err != nil {
+		return nil, err
+	}
 
 	// In addition to the check above, we'll also check the backend's UTXO
 	// set to determine whether the outpoint has been spent. If it hasn't,
@@ -717,13 +744,7 @@ func (n *DcrdNotifier) RegisterSpendNtfn(outpoint *wire.OutPoint,
 	// Otherwise, we'll determine when the output was spent by scanning the
 	// chain. We'll begin by determining where to start our historical
 	// rescan.
-	startHash, err := n.chainConn.GetBlockHash(
-		int64(historicalDispatch.StartHeight),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("unable to get block hash for height "+
-			"%d: %v", historicalDispatch.StartHeight, err)
-	}
+	startHeight := historicalDispatch.StartHeight
 
 	// As a minimal optimization, we'll query the backend's transaction
 	// index (if enabled) to determine if we have a better rescan starting
@@ -761,14 +782,7 @@ func (n *DcrdNotifier) RegisterSpendNtfn(outpoint *wire.OutPoint,
 		}
 
 		if uint32(blockHeader.Height) > historicalDispatch.StartHeight {
-			startHash, err = n.chainConn.GetBlockHash(
-				int64(blockHeader.Height),
-			)
-			if err != nil {
-				return nil, fmt.Errorf("unable to get block "+
-					"hash for height %d: %v",
-					blockHeader.Height, err)
-			}
+			startHeight = blockHeader.Height
 		}
 	}
 
@@ -781,15 +795,92 @@ func (n *DcrdNotifier) RegisterSpendNtfn(outpoint *wire.OutPoint,
 	// asyncResult channel not being exposed.
 	//
 	// TODO(wilmer): add retry logic if rescan fails?
-	asyncResult := n.chainConn.RescanAsync([]chainhash.Hash{*startHash})
-	go func() {
-		if _, rescanErr := asyncResult.Receive(); rescanErr != nil {
-			chainntnfs.Log.Errorf("Rescan to determine the spend "+
-				"details of %v failed: %v", outpoint, rescanErr)
-		}
-	}()
+	go n.inefficientSpendRescan(startHeight, ntfn)
 
 	return ntfn.Event, nil
+}
+
+// inefficientSpendRescan is a utility function to RegisterSpendNtfn. It performs
+// a (very) inefficient rescan over the full mined block database, looking
+// for the spending of the passed ntfn outpoint.
+//
+// This needs to be executed in its own goroutine, as it blocks.
+//
+// TODO(decred) This _needs_ to be improved into a proper rescan procedure or
+// an index.
+func (n *DcrdNotifier) inefficientSpendRescan(startHeight uint32,
+	ntfn *chainntnfs.SpendNtfn) {
+
+	_, endHeight, err := n.chainConn.GetBestBlock()
+	if err != nil {
+		chainntnfs.Log.Errorf("Error determining best block on initial "+
+			"rescan: %v", err)
+		return
+	}
+
+	height := int64(startHeight)
+
+	for height <= endHeight {
+		scanHash, err := n.chainConn.GetBlockHash(height)
+		if err != nil {
+			chainntnfs.Log.Errorf("Error determining next block to scan for "+
+				"outpoint spender", err)
+			return
+		}
+
+		res, err := n.chainConn.Rescan([]chainhash.Hash{*scanHash})
+		if err != nil {
+			chainntnfs.Log.Errorf("Rescan to determine the spend "+
+				"details of %v failed: %v", ntfn.OutPoint, err)
+			return
+		}
+
+		if len(res.DiscoveredData) > 0 {
+			// We need to check individual txs since the active tx filter might
+			// have multiple transactions, and they may be repeatedly
+			// encountered.
+			for _, data := range res.DiscoveredData {
+				for _, hexTx := range data.Transactions {
+					bytesTx, err := hex.DecodeString(hexTx)
+					if err != nil {
+						chainntnfs.Log.Errorf("Error converting hexTx to "+
+							"bytes during spend rescan: %v", err)
+						return
+					}
+
+					var tx wire.MsgTx
+					err = tx.FromBytes(bytesTx)
+					if err != nil {
+						chainntnfs.Log.Errorf("Error decoding tx from bytes "+
+							"during spend rescan: %v", err)
+					}
+
+					for i, in := range tx.TxIn {
+						if in.PreviousOutPoint == ntfn.OutPoint {
+							// Found the spender tx! Update the spend status
+							// (which will emit the notification) and finish the
+							// scan.
+
+							txHash := tx.TxHash()
+							details := &chainntnfs.SpendDetail{
+								SpentOutPoint:     &ntfn.OutPoint,
+								SpenderTxHash:     &txHash,
+								SpendingTx:        &tx,
+								SpenderInputIndex: uint32(i),
+								SpendingHeight:    int32(startHeight),
+							}
+							n.txNotifier.UpdateSpendDetails(ntfn.OutPoint, details)
+							return
+						}
+					}
+				}
+			}
+		}
+
+		// Haven't found the spender yet. Scan the next block.
+		height++
+	}
+
 }
 
 // RegisterConfirmationsNtfn registers a notification with DcrdNotifier

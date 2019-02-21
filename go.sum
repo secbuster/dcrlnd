@@ -276,6 +276,8 @@ github.com/ltcsuite/ltcutil v0.0.0-20181217130922-17f3b04680b6 h1:b/Op1jKdoE6tzG
 github.com/ltcsuite/ltcutil v0.0.0-20181217130922-17f3b04680b6/go.mod h1:8Vg/LTOO0KYa/vlHWJ6XZAevPQThGH5sufO0Hrou/lA=
 github.com/matheusd/dcrd v0.0.0-20190112120833-3553b8af1047 h1:Z3KCVeczcTaAJoz4o52whCnWNmZ7H4t8GgoQD0q99uk=
 github.com/matheusd/dcrd v0.0.0-20190112120833-3553b8af1047/go.mod h1:MY6GIjn6OreZNjZKYu72QikZoP98MwId1iYvDg3E8rE=
+github.com/matheusd/dcrd v0.0.0-20190221094611-cddf96d68b28 h1:346Q2xVyJVizCvyR12c+fbnohTWj8qqZYpZqjIqF/y8=
+github.com/matheusd/dcrd v0.0.0-20190221094611-cddf96d68b28/go.mod h1:MY6GIjn6OreZNjZKYu72QikZoP98MwId1iYvDg3E8rE=
 github.com/matheusd/dcrwallet/wallet v0.0.0-20190115143705-93473c7512c8 h1:I93r09sXRi8wkgPAre5RgglzRyTXLtgq4aE/k30E3T8=
 github.com/matheusd/dcrwallet/wallet v0.0.0-20190115143705-93473c7512c8/go.mod h1:g4OzDG7jpsRqTDP3bHiA0LIEZFx81accYPCkO1DBNT8=
 github.com/miekg/dns v0.0.0-20171125082028-79bfde677fa8 h1:PRMAcldsl4mXKJeRNB/KVNz6TlbS6hk2Rs42PqgU3Ws=

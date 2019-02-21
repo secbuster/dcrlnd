@@ -73,7 +73,7 @@ require (
 )
 
 replace (
-	github.com/decred/dcrd => github.com/matheusd/dcrd v0.0.0-20190112120833-3553b8af1047
-	github.com/decred/dcrd/rpctest => github.com/davecgh/btcd/rpctest v0.0.0-20190112120833-3553b8af1047
+	github.com/decred/dcrd => github.com/matheusd/dcrd v0.0.0-20190221094611-cddf96d68b28
+	github.com/decred/dcrd/rpctest => github.com/davecgh/btcd/rpctest v0.0.0-20190221094611-cddf96d68b28
 	github.com/decred/dcrwallet/wallet => github.com/matheusd/dcrwallet/wallet v0.0.0-20190115143705-93473c7512c8
 )

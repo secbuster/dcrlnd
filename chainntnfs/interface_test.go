@@ -19,9 +19,6 @@ import (
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/chainntnfs/dcrdnotify"
 	"github.com/decred/dcrlnd/channeldb"
-	// Required to auto-register the dcrd backed ChainNotifier
-	// implementation.
-	//_ "github.com/decred/dcrlnd/chainntnfs/dcrdnotify"
 )
 
 func testSingleConfirmationNotification(miner *rpctest.Harness,
@@ -1721,18 +1718,22 @@ var blockCatchupTests = []blockCatchupTestCase{
 // the interface. Second, an additional case in the switch within the main loop
 // below needs to be added which properly initializes the interface.
 func TestInterfaces(t *testing.T) {
-	// Initialize the harness around a dcrd node which will serve as our
-	// dedicated miner to generate blocks, cause re-orgs, etc. We'll set up
-	// this node with a chain length of 125, so we have plenty of DCR to
-	// play around with.
-	miner, tearDown := chainntnfs.NewMiner(t, nil, true, 25)
-	defer tearDown()
 
-	rpcConfig := miner.RPCConfig()
+	// newMiner initializes a new rpctest harness for testing and returns that,
+	// a new test notifier (connected to the given test node) and a cleanup
+	// function.
+	// Initializing a new miner for every test is less efficient than reusing
+	// the miner and notifier, but is preferable in decred where reusing would
+	// require us to start a ticket buying+voting wallet to test blocks past the
+	// SVH.
+	newMiner := func(notifierType string, startNotifier bool) (*rpctest.Harness, chainntnfs.TestChainNotifier, func()) {
+		// Initialize the harness around a dcrd node which will serve as our
+		// dedicated miner to generate blocks, cause re-orgs, etc. We'll set up
+		// this node with a chain length of 125, so we have plenty of DCR to
+		// play around with.
+		miner, tearDown := chainntnfs.NewMiner(t, []string{"--debuglevel=debug"}, true, 25)
+		rpcConfig := miner.RPCConfig()
 
-	log.Printf("Running %v ChainNotifier interface tests", len(ntfnTests))
-
-	for _, notifierDriver := range chainntnfs.RegisteredNotifiers() {
 		// Initialize a height hint cache for each notifier.
 		tempDir, err := ioutil.TempDir("", "channeldb")
 		if err != nil {
@@ -1747,56 +1748,59 @@ func TestInterfaces(t *testing.T) {
 			t.Fatalf("unable to create height hint cache: %v", err)
 		}
 
-		var (
-			cleanUp      func()
-			newNotifier  func() (chainntnfs.TestChainNotifier, error)
-			notifierType = notifierDriver.NotifierType
-		)
-
+		var notifier chainntnfs.TestChainNotifier
 		switch notifierType {
 		case "dcrd":
-			newNotifier = func() (chainntnfs.TestChainNotifier, error) {
-				return dcrdnotify.New(
-					&rpcConfig, hintCache, hintCache,
-				)
+			notifier, err = dcrdnotify.New(&rpcConfig, hintCache, hintCache)
+			if err != nil {
+				t.Fatalf("error initializing dcrd notifier: %v", err)
+			}
+		default:
+			t.Fatalf("unknown notifier type: %v", notifierType)
+		}
+
+		if startNotifier {
+			if err := notifier.Start(); err != nil {
+				t.Fatalf("unable to start notifier %v: %v",
+					notifierType, err)
 			}
 		}
 
-		log.Printf("Running ChainNotifier interface tests for: %v",
-			notifierType)
+		cleanUp := func() {
+			if startNotifier {
+				notifier.Stop()
+			}
+			tearDown()
+		}
 
-		notifier, err := newNotifier()
-		if err != nil {
-			t.Fatalf("unable to create %v notifier: %v",
-				notifierType, err)
-		}
-		if err := notifier.Start(); err != nil {
-			t.Fatalf("unable to start notifier %v: %v",
-				notifierType, err)
-		}
+		return miner, notifier, cleanUp
+	}
+
+	log.Printf("Running %v ChainNotifier interface tests", len(ntfnTests))
+
+	for _, notifierDriver := range chainntnfs.RegisteredNotifiers() {
+
+		notifierType := notifierDriver.NotifierType
 
 		for _, ntfnTest := range ntfnTests {
+			miner, notifier, cleanup := newMiner(notifierType, true)
+
 			testName := fmt.Sprintf("%v: %v", notifierType,
 				ntfnTest.name)
 
 			success := t.Run(testName, func(t *testing.T) {
 				ntfnTest.test(miner, notifier, t)
 			})
+			cleanup()
 			if !success {
 				break
 			}
 		}
 
-		notifier.Stop()
-
 		// Run catchup tests separately since they require restarting
 		// the notifier every time.
 		for _, blockCatchupTest := range blockCatchupTests {
-			notifier, err = newNotifier()
-			if err != nil {
-				t.Fatalf("unable to create %v notifier: %v",
-					notifierType, err)
-			}
+			miner, notifier, cleanUp := newMiner(notifierType, false)
 
 			testName := fmt.Sprintf("%v: %v", notifierType,
 				blockCatchupTest.name)
@@ -1804,13 +1808,10 @@ func TestInterfaces(t *testing.T) {
 			success := t.Run(testName, func(t *testing.T) {
 				blockCatchupTest.test(miner, notifier, t)
 			})
+			cleanUp()
 			if !success {
 				break
 			}
-		}
-
-		if cleanUp != nil {
-			cleanUp()
 		}
 	}
 }

@@ -127,6 +127,13 @@ func TestHistoricalConfDetailsTxIndex(t *testing.T) {
 // TestHistoricalConfDetailsNoTxIndex ensures that we correctly retrieve
 // historical confirmation details using the set of fallback methods when the
 // backend node's txindex is disabled.
+//
+// TODO(decred) Decide whether we want to support running the node without the
+// transaction index, and if so modify rpctest to support that. This would likely
+// be a major bump in rpctest's version, given that txindex is currently enabled
+// by default and package clients might be relying on that. Commenting this test
+// for the moment.
+/*
 func TestHistoricalConfDetailsNoTxIndex(t *testing.T) {
 	t.Parallel()
 
@@ -202,3 +209,4 @@ func TestHistoricalConfDetailsNoTxIndex(t *testing.T) {
 			"scanning the chain, but did not")
 	}
 }
+*/
