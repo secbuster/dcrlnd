@@ -1817,7 +1817,7 @@ func (p *peer) fetchActiveChanCloser(chanID lnwire.ChannelID) (*channelCloser, e
 		// In order to begin fee negotiations, we'll first compute our
 		// target ideal fee-per-kw. We'll set this to a lax value, as
 		// we weren't the ones that initiated the channel closure.
-		feePerKw, err := p.server.cc.feeEstimator.EstimateFeePerKW(6)
+		feePerKB, err := p.server.cc.feeEstimator.EstimateFeePerKB(6)
 		if err != nil {
 			peerLog.Errorf("unable to query fee estimator: %v", err)
 
@@ -1842,7 +1842,7 @@ func (p *peer) fetchActiveChanCloser(chanID lnwire.ChannelID) (*channelCloser, e
 				quit: p.quit,
 			},
 			deliveryAddr,
-			feePerKw,
+			feePerKB,
 			uint32(startingHeight),
 			nil,
 		)

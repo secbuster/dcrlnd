@@ -24,7 +24,7 @@ import (
 	"github.com/decred/dcrlnd/sweep"
 	"github.com/decred/slog"
 	"github.com/jrick/logrotate/rotator"
-	"github.com/lightningnetwork/lightning-onion" // TOOD(decred): ok?
+	_ "github.com/lightningnetwork/lightning-onion" // TOOD(decred): ok?
 )
 
 // Loggers per subsystem.  A single backend logger is created and all subsystem
@@ -83,7 +83,8 @@ func init() {
 	routing.UseLogger(crtrLog)
 	autopilot.UseLogger(atplLog)
 	contractcourt.UseLogger(cnctLog)
-	sphinx.UseLogger(sphxLog)
+	// TODO(decred) wrap into a btclog.Logger or convert sphx to slog?
+	// sphinx.UseLogger(sphxLog)
 	signal.UseLogger(ltndLog)
 	sweep.UseLogger(swprLog)
 	signrpc.UseLogger(sgnrLog)

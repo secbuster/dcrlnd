@@ -65,6 +65,9 @@ type Utxo struct {
 	RedeemScript  []byte
 	WitnessScript []byte
 	wire.OutPoint
+
+	// TODO(decred) this needs to include ScriptVersion. Then this version needs
+	// to be filled and used everywhere instead of DefaultScriptVersion.
 }
 
 // TransactionDetail describes a transaction with either inputs which belong to

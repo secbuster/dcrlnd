@@ -197,7 +197,7 @@ type config struct {
 	UnsafeReplay       bool `long:"unsafe-replay" description:"Causes a link to replay the adds on its commitment txn after starting up, this enables testing of the sphinx replay logic."`
 	MaxPendingChannels int  `long:"maxpendingchannels" description:"The maximum number of incoming pending channels permitted per peer."`
 
-	Bitcoin  *chainConfig `group:"Bitcoin" namespace:"bitcoin"`
+	Decred  *chainConfig `group:"Decred" namespace:"decred"`
 	DcrdMode *dcrdConfig  `group:"dcrd" namespace:"dcrd"`
 
 	Autopilot *autoPilotConfig `group:"Autopilot" namespace:"autopilot"`
@@ -247,11 +247,11 @@ func loadConfig() (*config, error) {
 		LogDir:         defaultLogDir,
 		MaxLogFiles:    defaultMaxLogFiles,
 		MaxLogFileSize: defaultMaxLogFileSize,
-		Bitcoin: &chainConfig{
-			MinHTLC:       defaultBitcoinMinHTLCMSat,
-			BaseFee:       defaultBitcoinBaseFeeMSat,
-			FeeRate:       defaultBitcoinFeeRate,
-			TimeLockDelta: defaultBitcoinTimeLockDelta,
+		Decred: &chainConfig{
+			MinHTLC:       defaultDecredMinHTLCMSat,
+			BaseFee:       defaultDecredBaseFeeMSat,
+			FeeRate:       defaultDecredFeeRate,
+			TimeLockDelta: defaultDecredTimeLockDelta,
 			Node:          "dcrd",
 		},
 		DcrdMode: &dcrdConfig{
@@ -375,9 +375,6 @@ func loadConfig() (*config, error) {
 	cfg.InvoiceMacPath = cleanAndExpandPath(cfg.InvoiceMacPath)
 	cfg.LogDir = cleanAndExpandPath(cfg.LogDir)
 	cfg.DcrdMode.Dir = cleanAndExpandPath(cfg.DcrdMode.Dir)
-	cfg.LtcdMode.Dir = cleanAndExpandPath(cfg.LtcdMode.Dir)
-	cfg.BitcoindMode.Dir = cleanAndExpandPath(cfg.BitcoindMode.Dir)
-	cfg.LitecoindMode.Dir = cleanAndExpandPath(cfg.LitecoindMode.Dir)
 	cfg.Tor.PrivateKeyPath = cleanAndExpandPath(cfg.Tor.PrivateKeyPath)
 
 	// Ensure that the user didn't attempt to specify negative values for
@@ -502,133 +499,32 @@ func loadConfig() (*config, error) {
 
 	// Determine the active chain configuration and its parameters.
 	switch {
-	// At this moment, multiple active chains are not supported.
-	case cfg.Litecoin.Active && cfg.Bitcoin.Active:
-		str := "%s: Currently both Bitcoin and Litecoin cannot be " +
-			"active together"
-		return nil, fmt.Errorf(str, funcName)
-
 	// Either Bitcoin must be active, or Litecoin must be active.
 	// Otherwise, we don't know which chain we're on.
-	case !cfg.Bitcoin.Active && !cfg.Litecoin.Active:
-		return nil, fmt.Errorf("%s: either bitcoin.active or "+
-			"litecoin.active must be set to 1 (true)", funcName)
+	case !cfg.Decred.Active:
+		return nil, fmt.Errorf("%s: decred.active must be set to 1 (true)",
+			funcName)
 
-	case cfg.Litecoin.Active:
-		if cfg.Litecoin.SimNet {
-			str := "%s: simnet mode for litecoin not currently supported"
-			return nil, fmt.Errorf(str, funcName)
-		}
-		if cfg.Litecoin.RegTest {
-			str := "%s: regnet mode for litecoin not currently supported"
-			return nil, fmt.Errorf(str, funcName)
-		}
-
-		if cfg.Litecoin.TimeLockDelta < minTimeLockDelta {
-			return nil, fmt.Errorf("timelockdelta must be at least %v",
-				minTimeLockDelta)
-		}
-
+	case cfg.Decred.Active:
 		// Multiple networks can't be selected simultaneously.  Count
 		// number of network flags passed; assign active network params
 		// while we're at it.
 		numNets := 0
-		var ltcParams litecoinNetParams
-		if cfg.Litecoin.MainNet {
+		if cfg.Decred.MainNet {
 			numNets++
-			ltcParams = litecoinMainNetParams
+			activeNetParams = decredMainNetParams
 		}
-		if cfg.Litecoin.TestNet3 {
+		if cfg.Decred.TestNet3 {
 			numNets++
-			ltcParams = litecoinTestNetParams
+			activeNetParams = decredTestNetParams
 		}
-		if numNets > 1 {
-			str := "%s: The mainnet, testnet, and simnet params " +
-				"can't be used together -- choose one of the " +
-				"three"
-			err := fmt.Errorf(str, funcName)
-			return nil, err
-		}
-
-		// The target network must be provided, otherwise, we won't
-		// know how to initialize the daemon.
-		if numNets == 0 {
-			str := "%s: either --litecoin.mainnet, or " +
-				"litecoin.testnet must be specified"
-			err := fmt.Errorf(str, funcName)
-			return nil, err
-		}
-
-		if cfg.Litecoin.MainNet && cfg.DebugHTLC {
-			str := "%s: debug-htlc mode cannot be used " +
-				"on litecoin mainnet"
-			err := fmt.Errorf(str, funcName)
-			return nil, err
-		}
-
-		// The litecoin chain is the current active chain. However
-		// throughout the codebase we required chaincfg.Params. So as a
-		// temporary hack, we'll mutate the default net params for
-		// bitcoin with the litecoin specific information.
-		applyLitecoinParams(&activeNetParams, &ltcParams)
-
-		switch cfg.Litecoin.Node {
-		case "ltcd":
-			err := parseRPCParams(cfg.Litecoin, cfg.LtcdMode,
-				litecoinChain, funcName)
-			if err != nil {
-				err := fmt.Errorf("unable to load RPC "+
-					"credentials for ltcd: %v", err)
-				return nil, err
-			}
-		case "litecoind":
-			if cfg.Litecoin.SimNet {
-				return nil, fmt.Errorf("%s: litecoind does not "+
-					"support simnet", funcName)
-			}
-			err := parseRPCParams(cfg.Litecoin, cfg.LitecoindMode,
-				litecoinChain, funcName)
-			if err != nil {
-				err := fmt.Errorf("unable to load RPC "+
-					"credentials for litecoind: %v", err)
-				return nil, err
-			}
-		default:
-			str := "%s: only ltcd and litecoind mode supported for " +
-				"litecoin at this time"
-			return nil, fmt.Errorf(str, funcName)
-		}
-
-		cfg.Litecoin.ChainDir = filepath.Join(cfg.DataDir,
-			defaultChainSubDirname,
-			litecoinChain.String())
-
-		// Finally we'll register the litecoin chain as our current
-		// primary chain.
-		registeredChains.RegisterPrimaryChain(litecoinChain)
-		maxFundingAmount = maxLtcFundingAmount
-		maxPaymentMSat = maxLtcPaymentMSat
-
-	case cfg.Bitcoin.Active:
-		// Multiple networks can't be selected simultaneously.  Count
-		// number of network flags passed; assign active network params
-		// while we're at it.
-		numNets := 0
-		if cfg.Bitcoin.MainNet {
-			numNets++
-			activeNetParams = bitcoinMainNetParams
-		}
-		if cfg.Bitcoin.TestNet3 {
-			numNets++
-			activeNetParams = bitcoinTestNetParams
-		}
-		if cfg.Bitcoin.RegTest {
+		if cfg.Decred.RegTest {
 			numNets++
 			activeNetParams = regTestNetParams
 		}
-		if cfg.Bitcoin.SimNet {
+		if cfg.Decred.SimNet {
 			numNets++
-			activeNetParams = bitcoinSimNetParams
+			activeNetParams = decredSimNetParams
 		}
 		if numNets > 1 {
 			str := "%s: The mainnet, testnet, regtest, and " +
@@ -641,36 +537,29 @@ func loadConfig() (*config, error) {
 		// The target network must be provided, otherwise, we won't
 		// know how to initialize the daemon.
 		if numNets == 0 {
-			str := "%s: either --bitcoin.mainnet, or " +
-				"bitcoin.testnet, bitcoin.simnet, or bitcoin.regtest " +
+			str := "%s: either --decred.mainnet, or " +
+				"decred.testnet, decred.simnet, or decred.regtest " +
 				"must be specified"
 			err := fmt.Errorf(str, funcName)
 			return nil, err
 		}
 
-		if cfg.Bitcoin.MainNet && cfg.DebugHTLC {
+		if cfg.Decred.MainNet && cfg.DebugHTLC {
 			str := "%s: debug-htlc mode cannot be used " +
-				"on bitcoin mainnet"
+				"on decred mainnet"
 			err := fmt.Errorf(str, funcName)
 			return nil, err
 		}
 
-		if cfg.Bitcoin.Node == "neutrino" && cfg.Bitcoin.MainNet {
-			str := "%s: neutrino isn't yet supported for " +
-				"bitcoin's mainnet"
-			err := fmt.Errorf(str, funcName)
-			return nil, err
-		}
-
-		if cfg.Bitcoin.TimeLockDelta < minTimeLockDelta {
+		if cfg.Decred.TimeLockDelta < minTimeLockDelta {
 			return nil, fmt.Errorf("timelockdelta must be at least %v",
 				minTimeLockDelta)
 		}
 
-		switch cfg.Bitcoin.Node {
+		switch cfg.Decred.Node {
 		case "dcrd":
 			err := parseRPCParams(
-				cfg.Bitcoin, cfg.DcrdMode, bitcoinChain, funcName,
+				cfg.Decred, cfg.DcrdMode, decredChain, funcName,
 			)
 			if err != nil {
 				err := fmt.Errorf("unable to load RPC "+
@@ -684,13 +573,13 @@ func loadConfig() (*config, error) {
 			return nil, fmt.Errorf(str, funcName)
 		}
 
-		cfg.Bitcoin.ChainDir = filepath.Join(cfg.DataDir,
+		cfg.Decred.ChainDir = filepath.Join(cfg.DataDir,
 			defaultChainSubDirname,
-			bitcoinChain.String())
+			decredChain.String())
 
-		// Finally we'll register the bitcoin chain as our current
+		// Finally we'll register the decred chain as our current
 		// primary chain.
-		registeredChains.RegisterPrimaryChain(bitcoinChain)
+		registeredChains.RegisterPrimaryChain(decredChain)
 	}
 
 	// Ensure that the user didn't attempt to specify negative values for
@@ -1059,7 +948,7 @@ func parseRPCParams(cConfig *chainConfig, nodeConfig interface{}, net chainCode,
 
 		// Get the daemon name for displaying proper errors.
 		switch net {
-		case bitcoinChain:
+		case decredChain:
 			daemonName = "dcrd"
 			confDir = conf.Dir
 			confFile = "dcrd"
@@ -1070,48 +959,6 @@ func parseRPCParams(cConfig *chainConfig, nodeConfig interface{}, net chainCode,
 		if conf.RPCUser != "" || conf.RPCPass != "" {
 			return fmt.Errorf("please set both or neither of "+
 				"%[1]v.rpcuser, %[1]v.rpcpass", daemonName)
-		}
-
-	case *bitcoindConfig:
-		// Ensure that if the ZMQ options are set, that they are not
-		// equal.
-		if conf.ZMQPubRawBlock != "" && conf.ZMQPubRawTx != "" {
-			err := checkZMQOptions(
-				conf.ZMQPubRawBlock, conf.ZMQPubRawTx,
-			)
-			if err != nil {
-				return err
-			}
-		}
-
-		// If all of RPCUser, RPCPass, ZMQBlockHost, and ZMQTxHost are
-		// set, we assume those parameters are good to use.
-		if conf.RPCUser != "" && conf.RPCPass != "" &&
-			conf.ZMQPubRawBlock != "" && conf.ZMQPubRawTx != "" {
-			return nil
-		}
-
-		// Get the daemon name for displaying proper errors.
-		switch net {
-		case bitcoinChain:
-			daemonName = "bitcoind"
-			confDir = conf.Dir
-			confFile = "bitcoin"
-		case litecoinChain:
-			daemonName = "litecoind"
-			confDir = conf.Dir
-			confFile = "litecoin"
-		}
-
-		// If not all of the parameters are set, we'll assume the user
-		// did this unintentionally.
-		if conf.RPCUser != "" || conf.RPCPass != "" ||
-			conf.ZMQPubRawBlock != "" || conf.ZMQPubRawTx != "" {
-
-			return fmt.Errorf("please set all or none of "+
-				"%[1]v.rpcuser, %[1]v.rpcpass, "+
-				"%[1]v.zmqpubrawblock, %[1]v.zmqpubrawtx",
-				daemonName)
 		}
 	}
 
@@ -1129,7 +976,7 @@ func parseRPCParams(cConfig *chainConfig, nodeConfig interface{}, net chainCode,
 	confFile = filepath.Join(confDir, fmt.Sprintf("%v.conf", confFile))
 	switch cConfig.Node {
 	case "dcrd":
-		nConf := nodeConfig.(*btcdConfig)
+		nConf := nodeConfig.(*dcrdConfig)
 		rpcUser, rpcPass, err := extractDcrdRPCParams(confFile)
 		if err != nil {
 			return fmt.Errorf("unable to extract RPC credentials:"+

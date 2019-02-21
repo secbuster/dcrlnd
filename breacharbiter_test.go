@@ -1342,6 +1342,7 @@ func createTestArbiter(t *testing.T, contractBreaches chan *ContractBreachEvent,
 		Notifier:           notifier,
 		PublishTransaction: func(_ *wire.MsgTx) error { return nil },
 		Store:              store,
+		NetParams: 			&chaincfg.RegNetParams,
 	})
 
 	if err := ba.Start(); err != nil {

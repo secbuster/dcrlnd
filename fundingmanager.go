@@ -32,19 +32,12 @@ const (
 	// TODO(roasbeef): tune
 	msgBufferSize = 50
 
-	// minBtcRemoteDelay and maxBtcRemoteDelay is the extremes of the
-	// Bitcoin CSV delay we will require the remote to use for its
+	// minDcrRemoteDelay and maxDcrRemoteDelay are the extremes of the
+	// Decred CSV delay we will require the remote to use for its
 	// commitment transaction. The actual delay we will require will be
 	// somewhere between these values, depending on channel size.
-	minBtcRemoteDelay uint16 = 144
-	maxBtcRemoteDelay uint16 = 2016
-
-	// minLtcRemoteDelay and maxLtcRemoteDelay is the extremes of the
-	// Litecoin CSV delay we will require the remote to use for its
-	// commitment transaction. The actual delay we will require will be
-	// somewhere between these values, depending on channel size.
-	minLtcRemoteDelay uint16 = 576
-	maxLtcRemoteDelay uint16 = 8064
+	minDcrRemoteDelay uint16 = 288
+	maxDcrRemoteDelay uint16 = 4032
 
 	// maxWaitNumBlocksFundingConf is the maximum number of blocks to wait
 	// for the funding transaction to be confirmed before forgetting about
@@ -55,17 +48,12 @@ const (
 	// created over the RPC interface.
 	minChanFundingSize = dcrutil.Amount(20000)
 
-	// maxBtcFundingAmount is a soft-limit of the maximum channel size
-	// currently accepted on the Bitcoin chain within the Lightning
+	// maxDecredFundingAmount is a soft-limit of the maximum channel size
+	// currently accepted on the Decred chain within the Lightning
 	// Protocol. This limit is defined in BOLT-0002, and serves as an
 	// initial precautionary limit while implementations are battle tested
 	// in the real world.
-	maxBtcFundingAmount = dcrutil.Amount(1<<24) - 1
-
-	// maxLtcFundingAmount is a soft-limit of the maximum channel size
-	// currently accepted on the Litecoin chain within the Lightning
-	// Protocol.
-	maxLtcFundingAmount = maxBtcFundingAmount * btcToLtcConversionRate
+	maxDecredFundingAmount = dcrutil.Amount(1<<24) - 1
 )
 
 var (
@@ -78,7 +66,7 @@ var (
 	// to the value under the Bitcoin chain as default.
 	//
 	// TODO(roasbeef): add command line param to modify
-	maxFundingAmount = maxBtcFundingAmount
+	maxFundingAmount = maxDecredFundingAmount
 
 	// ErrFundingManagerShuttingDown is an error returned when attempting to
 	// process a funding request/message but the funding manager has already
@@ -1058,7 +1046,7 @@ func (f *fundingManager) handleFundingOpen(fmsg *fundingOpenMsg) {
 		NodeAddr:        fmsg.peer.Address(),
 		FundingAmount:   0,
 		Capacity:        amt,
-		CommitFeePerKw:  lnwallet.SatPerKWeight(msg.FeePerKiloWeight),
+		CommitFeePerKw:  lnwallet.AtomPerKByte(msg.FeePerKiloWeight),
 		FundingFeePerKw: 0,
 		PushMSat:        msg.PushAmount,
 		Flags:           msg.ChannelFlags,
@@ -2661,10 +2649,8 @@ func (f *fundingManager) handleInitFundingMsg(msg *initFundingMsg) {
 	// We'll determine our dust limit depending on which chain is active.
 	var ourDustLimit dcrutil.Amount
 	switch registeredChains.PrimaryChain() {
-	case bitcoinChain:
+	case decredChain:
 		ourDustLimit = lnwallet.DefaultDustLimit()
-	case litecoinChain:
-		ourDustLimit = defaultLitecoinDustLimit
 	}
 
 	fndgLog.Infof("Initiating fundingRequest(localAmt=%v, remoteAmt=%v, "+
@@ -2676,7 +2662,7 @@ func (f *fundingManager) handleInitFundingMsg(msg *initFundingMsg) {
 	// commitment transaction confirmed by the next few blocks (conf target
 	// of 3). We target the near blocks here to ensure that we'll be able
 	// to execute a timely unilateral channel closure if needed.
-	commitFeePerKw, err := f.cfg.FeeEstimator.EstimateFeePerKW(3)
+	commitFeePerKB, err := f.cfg.FeeEstimator.EstimateFeePerKB(3)
 	if err != nil {
 		msg.err <- err
 		return
@@ -2699,7 +2685,7 @@ func (f *fundingManager) handleInitFundingMsg(msg *initFundingMsg) {
 		NodeAddr:        msg.peer.Address(),
 		FundingAmount:   localAmt,
 		Capacity:        capacity,
-		CommitFeePerKw:  commitFeePerKw,
+		CommitFeePerKw:  commitFeePerKB,
 		FundingFeePerKw: msg.fundingFeePerKw,
 		PushMSat:        msg.pushAmt,
 		Flags:           channelFlags,
@@ -2717,7 +2703,7 @@ func (f *fundingManager) handleInitFundingMsg(msg *initFundingMsg) {
 	chanID := f.nextPendingChanID()
 
 	fndgLog.Infof("Target commit tx sat/kw for pendingID(%x): %v", chanID,
-		int64(commitFeePerKw))
+		int64(commitFeePerKB))
 
 	// If the remote CSV delay was not set in the open channel request,
 	// we'll use the RequiredRemoteDelay closure to compute the delay we
@@ -2778,7 +2764,7 @@ func (f *fundingManager) handleInitFundingMsg(msg *initFundingMsg) {
 		MaxValueInFlight:     maxValue,
 		ChannelReserve:       chanReserve,
 		HtlcMinimum:          minHtlc,
-		FeePerKiloWeight:     uint32(commitFeePerKw),
+		FeePerKiloWeight:     uint32(commitFeePerKB),
 		CsvDelay:             remoteCsvDelay,
 		MaxAcceptedHTLCs:     maxHtlcs,
 		FundingKey:           ourContribution.MultiSigKey.PubKey,

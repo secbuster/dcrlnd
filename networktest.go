@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"flag"
+	"strings"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -15,7 +16,7 @@ import (
 	"sync"
 	"time"
 
-	macaroon "gopkg.in/macaroon.v1"
+	macaroon "gopkg.in/macaroon.v2"
 
 	"golang.org/x/net/context"
 
@@ -118,14 +119,14 @@ type lightningNode struct {
 
 // newLightningNode creates a new test lightning node instance from the passed
 // rpc config and slice of extra arguments.
-func newLightningNode(btcrpcConfig *rpcclient.ConnConfig, lndArgs []string) (*lightningNode, error) {
+func newLightningNode(dcrrpcConfig *rpcclient.ConnConfig, lndArgs []string) (*lightningNode, error) {
 	var err error
 
 	cfg := &config{
-		Bitcoin: &chainConfig{
-			RPCHost: btcrpcConfig.Host,
-			RPCUser: btcrpcConfig.User,
-			RPCPass: btcrpcConfig.Pass,
+		DcrdMode: &dcrdConfig{
+			RPCHost: dcrrpcConfig.Host,
+			RPCUser: dcrrpcConfig.User,
+			RPCPass: dcrrpcConfig.Pass,
 		},
 	}
 
@@ -143,19 +144,21 @@ func newLightningNode(btcrpcConfig *rpcclient.ConnConfig, lndArgs []string) (*li
 	cfg.AdminMacPath = filepath.Join(cfg.DataDir, "admin.macaroon")
 	cfg.ReadMacPath = filepath.Join(cfg.DataDir, "readonly.macaroon")
 
-	cfg.PeerPort, cfg.RPCPort = generateListeningPorts()
+	peerPort, rpcPort := generateListeningPorts()
+	cfg.RawListeners = []string{fmt.Sprintf(":%d", peerPort)}
+	cfg.RawRPCListeners = []string{fmt.Sprintf(":%d", rpcPort)}
 
 	numActiveNodes++
 
 	lndArgs = append(lndArgs, "--externalip=127.0.0.1:"+
-		strconv.Itoa(cfg.PeerPort))
+		strconv.Itoa(peerPort))
 	lndArgs = append(lndArgs, "--noencryptwallet")
 
 	return &lightningNode{
 		cfg:               cfg,
-		p2pAddr:           net.JoinHostPort("127.0.0.1", strconv.Itoa(cfg.PeerPort)),
-		rpcAddr:           net.JoinHostPort("127.0.0.1", strconv.Itoa(cfg.RPCPort)),
-		rpcCert:           btcrpcConfig.Certificates,
+		p2pAddr:           net.JoinHostPort("127.0.0.1", strconv.Itoa(peerPort)),
+		rpcAddr:           net.JoinHostPort("127.0.0.1", strconv.Itoa(rpcPort)),
+		rpcCert:           dcrrpcConfig.Certificates,
 		nodeID:            nodeNum,
 		chanWatchRequests: make(chan *chanWatchRequest),
 		processExit:       make(chan struct{}),
@@ -169,17 +172,20 @@ func newLightningNode(btcrpcConfig *rpcclient.ConnConfig, lndArgs []string) (*li
 func (l *lightningNode) genArgs() []string {
 	var args []string
 
+	rpcListen := strings.Join(l.cfg.RawRPCListeners, ",")
+	peerListen := strings.Join(l.cfg.RawListeners, ",")
+
 	encodedCert := hex.EncodeToString(l.rpcCert)
 	args = append(args, "--bitcoin.active")
 	args = append(args, "--bitcoin.simnet")
 	args = append(args, "--nobootstrap")
 	args = append(args, "--debuglevel=debug")
-	args = append(args, fmt.Sprintf("--bitcoin.rpchost=%v", l.cfg.Bitcoin.RPCHost))
-	args = append(args, fmt.Sprintf("--bitcoin.rpcuser=%v", l.cfg.Bitcoin.RPCUser))
-	args = append(args, fmt.Sprintf("--bitcoin.rpcpass=%v", l.cfg.Bitcoin.RPCPass))
-	args = append(args, fmt.Sprintf("--bitcoin.rawrpccert=%v", encodedCert))
-	args = append(args, fmt.Sprintf("--rpcport=%v", l.cfg.RPCPort))
-	args = append(args, fmt.Sprintf("--peerport=%v", l.cfg.PeerPort))
+	args = append(args, fmt.Sprintf("--decred.rpchost=%v", l.cfg.DcrdMode.RPCHost))
+	args = append(args, fmt.Sprintf("--decred.rpcuser=%v", l.cfg.DcrdMode.RPCUser))
+	args = append(args, fmt.Sprintf("--decred.rpcpass=%v", l.cfg.DcrdMode.RPCPass))
+	args = append(args, fmt.Sprintf("--decred.rawrpccert=%v", encodedCert))
+	args = append(args, fmt.Sprintf("--rpclisten=%v", rpcListen))
+	args = append(args, fmt.Sprintf("--peerlisten=%v", peerListen))
 	args = append(args, fmt.Sprintf("--logdir=%v", l.cfg.LogDir))
 	args = append(args, fmt.Sprintf("--datadir=%v", l.cfg.DataDir))
 	args = append(args, fmt.Sprintf("--tlscertpath=%v", l.cfg.TLSCertPath))
@@ -468,7 +474,7 @@ func (l *lightningNode) lightningNetworkWatcher() {
 			// For each new channel, we'll increment the number of
 			// edges seen by one.
 			for _, newChan := range graphUpdate.ChannelUpdates {
-				txid, _ := chainhash.NewHash(newChan.ChanPoint.FundingTxid)
+				txid, _ := chainhash.NewHash(newChan.ChanPoint.GetFundingTxidBytes())
 				op := wire.OutPoint{
 					Hash:  *txid,
 					Index: newChan.ChanPoint.OutputIndex,
@@ -494,7 +500,7 @@ func (l *lightningNode) lightningNetworkWatcher() {
 			// detected a channel closure while lnd was pruning the
 			// channel graph.
 			for _, closedChan := range graphUpdate.ClosedChans {
-				txid, _ := chainhash.NewHash(closedChan.ChanPoint.FundingTxid)
+				txid, _ := chainhash.NewHash(closedChan.ChanPoint.GetFundingTxidBytes())
 				op := wire.OutPoint{
 					Hash:  *txid,
 					Index: closedChan.ChanPoint.OutputIndex,
@@ -561,7 +567,7 @@ func (l *lightningNode) WaitForNetworkChannelOpen(ctx context.Context,
 
 	eventChan := make(chan struct{})
 
-	txid, err := chainhash.NewHash(op.FundingTxid)
+	txid, err := chainhash.NewHash(op.GetFundingTxidBytes())
 	if err != nil {
 		return err
 	}
@@ -592,7 +598,7 @@ func (l *lightningNode) WaitForNetworkChannelClose(ctx context.Context,
 
 	eventChan := make(chan struct{})
 
-	txid, err := chainhash.NewHash(op.FundingTxid)
+	txid, err := chainhash.NewHash(op.GetFundingTxidBytes())
 	if err != nil {
 		return err
 	}
@@ -783,7 +789,7 @@ func (n *networkHarness) SetUp() error {
 	// each.
 	ctxb := context.Background()
 	addrReq := &lnrpc.NewAddressRequest{
-		Type: lnrpc.NewAddressRequest_WITNESS_PUBKEY_HASH,
+		Type: lnrpc.AddressType_WITNESS_PUBKEY_HASH,
 	}
 	clients := []lnrpc.LightningClient{n.Alice, n.Bob}
 	for _, client := range clients {
@@ -792,7 +798,7 @@ func (n *networkHarness) SetUp() error {
 			if err != nil {
 				return err
 			}
-			addr, err := dcrutil.DecodeAddress(resp.Address, n.netParams)
+			addr, err := dcrutil.DecodeAddress(resp.Address)
 			if err != nil {
 				return err
 			}
@@ -840,8 +846,8 @@ out:
 				return err
 			}
 
-			if aliceResp.Balance == expectedBalance &&
-				bobResp.Balance == expectedBalance {
+			if aliceResp.TotalBalance == expectedBalance &&
+				bobResp.TotalBalance == expectedBalance {
 				break out
 			}
 		case <-balanceTimeout:
@@ -1359,13 +1365,13 @@ func (n *networkHarness) SendCoins(ctx context.Context, amt dcrutil.Amount,
 	// to receive a p2wkh address s.t the output can immediately be used as
 	// an input to a funding transaction.
 	addrReq := &lnrpc.NewAddressRequest{
-		Type: lnrpc.NewAddressRequest_WITNESS_PUBKEY_HASH,
+		Type: lnrpc.AddressType_WITNESS_PUBKEY_HASH,
 	}
 	resp, err := target.NewAddress(ctx, addrReq)
 	if err != nil {
 		return err
 	}
-	addr, err := dcrutil.DecodeAddress(resp.Address, n.netParams)
+	addr, err := dcrutil.DecodeAddress(resp.Address)
 	if err != nil {
 		return err
 	}
@@ -1403,7 +1409,7 @@ func (n *networkHarness) SendCoins(ctx context.Context, amt dcrutil.Amount,
 				return err
 			}
 
-			if currentBal.Balance == initialBalance.Balance+int64(amt) {
+			if currentBal.TotalBalance == initialBalance.TotalBalance+int64(amt) {
 				return nil
 			}
 		case <-balanceTimeout:

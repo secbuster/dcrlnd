@@ -4,16 +4,12 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io/ioutil"
-	"net"
 	"os"
-	"path/filepath"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/dcrutil"
 	"github.com/decred/dcrd/rpcclient"
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/chainntnfs/dcrdnotify"
@@ -26,32 +22,17 @@ import (
 	"github.com/decred/dcrlnd/routing/chainview"
 	"github.com/decred/dcrwallet/chain"
 	"github.com/decred/dcrwallet/wallet"
-	"github.com/decred/dcrwallet/wallet/walletdb"
 )
 
 const (
-	defaultBitcoinMinHTLCMSat   = lnwire.MilliSatoshi(1000)
-	defaultBitcoinBaseFeeMSat   = lnwire.MilliSatoshi(1000)
-	defaultBitcoinFeeRate       = lnwire.MilliSatoshi(1)
-	defaultBitcoinTimeLockDelta = 144
+	// TODO(decred) verify these amounts
+	defaultDecredMinHTLCMSat   = lnwire.MilliSatoshi(1000)
+	defaultDecredBaseFeeMSat   = lnwire.MilliSatoshi(1000)
+	defaultDecredFeeRate       = lnwire.MilliSatoshi(1)
+	defaultDecredTimeLockDelta = 144
 
-	defaultLitecoinMinHTLCMSat   = lnwire.MilliSatoshi(1000)
-	defaultLitecoinBaseFeeMSat   = lnwire.MilliSatoshi(1000)
-	defaultLitecoinFeeRate       = lnwire.MilliSatoshi(1)
-	defaultLitecoinTimeLockDelta = 576
-	defaultLitecoinDustLimit     = dcrutil.Amount(54600)
-
-	// defaultBitcoinStaticFeePerKW is the fee rate of 50 sat/vbyte
-	// expressed in sat/kw.
-	defaultBitcoinStaticFeePerKW = lnwallet.SatPerKWeight(12500)
-
-	// defaultLitecoinStaticFeePerKW is the fee rate of 200 sat/vbyte
-	// expressed in sat/kw.
-	defaultLitecoinStaticFeePerKW = lnwallet.SatPerKWeight(50000)
-
-	// btcToLtcConversionRate is a fixed ratio used in order to scale up
-	// payments when running on the Litecoin chain.
-	btcToLtcConversionRate = 60
+	// defaultDecredStaticFeePerKB is the fee rate of 10000 atom/KB
+	defaultDecredStaticFeePerKB = lnwallet.AtomPerKByte(1e4)
 )
 
 // defaultBtcChannelConstraints is the default set of channel constraints that are
@@ -63,32 +44,20 @@ var defaultBtcChannelConstraints = channeldb.ChannelConstraints{
 	MaxAcceptedHtlcs: lnwallet.MaxHTLCNumber / 2,
 }
 
-// defaultLtcChannelConstraints is the default set of channel constraints that are
-// meant to be used when initially funding a Litecoin channel.
-var defaultLtcChannelConstraints = channeldb.ChannelConstraints{
-	DustLimit:        defaultLitecoinDustLimit,
-	MaxAcceptedHtlcs: lnwallet.MaxHTLCNumber / 2,
-}
-
 // chainCode is an enum-like structure for keeping track of the chains
 // currently supported within lnd.
 type chainCode uint32
 
 const (
-	// bitcoinChain is Bitcoin's testnet chain.
-	bitcoinChain chainCode = iota
-
-	// litecoinChain is Litecoin's testnet chain.
-	litecoinChain
+	// decredChain is Decred's testnet chain.
+	decredChain chainCode = iota
 )
 
 // String returns a string representation of the target chainCode.
 func (c chainCode) String() string {
 	switch c {
-	case bitcoinChain:
-		return "bitcoin"
-	case litecoinChain:
-		return "litecoin"
+	case decredChain:
+		return "decred"
 	default:
 		return "kekcoin"
 	}
@@ -129,35 +98,22 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 
 	// Set the RPC config from the "home" chain. Multi-chain isn't yet
 	// active, so we'll restrict usage to a particular chain for now.
-	homeChainConfig := cfg.Bitcoin
-	if registeredChains.PrimaryChain() == litecoinChain {
-		homeChainConfig = cfg.Litecoin
-	}
+	homeChainConfig := cfg.Decred
 	ltndLog.Infof("Primary chain is set to: %v",
 		registeredChains.PrimaryChain())
 
 	cc := &chainControl{}
 
 	switch registeredChains.PrimaryChain() {
-	case bitcoinChain:
+	case decredChain:
 		cc.routingPolicy = htlcswitch.ForwardingPolicy{
-			MinHTLC:       cfg.Bitcoin.MinHTLC,
-			BaseFee:       cfg.Bitcoin.BaseFee,
-			FeeRate:       cfg.Bitcoin.FeeRate,
-			TimeLockDelta: cfg.Bitcoin.TimeLockDelta,
+			MinHTLC:       cfg.Decred.MinHTLC,
+			BaseFee:       cfg.Decred.BaseFee,
+			FeeRate:       cfg.Decred.FeeRate,
+			TimeLockDelta: cfg.Decred.TimeLockDelta,
 		}
 		cc.feeEstimator = lnwallet.NewStaticFeeEstimator(
-			defaultBitcoinStaticFeePerKW, 0,
-		)
-	case litecoinChain:
-		cc.routingPolicy = htlcswitch.ForwardingPolicy{
-			MinHTLC:       cfg.Litecoin.MinHTLC,
-			BaseFee:       cfg.Litecoin.BaseFee,
-			FeeRate:       cfg.Litecoin.FeeRate,
-			TimeLockDelta: cfg.Litecoin.TimeLockDelta,
-		}
-		cc.feeEstimator = lnwallet.NewStaticFeeEstimator(
-			defaultLitecoinStaticFeePerKW, 0,
+			defaultDecredStaticFeePerKB, 0,
 		)
 	default:
 		return nil, nil, fmt.Errorf("Default routing policy for "+
@@ -172,7 +128,6 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 		DataDir:        homeChainConfig.ChainDir,
 		NetParams:      activeNetParams.Params,
 		FeeEstimator:   cc.feeEstimator,
-		CoinType:       activeNetParams.CoinType,
 		Wallet:         wallet,
 	}
 
@@ -188,223 +143,29 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 			"cache: %v", err)
 	}
 
-	// If spv mode is active, then we'll be using a distinct set of
-	// chainControl interfaces that interface directly with the p2p network
-	// of the selected chain.
 	switch homeChainConfig.Node {
-	case "neutrino":
-		// First we'll open the database file for neutrino, creating
-		// the database if needed. We append the normalized network name
-		// here to match the behavior of dcrwallet.
-		neutrinoDbPath := filepath.Join(homeChainConfig.ChainDir,
-			normalizeNetwork(activeNetParams.Name))
-
-		// Ensure that the neutrino db path exists.
-		if err := os.MkdirAll(neutrinoDbPath, 0700); err != nil {
-			return nil, nil, err
-		}
-
-		dbName := filepath.Join(neutrinoDbPath, "neutrino.db")
-		nodeDatabase, err := walletdb.Create("bdb", dbName)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		// With the database open, we can now create an instance of the
-		// neutrino light client. We pass in relevant configuration
-		// parameters required.
-		config := neutrino.Config{
-			DataDir:      neutrinoDbPath,
-			Database:     nodeDatabase,
-			ChainParams:  *activeNetParams.Params,
-			AddPeers:     cfg.NeutrinoMode.AddPeers,
-			ConnectPeers: cfg.NeutrinoMode.ConnectPeers,
-			Dialer: func(addr net.Addr) (net.Conn, error) {
-				return cfg.net.Dial(addr.Network(), addr.String())
-			},
-			NameResolver: func(host string) ([]net.IP, error) {
-				addrs, err := cfg.net.LookupHost(host)
-				if err != nil {
-					return nil, err
-				}
-
-				ips := make([]net.IP, 0, len(addrs))
-				for _, strIP := range addrs {
-					ip := net.ParseIP(strIP)
-					if ip == nil {
-						continue
-					}
-
-					ips = append(ips, ip)
-				}
-
-				return ips, nil
-			},
-		}
-		neutrino.MaxPeers = 8
-		neutrino.BanDuration = 5 * time.Second
-		svc, err := neutrino.NewChainService(config)
-		if err != nil {
-			return nil, nil, fmt.Errorf("unable to create neutrino: %v", err)
-		}
-		svc.Start()
-
-		// Next we'll create the instances of the ChainNotifier and
-		// FilteredChainView interface which is backed by the neutrino
-		// light client.
-		cc.chainNotifier, err = neutrinonotify.New(
-			svc, hintCache, hintCache,
-		)
-		if err != nil {
-			return nil, nil, err
-		}
-		cc.chainView, err = chainview.NewCfFilteredChainView(svc)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		// Finally, we'll set the chain source for dcrwallet, and
-		// create our clean up function which simply closes the
-		// database.
-		walletConfig.ChainSource = chain.NewNeutrinoClient(
-			activeNetParams.Params, svc,
-		)
-		cleanUp = func() {
-			svc.Stop()
-			nodeDatabase.Close()
-		}
-	case "bitcoind", "litecoind":
-		var bitcoindMode *bitcoindConfig
-		switch {
-		case cfg.Bitcoin.Active:
-			bitcoindMode = cfg.BitcoindMode
-		case cfg.Litecoin.Active:
-			bitcoindMode = cfg.LitecoindMode
-		}
-		// Otherwise, we'll be speaking directly via RPC and ZMQ to a
-		// bitcoind node. If the specified host for the btcd/ltcd RPC
-		// server already has a port specified, then we use that
-		// directly. Otherwise, we assume the default port according to
-		// the selected chain parameters.
-		var bitcoindHost string
-		if strings.Contains(bitcoindMode.RPCHost, ":") {
-			bitcoindHost = bitcoindMode.RPCHost
-		} else {
-			// The RPC ports specified in chainparams.go assume
-			// btcd, which picks a different port so that btcwallet
-			// can use the same RPC port as bitcoind. We convert
-			// this back to the btcwallet/bitcoind port.
-			rpcPort, err := strconv.Atoi(activeNetParams.rpcPort)
-			if err != nil {
-				return nil, nil, err
-			}
-			rpcPort -= 2
-			bitcoindHost = fmt.Sprintf("%v:%d",
-				bitcoindMode.RPCHost, rpcPort)
-			if cfg.Bitcoin.Active && cfg.Bitcoin.RegTest {
-				conn, err := net.Dial("tcp", bitcoindHost)
-				if err != nil || conn == nil {
-					rpcPort = 18443
-					bitcoindHost = fmt.Sprintf("%v:%d",
-						bitcoindMode.RPCHost,
-						rpcPort)
-				} else {
-					conn.Close()
-				}
-			}
-		}
-
-		// Establish the connection to bitcoind and create the clients
-		// required for our relevant subsystems.
-		bitcoindConn, err := chain.NewBitcoindConn(
-			activeNetParams.Params, bitcoindHost,
-			bitcoindMode.RPCUser, bitcoindMode.RPCPass,
-			bitcoindMode.ZMQPubRawBlock, bitcoindMode.ZMQPubRawTx,
-			100*time.Millisecond,
-		)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		if err := bitcoindConn.Start(); err != nil {
-			return nil, nil, fmt.Errorf("unable to connect to "+
-				"bitcoind: %v", err)
-		}
-
-		cc.chainNotifier = bitcoindnotify.New(
-			bitcoindConn, hintCache, hintCache,
-		)
-		cc.chainView = chainview.NewBitcoindFilteredChainView(bitcoindConn)
-		walletConfig.ChainSource = bitcoindConn.NewBitcoindClient()
-
-		// If we're not in regtest mode, then we'll attempt to use a
-		// proper fee estimator for testnet.
-		rpcConfig := &rpcclient.ConnConfig{
-			Host:                 bitcoindHost,
-			User:                 bitcoindMode.RPCUser,
-			Pass:                 bitcoindMode.RPCPass,
-			DisableConnectOnNew:  true,
-			DisableAutoReconnect: false,
-			DisableTLS:           true,
-			HTTPPostMode:         true,
-		}
-		if cfg.Bitcoin.Active && !cfg.Bitcoin.RegTest {
-			ltndLog.Infof("Initializing bitcoind backed fee estimator")
-
-			// Finally, we'll re-initialize the fee estimator, as
-			// if we're using bitcoind as a backend, then we can
-			// use live fee estimates, rather than a statically
-			// coded value.
-			fallBackFeeRate := lnwallet.SatPerKVByte(25 * 1000)
-			cc.feeEstimator, err = lnwallet.NewBitcoindFeeEstimator(
-				*rpcConfig, fallBackFeeRate.FeePerKWeight(),
-			)
-			if err != nil {
-				return nil, nil, err
-			}
-			if err := cc.feeEstimator.Start(); err != nil {
-				return nil, nil, err
-			}
-		} else if cfg.Litecoin.Active {
-			ltndLog.Infof("Initializing litecoind backed fee estimator")
-
-			// Finally, we'll re-initialize the fee estimator, as
-			// if we're using litecoind as a backend, then we can
-			// use live fee estimates, rather than a statically
-			// coded value.
-			fallBackFeeRate := lnwallet.SatPerKVByte(25 * 1000)
-			cc.feeEstimator, err = lnwallet.NewBitcoindFeeEstimator(
-				*rpcConfig, fallBackFeeRate.FeePerKWeight(),
-			)
-			if err != nil {
-				return nil, nil, err
-			}
-			if err := cc.feeEstimator.Start(); err != nil {
-				return nil, nil, err
-			}
-		}
-	case "btcd", "ltcd":
+	case "dcrd":
 		// Otherwise, we'll be speaking directly via RPC to a node.
 		//
 		// So first we'll load dcrd's TLS cert for the RPC
 		// connection. If a raw cert was specified in the config, then
 		// we'll set that directly. Otherwise, we attempt to read the
 		// cert from the path specified in the config.
-		var btcdMode *btcdConfig
+		var dcrdMode *dcrdConfig
 		switch {
-		case cfg.Bitcoin.Active:
-			btcdMode = cfg.BtcdMode
-		case cfg.Litecoin.Active:
-			btcdMode = cfg.LtcdMode
+		case cfg.Decred.Active:
+			dcrdMode = cfg.DcrdMode
+		default:
+			return nil, nil, fmt.Errorf("no active mode specified")
 		}
 		var rpcCert []byte
-		if btcdMode.RawRPCCert != "" {
-			rpcCert, err = hex.DecodeString(btcdMode.RawRPCCert)
+		if dcrdMode.RawRPCCert != "" {
+			rpcCert, err = hex.DecodeString(dcrdMode.RawRPCCert)
 			if err != nil {
 				return nil, nil, err
 			}
 		} else {
-			certFile, err := os.Open(btcdMode.RPCCert)
+			certFile, err := os.Open(dcrdMode.RPCCert)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -421,27 +182,27 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 		// has a port specified, then we use that directly. Otherwise,
 		// we assume the default port according to the selected chain
 		// parameters.
-		var btcdHost string
-		if strings.Contains(btcdMode.RPCHost, ":") {
-			btcdHost = btcdMode.RPCHost
+		var dcrdHost string
+		if strings.Contains(dcrdMode.RPCHost, ":") {
+			dcrdHost = dcrdMode.RPCHost
 		} else {
-			btcdHost = fmt.Sprintf("%v:%v", btcdMode.RPCHost,
+			dcrdHost = fmt.Sprintf("%v:%v", dcrdMode.RPCHost,
 				activeNetParams.rpcPort)
 		}
 
-		btcdUser := btcdMode.RPCUser
-		btcdPass := btcdMode.RPCPass
+		dcrdUser := dcrdMode.RPCUser
+		dcrdPass := dcrdMode.RPCPass
 		rpcConfig := &rpcclient.ConnConfig{
-			Host:                 btcdHost,
+			Host:                 dcrdHost,
 			Endpoint:             "ws",
-			User:                 btcdUser,
-			Pass:                 btcdPass,
+			User:                 dcrdUser,
+			Pass:                 dcrdPass,
 			Certificates:         rpcCert,
 			DisableTLS:           false,
 			DisableConnectOnNew:  true,
 			DisableAutoReconnect: false,
 		}
-		cc.chainNotifier, err = btcdnotify.New(
+		cc.chainNotifier, err = dcrdnotify.New(
 			rpcConfig, hintCache, hintCache,
 		)
 		if err != nil {
@@ -450,7 +211,7 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 
 		// Finally, we'll create an instance of the default chain view to be
 		// used within the routing layer.
-		cc.chainView, err = chainview.NewBtcdFilteredChainView(*rpcConfig)
+		cc.chainView, err = chainview.NewDcrdFilteredChainView(*rpcConfig)
 		if err != nil {
 			srvrLog.Errorf("unable to create chain view: %v", err)
 			return nil, nil, err
@@ -458,8 +219,8 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 
 		// Create a special websockets rpc client for btcd which will be used
 		// by the wallet for notifications, calls, etc.
-		chainRPC, err := chain.NewRPCClient(activeNetParams.Params, btcdHost,
-			btcdUser, btcdPass, rpcCert, false, 20)
+		chainRPC, err := chain.NewRPCClient(activeNetParams.Params, dcrdHost,
+			dcrdUser, dcrdPass, rpcCert, false)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -468,18 +229,18 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 
 		// If we're not in simnet or regtest mode, then we'll attempt
 		// to use a proper fee estimator for testnet.
-		if !cfg.Bitcoin.SimNet && !cfg.Litecoin.SimNet &&
-			!cfg.Bitcoin.RegTest && !cfg.Litecoin.RegTest {
-
-			ltndLog.Infof("Initializing btcd backed fee estimator")
+		if !cfg.Decred.SimNet && !cfg.Decred.RegTest {
+			ltndLog.Infof("Initializing dcrd backed fee estimator")
 
 			// Finally, we'll re-initialize the fee estimator, as
-			// if we're using btcd as a backend, then we can use
+			// if we're using dcrd as a backend, then we can use
 			// live fee estimates, rather than a statically coded
 			// value.
-			fallBackFeeRate := lnwallet.SatPerKVByte(25 * 1000)
-			cc.feeEstimator, err = lnwallet.NewBtcdFeeEstimator(
-				*rpcConfig, fallBackFeeRate.FeePerKWeight(),
+			// TODO(decred) Review if fallbackFeeRate should be higher than
+			// the default relay fee.
+			fallBackFeeRate := lnwallet.AtomPerKByte(1e4)
+			cc.feeEstimator, err = lnwallet.NewDcrdFeeEstimator(
+				*rpcConfig, fallBackFeeRate,
 			)
 			if err != nil {
 				return nil, nil, err
@@ -493,7 +254,7 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 			homeChainConfig.Node)
 	}
 
-	wc, err := btcwallet.New(*walletConfig)
+	wc, err := dcrwallet.New(*walletConfig)
 	if err != nil {
 		fmt.Printf("unable to create wallet controller: %v\n", err)
 		return nil, nil, err
@@ -506,12 +267,9 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 
 	// Select the default channel constraints for the primary chain.
 	channelConstraints := defaultBtcChannelConstraints
-	if registeredChains.PrimaryChain() == litecoinChain {
-		channelConstraints = defaultLtcChannelConstraints
-	}
 
-	keyRing := keychain.NewBtcWalletKeyRing(
-		wc.InternalWallet(), activeNetParams.CoinType,
+	keyRing := keychain.NewWalletKeyRing(
+		wc.InternalWallet(),
 	)
 	cc.keyRing = keyRing
 
@@ -546,48 +304,29 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 }
 
 var (
-	// bitcoinTestnetGenesis is the genesis hash of Bitcoin's testnet
+	// decredTestnet3Genesis is the genesis hash of Decred's testnet3
 	// chain.
-	bitcoinTestnetGenesis = chainhash.Hash([chainhash.HashSize]byte{
-		0x43, 0x49, 0x7f, 0xd7, 0xf8, 0x26, 0x95, 0x71,
-		0x08, 0xf4, 0xa3, 0x0f, 0xd9, 0xce, 0xc3, 0xae,
-		0xba, 0x79, 0x97, 0x20, 0x84, 0xe9, 0x0e, 0xad,
-		0x01, 0xea, 0x33, 0x09, 0x00, 0x00, 0x00, 0x00,
+	decredTestnet3Genesis = chainhash.Hash([chainhash.HashSize]byte{
+		0xac, 0x9b, 0xa4, 0x34, 0xb6, 0xf7, 0x24, 0x9b,
+		0x96, 0x98, 0xd1, 0xfc, 0xec, 0x26, 0xd6, 0x08,
+		0x7e, 0x83, 0x58, 0xc8, 0x11, 0xc7, 0xe9, 0x22,
+		0xf4, 0xca, 0x18, 0x39, 0xe5, 0xdc, 0x49, 0xa6,
 	})
 
-	// bitcoinMainnetGenesis is the genesis hash of Bitcoin's main chain.
-	bitcoinMainnetGenesis = chainhash.Hash([chainhash.HashSize]byte{
-		0x6f, 0xe2, 0x8c, 0x0a, 0xb6, 0xf1, 0xb3, 0x72,
-		0xc1, 0xa6, 0xa2, 0x46, 0xae, 0x63, 0xf7, 0x4f,
-		0x93, 0x1e, 0x83, 0x65, 0xe1, 0x5a, 0x08, 0x9c,
-		0x68, 0xd6, 0x19, 0x00, 0x00, 0x00, 0x00, 0x00,
-	})
-
-	// litecoinTestnetGenesis is the genesis hash of Litecoin's testnet4
-	// chain.
-	litecoinTestnetGenesis = chainhash.Hash([chainhash.HashSize]byte{
-		0xa0, 0x29, 0x3e, 0x4e, 0xeb, 0x3d, 0xa6, 0xe6,
-		0xf5, 0x6f, 0x81, 0xed, 0x59, 0x5f, 0x57, 0x88,
-		0x0d, 0x1a, 0x21, 0x56, 0x9e, 0x13, 0xee, 0xfd,
-		0xd9, 0x51, 0x28, 0x4b, 0x5a, 0x62, 0x66, 0x49,
-	})
-
-	// litecoinMainnetGenesis is the genesis hash of Litecoin's main chain.
-	litecoinMainnetGenesis = chainhash.Hash([chainhash.HashSize]byte{
-		0xe2, 0xbf, 0x04, 0x7e, 0x7e, 0x5a, 0x19, 0x1a,
-		0xa4, 0xef, 0x34, 0xd3, 0x14, 0x97, 0x9d, 0xc9,
-		0x98, 0x6e, 0x0f, 0x19, 0x25, 0x1e, 0xda, 0xba,
-		0x59, 0x40, 0xfd, 0x1f, 0xe3, 0x65, 0xa7, 0x12,
+	// decredMainnetGenesis is the genesis hash of Decred's main chain.
+	decredMainnetGenesis = chainhash.Hash([chainhash.HashSize]byte{
+		0x80, 0xd9, 0x21, 0x2b, 0xf4, 0xce, 0xb0, 0x66,
+		0xde, 0xd2, 0x86, 0x6b, 0x39, 0xd4, 0xed, 0x89,
+		0xe0, 0xab, 0x60, 0xf3, 0x35, 0xc1, 0x1d, 0xf8,
+		0xe7, 0xbf, 0x85, 0xd9, 0xc3, 0x5c, 0x8e, 0x29,
 	})
 
 	// chainMap is a simple index that maps a chain's genesis hash to the
 	// chainCode enum for that chain.
 	chainMap = map[chainhash.Hash]chainCode{
-		bitcoinTestnetGenesis:  bitcoinChain,
-		litecoinTestnetGenesis: litecoinChain,
+		decredTestnet3Genesis:  decredChain,
 
-		bitcoinMainnetGenesis:  bitcoinChain,
-		litecoinMainnetGenesis: litecoinChain,
+		decredMainnetGenesis:  decredChain,
 	}
 
 	// chainDNSSeeds is a map of a chain's hash to the set of DNS seeds
@@ -603,23 +342,16 @@ var (
 	// TODO(roasbeef): extend and collapse these and chainparams.go into
 	// struct like chaincfg.Params
 	chainDNSSeeds = map[chainhash.Hash][][2]string{
-		bitcoinMainnetGenesis: {
+		decredMainnetGenesis: {
 			{
-				"nodes.lightning.directory",
+				"dcr.nodes.lightning.directory",
 				"soa.nodes.lightning.directory",
 			},
 		},
 
-		bitcoinTestnetGenesis: {
+		decredTestnet3Genesis: {
 			{
-				"test.nodes.lightning.directory",
-				"soa.nodes.lightning.directory",
-			},
-		},
-
-		litecoinMainnetGenesis: {
-			{
-				"ltc.nodes.lightning.directory",
+				"dcrtest.nodes.lightning.directory",
 				"soa.nodes.lightning.directory",
 			},
 		},
@@ -631,7 +363,7 @@ type chainRegistry struct {
 	sync.RWMutex
 
 	activeChains map[chainCode]*chainControl
-	netParams    map[chainCode]*bitcoinNetParams
+	netParams    map[chainCode]*decredNetParams
 
 	primaryChain chainCode
 }
@@ -640,7 +372,7 @@ type chainRegistry struct {
 func newChainRegistry() *chainRegistry {
 	return &chainRegistry{
 		activeChains: make(map[chainCode]*chainControl),
-		netParams:    make(map[chainCode]*bitcoinNetParams),
+		netParams:    make(map[chainCode]*decredNetParams),
 	}
 }
 

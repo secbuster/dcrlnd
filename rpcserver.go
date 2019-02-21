@@ -18,7 +18,6 @@ import (
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/decred/dcrd/blockchain"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrd/dcrutil"
@@ -47,14 +46,9 @@ import (
 )
 
 const (
-	// maxBtcPaymentMSat is the maximum allowed Bitcoin payment currently
+	// maxDcrPaymentMSat is the maximum allowed Decred payment currently
 	// permitted as defined in BOLT-0002.
-	maxBtcPaymentMSat = lnwire.MilliSatoshi(math.MaxUint32)
-
-	// maxLtcPaymentMSat is the maximum allowed Litecoin payment currently
-	// permitted.
-	maxLtcPaymentMSat = lnwire.MilliSatoshi(math.MaxUint32) *
-		btcToLtcConversionRate
+	maxDcrPaymentMSat = lnwire.MilliSatoshi(math.MaxUint32)
 )
 
 var (
@@ -62,8 +56,8 @@ var (
 
 	// maxPaymentMSat is the maximum allowed payment currently permitted as
 	// defined in BOLT-002. This value depends on which chain is active.
-	// It is set to the value under the Bitcoin chain as default.
-	maxPaymentMSat = maxBtcPaymentMSat
+	// It is set to the value under the Decred chain as default.
+	maxPaymentMSat = maxDcrPaymentMSat
 
 	defaultAccount uint32 = udb.DefaultAccountNum
 
@@ -604,7 +598,7 @@ func (r *rpcServer) Stop() error {
 func addrPairsToOutputs(addrPairs map[string]int64) ([]*wire.TxOut, error) {
 	outputs := make([]*wire.TxOut, 0, len(addrPairs))
 	for addr, amt := range addrPairs {
-		addr, err := dcrutil.DecodeAddress(addr, activeNetParams.Params)
+		addr, err := dcrutil.DecodeAddress(addr)
 		if err != nil {
 			return nil, err
 		}
@@ -624,7 +618,7 @@ func addrPairsToOutputs(addrPairs map[string]int64) ([]*wire.TxOut, error) {
 // more addresses specified in the passed payment map. The payment map maps an
 // address to a specified output value to be sent to that address.
 func (r *rpcServer) sendCoinsOnChain(paymentMap map[string]int64,
-	feeRate lnwallet.SatPerKWeight) (*chainhash.Hash, error) {
+	feeRate lnwallet.AtomPerKByte) (*chainhash.Hash, error) {
 
 	outputs, err := addrPairsToOutputs(paymentMap)
 	if err != nil {
@@ -644,14 +638,15 @@ func (r *rpcServer) sendCoinsOnChain(paymentMap map[string]int64,
 // an estimator, a confirmation target, and a manual value for sat/byte. A value
 // is chosen based on the two free parameters as one, or both of them can be
 // zero.
+// TODO(decred) remove duplicated stuff
 func determineFeePerKw(feeEstimator lnwallet.FeeEstimator, targetConf int32,
-	feePerByte int64) (lnwallet.SatPerKWeight, error) {
+	feePerByte int64) (lnwallet.AtomPerKByte, error) {
 
 	switch {
 	// If the target number of confirmations is set, then we'll use that to
 	// consult our fee estimator for an adequate fee.
 	case targetConf != 0:
-		feePerKw, err := feeEstimator.EstimateFeePerKW(
+		feePerKB, err := feeEstimator.EstimateFeePerKB(
 			uint32(targetConf),
 		)
 		if err != nil {
@@ -659,30 +654,30 @@ func determineFeePerKw(feeEstimator lnwallet.FeeEstimator, targetConf int32,
 				"estimator: %v", err)
 		}
 
-		return feePerKw, nil
+		return feePerKB, nil
 
 	// If a manual sat/byte fee rate is set, then we'll use that directly.
 	// We'll need to convert it to sat/kw as this is what we use internally.
 	case feePerByte != 0:
-		feePerKW := lnwallet.SatPerKVByte(feePerByte * 1000).FeePerKWeight()
-		if feePerKW < lnwallet.FeePerKwFloor {
-			rpcsLog.Infof("Manual fee rate input of %d sat/kw is "+
-				"too low, using %d sat/kw instead", feePerKW,
-				lnwallet.FeePerKwFloor)
-			feePerKW = lnwallet.FeePerKwFloor
+		feePerKB := lnwallet.AtomPerKByte(feePerByte * 1000)
+		if feePerKB < lnwallet.FeePerKBFloor {
+			rpcsLog.Infof("Manual fee rate input of %d atom/KB is "+
+				"too low, using %d atom/KB instead", feePerKB,
+				lnwallet.FeePerKBFloor)
+			feePerKB = lnwallet.FeePerKBFloor
 		}
-		return feePerKW, nil
+		return feePerKB, nil
 
 	// Otherwise, we'll attempt a relaxed confirmation target for the
 	// transaction
 	default:
-		feePerKw, err := feeEstimator.EstimateFeePerKW(6)
+		feePerKB, err := feeEstimator.EstimateFeePerKB(6)
 		if err != nil {
 			return 0, fmt.Errorf("unable to query fee estimator: "+
 				"%v", err)
 		}
 
-		return feePerKw, nil
+		return feePerKB, nil
 	}
 }
 
@@ -765,8 +760,9 @@ func (r *rpcServer) ListUnspent(ctx context.Context,
 		// Finally, we'll attempt to extract the raw address from the
 		// script so we can display a human friendly address to the end
 		// user.
+		// TODO(decred) version needs to come from utxo.
 		_, outAddresses, _, err := txscript.ExtractPkScriptAddrs(
-			utxo.PkScript, activeNetParams.Params,
+			txscript.DefaultScriptVersion, utxo.PkScript, activeNetParams.Params,
 		)
 		if err != nil {
 			return nil, err
@@ -923,7 +919,7 @@ func (r *rpcServer) VerifyMessage(ctx context.Context,
 
 	// The signature is over the double-sha256 hash of the message.
 	in.Msg = append(signedMsgPrefix, in.Msg...)
-	digest := chainhash.DoubleHashB(in.Msg)
+	digest := chainhash.HashB(in.Msg)
 
 	// RecoverCompact both recovers the pubkey and validates the signature.
 	pubKey, _, err := secp256k1.RecoverCompact(sig, digest)
@@ -1418,7 +1414,7 @@ func (r *rpcServer) CloseChannel(in *lnrpc.CloseChannelRequest,
 		rpcsLog.Errorf("[closechannel] invalid txid: %v", err)
 		return err
 	}
-	chanPoint := wire.NewOutPoint(txid, index)
+	chanPoint := wire.NewOutPoint(txid, index, wire.TxTreeRegular)
 
 	rpcsLog.Tracef("[closechannel] request for ChannelPoint(%v), force=%v",
 		chanPoint, force)
@@ -1624,7 +1620,7 @@ func (r *rpcServer) AbandonChannel(ctx context.Context,
 		return nil, err
 	}
 	index := in.ChannelPoint.OutputIndex
-	chanPoint := wire.NewOutPoint(txid, index)
+	chanPoint := wire.NewOutPoint(txid, index, wire.TxTreeRegular)
 
 	// With the chanPoint constructed, we'll attempt to find the target
 	// channel in the database. If we can't find the channel, then we'll
@@ -1939,9 +1935,9 @@ func (r *rpcServer) PendingChannels(ctx context.Context,
 		// that also?
 		// TODO(decred) review usage of weight vs size
 		localCommitment := pendingChan.LocalCommitment
-		utx := dcrutil.NewTx(localCommitment.CommitTx)
-		commitBaseWeight := blockchain.GetTransactionWeight(utx)
-		commitWeight := commitBaseWeight + lnwallet.WitnessCommitmentTxWeight
+		utx := localCommitment.CommitTx
+		commitBaseSize := int64(utx.SerializeSize())
+		commitSize := commitBaseSize + 1 + lnwallet.FundingOutputSigScriptSize
 
 		resp.PendingOpenChannels[i] = &lnrpc.PendingChannelsResponse_PendingOpenChannel{
 			Channel: &lnrpc.PendingChannelsResponse_PendingChannel{
@@ -1951,7 +1947,7 @@ func (r *rpcServer) PendingChannels(ctx context.Context,
 				LocalBalance:  int64(localCommitment.LocalBalance.ToSatoshis()),
 				RemoteBalance: int64(localCommitment.RemoteBalance.ToSatoshis()),
 			},
-			CommitWeight: commitWeight,
+			CommitWeight: commitSize,
 			CommitFee:    int64(localCommitment.CommitFee),
 			FeePerKw:     int64(localCommitment.FeePerKw),
 			// TODO(roasbeef): need to track confirmation height
@@ -2268,9 +2264,9 @@ func (r *rpcServer) ListChannels(ctx context.Context,
 		// the transaction if it were to be immediately unilaterally
 		// broadcast.
 		localCommit := dbChannel.LocalCommitment
-		utx := dcrutil.NewTx(localCommit.CommitTx)
-		commitBaseWeight := blockchain.GetTransactionWeight(utx)
-		commitWeight := commitBaseWeight + lnwallet.WitnessCommitmentTxWeight
+		utx := localCommit.CommitTx
+		commitBaseSize := int64(utx.SerializeSize())
+		commitSize := commitBaseSize + 1 + lnwallet.FundingOutputSigScriptSize
 
 		localBalance := localCommit.LocalBalance
 		remoteBalance := localCommit.RemoteBalance
@@ -2298,7 +2294,7 @@ func (r *rpcServer) ListChannels(ctx context.Context,
 			LocalBalance:          int64(localBalance.ToSatoshis()),
 			RemoteBalance:         int64(remoteBalance.ToSatoshis()),
 			CommitFee:             int64(externalCommitFee),
-			CommitWeight:          commitWeight,
+			CommitWeight:          commitSize,
 			FeePerKw:              int64(localCommit.FeePerKw),
 			TotalSatoshisSent:     int64(dbChannel.TotalMSatSent.ToSatoshis()),
 			TotalSatoshisReceived: int64(dbChannel.TotalMSatReceived.ToSatoshis()),
@@ -3041,8 +3037,7 @@ func (r *rpcServer) AddInvoice(ctx context.Context,
 
 	// If specified, add a fallback address to the payment request.
 	if len(invoice.FallbackAddr) > 0 {
-		addr, err := dcrutil.DecodeAddress(invoice.FallbackAddr,
-			activeNetParams.Params)
+		addr, err := dcrutil.DecodeAddress(invoice.FallbackAddr)
 		if err != nil {
 			return nil, fmt.Errorf("invalid fallback address: %v",
 				err)
@@ -3094,10 +3089,7 @@ func (r *rpcServer) AddInvoice(ctx context.Context,
 			zpay32.CLTVExpiry(invoice.CltvExpiry))
 	default:
 		// TODO(roasbeef): assumes set delta between versions
-		defaultDelta := cfg.Bitcoin.TimeLockDelta
-		if registeredChains.PrimaryChain() == litecoinChain {
-			defaultDelta = cfg.Litecoin.TimeLockDelta
-		}
+		defaultDelta := cfg.Decred.TimeLockDelta
 		options = append(options, zpay32.CLTVExpiry(uint64(defaultDelta)))
 	}
 

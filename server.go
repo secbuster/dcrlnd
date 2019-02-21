@@ -41,7 +41,7 @@ import (
 	"github.com/decred/dcrlnd/ticker"
 	"github.com/decred/dcrlnd/tor"
 	"github.com/go-errors/errors"
-	"github.com/lightningnetwork/lightning-onion" // TODO(decred): ok?
+	sphinx "github.com/lightningnetwork/lightning-onion" // TODO(decred): ok?
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -220,12 +220,24 @@ func parseAddr(address string) (net.Addr, error) {
 
 // noiseDial is a factory function which creates a connmgr compliant dialing
 // function by returning a closure which includes the server's identity key.
+func noiseDial(idPriv *secp256k1.PrivateKey) func(string, string) (net.Conn, error) {
+	return func(string, string) (net.Conn, error) {
+		// TODO(decred) btcd was changed to use net.Address instead of (string, string)
+		// as func signature for the connmgr dial function. We'll likely need
+		// to do the same for decred, given that brontide.Dial needs an lnwire.Address
+		// to connect to.
+		return nil, fmt.Errorf("not implemented... this needs fixing.")
+	}
+}
+
+/*
 func noiseDial(idPriv *secp256k1.PrivateKey) func(net.Addr) (net.Conn, error) {
 	return func(a net.Addr) (net.Conn, error) {
 		lnAddr := a.(*lnwire.NetAddress)
 		return brontide.Dial(idPriv, lnAddr, cfg.net.Dial)
 	}
 }
+*/
 
 // newServer creates a new instance of the server which is to listen using the
 // passed listener address.
@@ -257,7 +269,10 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB, cc *chainControl,
 	graphDir := chanDB.Path()
 	sharedSecretPath := filepath.Join(graphDir, "sphinxreplay.db")
 	replayLog := htlcswitch.NewDecayedLog(sharedSecretPath, cc.chainNotifier)
-	sphinxRouter := sphinx.NewRouter(privKey, activeNetParams.Params, replayLog)
+	// TODO(decred) fix this. The main problem is the activeNetParams.
+	//sphinxRouter := sphinx.NewRouter(privKey, activeNetParams.Params, replayLog)
+	_ = replayLog
+	var sphinxRouter *sphinx.Router
 
 	s := &server{
 		chanDB:  chanDB,
@@ -624,7 +639,7 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB, cc *chainControl,
 		MaxInputsPerTx:       sweep.DefaultMaxInputsPerTx,
 		MaxSweepAttempts:     sweep.DefaultMaxSweepAttempts,
 		NextAttemptDeltaFunc: sweep.DefaultNextAttemptDeltaFunc,
-		NetParams:            activeNetParams,
+		NetParams:            activeNetParams.Params,
 	})
 
 	s.utxoNursery = newUtxoNursery(&NurseryConfig{
@@ -742,19 +757,14 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB, cc *chainControl,
 		ContractBreaches:   contractBreaches,
 		Signer:             cc.wallet.Cfg.Signer,
 		Store:              newRetributionStore(chanDB),
+		NetParams:          activeNetParams.Params,
 	})
 
 	// Select the configuration and furnding parameters for Bitcoin or
 	// Litecoin, depending on the primary registered chain.
-	primaryChain := registeredChains.PrimaryChain()
-	chainCfg := cfg.Bitcoin
-	minRemoteDelay := minBtcRemoteDelay
-	maxRemoteDelay := maxBtcRemoteDelay
-	if primaryChain == litecoinChain {
-		chainCfg = cfg.Litecoin
-		minRemoteDelay = minLtcRemoteDelay
-		maxRemoteDelay = maxLtcRemoteDelay
-	}
+	chainCfg := cfg.Decred
+	minRemoteDelay := minDcrRemoteDelay
+	maxRemoteDelay := maxDcrRemoteDelay
 
 	var chanIDSeed [32]byte
 	if _, err := rand.Read(chanIDSeed[:]); err != nil {
@@ -1025,8 +1035,7 @@ func (s *server) Start() error {
 	// If network bootstrapping hasn't been disabled, then we'll configure
 	// the set of active bootstrappers, and launch a dedicated goroutine to
 	// maintain a set of persistent connections.
-	if !cfg.NoNetBootstrap && !(cfg.Bitcoin.SimNet || cfg.Litecoin.SimNet) &&
-		!(cfg.Bitcoin.RegTest || cfg.Litecoin.RegTest) {
+	if !cfg.NoNetBootstrap && !cfg.Decred.SimNet && !cfg.Decred.RegTest {
 
 		bootstrappers, err := initNetworkBootstrappers(s)
 		if err != nil {
@@ -1285,7 +1294,7 @@ func initNetworkBootstrappers(s *server) ([]discovery.NetworkPeerBootstrapper, e
 
 	// If this isn't simnet mode, then one of our additional bootstrapping
 	// sources will be the set of running DNS seeds.
-	if !cfg.Bitcoin.SimNet || !cfg.Litecoin.SimNet {
+	if !cfg.Decred.SimNet {
 		dnsSeeds, ok := chainDNSSeeds[*activeNetParams.GenesisHash]
 
 		// If we have a set of DNS seeds for this chain, then we'll add
@@ -2646,7 +2655,7 @@ type openChanReq struct {
 
 	pushAmt lnwire.MilliSatoshi
 
-	fundingFeePerKw lnwallet.SatPerKWeight
+	fundingFeePerKw lnwallet.AtomPerKByte
 
 	private bool
 
@@ -2822,7 +2831,7 @@ func (s *server) OpenChannel(
 	// confirmation target.
 	if req.fundingFeePerKw == 0 {
 		estimator := s.cc.feeEstimator
-		feeRate, err := estimator.EstimateFeePerKW(6)
+		feeRate, err := estimator.EstimateFeePerKB(6)
 		if err != nil {
 			req.err <- err
 			return req.updates, req.err

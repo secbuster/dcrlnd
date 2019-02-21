@@ -8,11 +8,11 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/decred/dcrd/blockchain"
+	"github.com/decred/dcrd/chaincfg"
 	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrd/txscript"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/channeldb"
@@ -105,6 +105,10 @@ type BreachConfig struct {
 	// breached channels. This is used in conjunction with DB to recover
 	// from crashes, restarts, or other failures.
 	Store RetributionStore
+
+	// NetParams is a reference to the network parameters for the chain this
+	// breach arbiter runs on.
+	NetParams *chaincfg.Params
 }
 
 // breachArbiter is a special subsystem which is responsible for watching and
@@ -812,7 +816,7 @@ func (bo *breachedOutput) SignDesc() *lnwallet.SignDescriptor {
 // sign descriptor. The method then returns the witness computed by invoking
 // this function on the first and subsequent calls.
 func (bo *breachedOutput) BuildWitness(signer lnwallet.Signer, txn *wire.MsgTx,
-	hashCache *txscript.TxSigHashes, txinIdx int) ([][]byte, error) {
+	txinIdx int) ([][]byte, error) {
 
 	// First, we ensure that the witness generation function has been
 	// initialized for this breached output.
@@ -823,7 +827,7 @@ func (bo *breachedOutput) BuildWitness(signer lnwallet.Signer, txn *wire.MsgTx,
 	// Now that we have ensured that the witness generation function has
 	// been initialized, we can proceed to execute it and generate the
 	// witness for this particular breached output.
-	return bo.witnessFunc(txn, hashCache, txinIdx)
+	return bo.witnessFunc(txn, txinIdx)
 }
 
 // BlocksToMaturity returns the relative timelock, as a number of blocks, that
@@ -982,7 +986,7 @@ func (b *breachArbiter) createJusticeTx(
 		var sigScriptSize int64
 		switch input.WitnessType() {
 		case lnwallet.CommitmentNoDelay:
-			sigScriptSize = lnwallet.P2WKHWitnessSize
+			sigScriptSize = lnwallet.P2PKHSigScriptSize
 
 		case lnwallet.CommitmentRevoke:
 			sigScriptSize = lnwallet.ToLocalPenaltySigScriptSize
@@ -1034,11 +1038,11 @@ func (b *breachArbiter) sweepSpendableOutputsTxn(txSize int64,
 
 	// We'll actually attempt to target inclusion within the next two
 	// blocks as we'd like to sweep these funds back into our wallet ASAP.
-	feePerKw, err := b.cfg.Estimator.EstimateFeePerKW(2)
+	feePerKB, err := b.cfg.Estimator.EstimateFeePerKB(2)
 	if err != nil {
 		return nil, err
 	}
-	txFee := feePerKw.FeeForSize(txSize)
+	txFee := feePerKB.FeeForSize(txSize)
 
 	// TODO(roasbeef): already start to siphon their funds into fees
 	sweepAmt := int64(totalAmt - txFee)
@@ -1063,14 +1067,9 @@ func (b *breachArbiter) sweepSpendableOutputsTxn(txSize int64,
 
 	// Before signing the transaction, check to ensure that it meets some
 	// basic validity requirements.
-	btx := dcrutil.NewTx(txn)
-	if err := blockchain.CheckTransactionSanity(btx); err != nil {
+	if err := blockchain.CheckTransactionSanity(txn, b.cfg.NetParams); err != nil {
 		return nil, err
 	}
-
-	// Create a sighash cache to improve the performance of hashing and
-	// signing SigHashAll inputs.
-	hashCache := txscript.NewTxSigHashes(txn)
 
 	// Create a closure that encapsulates the process of initializing a
 	// particular output's witness generation function, computing the
@@ -1081,17 +1080,16 @@ func (b *breachArbiter) sweepSpendableOutputsTxn(txSize int64,
 		// First, we construct a valid witness for this outpoint and
 		// transaction using the SpendableOutput's witness generation
 		// function.
-		witness, err := so.BuildWitness(b.cfg.Signer, txn, hashCache,
-			idx)
+		witness, err := so.BuildWitness(b.cfg.Signer, txn, idx)
 		if err != nil {
 			return err
 		}
 
 		// Then, we add the witness to the transaction at the
 		// appropriate txin index.
-		txn.TxIn[idx].Witness = witness
+		txn.TxIn[idx].SignatureScript, err = lnwallet.WitnessStackToSigScript(witness)
 
-		return nil
+		return err
 	}
 
 	// Finally, generate a witness for each output and attach it to the

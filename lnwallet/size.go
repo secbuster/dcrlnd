@@ -251,7 +251,7 @@ const (
 	// [tx-type][code-path]sigScriptSize. See the above *RedeemScriptSize
 	// comments for explanations of each possible tx type/redeem script.
 
-	// fundingOutputSigScriptSize is the size of a sigScript used when
+	// FundingOutputSigScriptSize is the size of a sigScript used when
 	// redeeming a funding transaction output. This includes signatures for
 	// both alice's and bob's keys plus the 2-of-2 multisig redeemScript. It
 	// is calculated as:
@@ -264,7 +264,7 @@ const (
 	//		- multisig_2of2_script          71 bytes
 	//
 	// Total: 220 bytes
-	fundingOutputSigScriptSize int64 = 1 + 73 + 1 + 73 + 1 +
+	FundingOutputSigScriptSize int64 = 1 + 73 + 1 + 73 + 1 +
 		multiSig2Of2RedeemScriptSize
 
 	// ToLocalTimeoutSigScriptSize is the size of sigScript used when
@@ -429,7 +429,7 @@ const (
 	// Total: 364 bytes
 	CommitmentTxSize int64 = baseTxSize + 1 + inputSize + 2 +
 		outputSize + 1 + P2PKHPkScriptSize + outputSize + 1 + P2SHPkScriptSize +
-		1 + 1 + fundingOutputSigScriptSize
+		1 + 1 + FundingOutputSigScriptSize
 
 	// htlcTimeoutSize is the worst case (largest) size of the HTLC timeout
 	// transaction which will transition an outgoing HTLC to the delay-and-claim

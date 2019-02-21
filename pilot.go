@@ -30,7 +30,7 @@ func (c *chanController) OpenChannel(target *secp256k1.PublicKey,
 
 	// With the connection established, we'll now establish our connection
 	// to the target peer, waiting for the first update before we exit.
-	feePerKw, err := c.server.cc.feeEstimator.EstimateFeePerKW(3)
+	feePerKB, err := c.server.cc.feeEstimator.EstimateFeePerKB(3)
 	if err != nil {
 		return err
 	}
@@ -46,7 +46,7 @@ func (c *chanController) OpenChannel(target *secp256k1.PublicKey,
 		localFundingAmt: amt,
 		pushAmt:         0,
 		minHtlc:         minHtlc,
-		fundingFeePerKw: feePerKw,
+		fundingFeePerKw: feePerKB,
 		private:         c.private,
 		remoteCsvDelay:  0,
 		minConfs:        c.minConfs,

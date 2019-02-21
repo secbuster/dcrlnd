@@ -25,7 +25,6 @@ type mockSigner struct {
 
 func (m *mockSigner) SignOutputRaw(tx *wire.MsgTx,
 	signDesc *lnwallet.SignDescriptor) ([]byte, error) {
-	amt := signDesc.Output.Value
 	witnessScript := signDesc.WitnessScript
 	privKey := m.key
 
@@ -42,8 +41,8 @@ func (m *mockSigner) SignOutputRaw(tx *wire.MsgTx,
 			signDesc.DoubleTweak)
 	}
 
-	sig, err := txscript.RawTxInWitnessSignature(tx, signDesc.SigHashes,
-		signDesc.InputIndex, amt, witnessScript, signDesc.HashType,
+	sig, err := txscript.RawTxInSignature(tx,
+		signDesc.InputIndex, witnessScript, signDesc.HashType,
 		privKey)
 	if err != nil {
 		return nil, err
@@ -69,15 +68,15 @@ func (m *mockSigner) ComputeInputScript(tx *wire.MsgTx,
 			signDesc.DoubleTweak)
 	}
 
-	witnessScript, err := txscript.WitnessSignature(tx, signDesc.SigHashes,
-		signDesc.InputIndex, signDesc.Output.Value, signDesc.Output.PkScript,
+	sigScript, err := txscript.SignatureScript(tx,
+		signDesc.InputIndex, signDesc.Output.PkScript,
 		signDesc.HashType, privKey, true)
 	if err != nil {
 		return nil, err
 	}
 
 	return &lnwallet.InputScript{
-		Witness: witnessScript,
+		ScriptSig: sigScript,
 	}, nil
 }
 

@@ -10,6 +10,7 @@ import (
 	"net"
 	"os"
 
+	"github.com/decred/dcrd/chaincfg"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrd/dcrutil"
@@ -92,10 +93,12 @@ func createTestPeer(notifier chainntnfs.ChainNotifier,
 	publTx chan *wire.MsgTx) (*peer, *lnwallet.LightningChannel,
 	*lnwallet.LightningChannel, func(), error) {
 
+	chainParams := &chaincfg.RegNetParams
+
 	aliceKeyPriv, aliceKeyPub := secp256k1.PrivKeyFromBytes(alicesPrivKey)
 	bobKeyPriv, bobKeyPub := secp256k1.PrivKeyFromBytes(bobsPrivKey)
 
-	channelCapacity := dcrcutil.Amount(10 * 1e8)
+	channelCapacity := dcrutil.Amount(10 * 1e8)
 	channelBal := channelCapacity / 2
 	aliceDustLimit := dcrutil.Amount(200)
 	bobDustLimit := dcrutil.Amount(1300)
@@ -159,7 +162,7 @@ func createTestPeer(notifier chainntnfs.ChainNotifier,
 		},
 	}
 
-	bobRoot, err := chainhash.NewHash(bobKeyPriv.Serialize())
+	bobRoot, err := shachain.NewHash(bobKeyPriv.Serialize())
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
@@ -170,7 +173,7 @@ func createTestPeer(notifier chainntnfs.ChainNotifier,
 	}
 	bobCommitPoint := lnwallet.ComputeCommitmentPoint(bobFirstRevoke[:])
 
-	aliceRoot, err := chainhash.NewHash(aliceKeyPriv.Serialize())
+	aliceRoot, err := shachain.NewHash(aliceKeyPriv.Serialize())
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
@@ -183,7 +186,7 @@ func createTestPeer(notifier chainntnfs.ChainNotifier,
 
 	aliceCommitTx, bobCommitTx, err := lnwallet.CreateCommitmentTxns(channelBal,
 		channelBal, &aliceCfg, &bobCfg, aliceCommitPoint, bobCommitPoint,
-		*fundingTxIn)
+		*fundingTxIn, chainParams)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
@@ -201,7 +204,7 @@ func createTestPeer(notifier chainntnfs.ChainNotifier,
 	}
 
 	estimator := lnwallet.NewStaticFeeEstimator(12500, 0)
-	feePerKw, err := estimator.EstimateFeePerKW(1)
+	feePerKB, err := estimator.EstimateFeePerKB(1)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
@@ -211,8 +214,8 @@ func createTestPeer(notifier chainntnfs.ChainNotifier,
 		CommitHeight:  0,
 		LocalBalance:  lnwire.NewMSatFromSatoshis(channelBal),
 		RemoteBalance: lnwire.NewMSatFromSatoshis(channelBal),
-		FeePerKw:      dcrutil.Amount(feePerKw),
-		CommitFee:     feePerKw.FeeForSize(lnwallet.CommitmentTxSize),
+		FeePerKw:      dcrutil.Amount(feePerKB),
+		CommitFee:     feePerKB.FeeForSize(lnwallet.CommitmentTxSize),
 		CommitTx:      aliceCommitTx,
 		CommitSig:     bytes.Repeat([]byte{1}, 71),
 	}
@@ -220,8 +223,8 @@ func createTestPeer(notifier chainntnfs.ChainNotifier,
 		CommitHeight:  0,
 		LocalBalance:  lnwire.NewMSatFromSatoshis(channelBal),
 		RemoteBalance: lnwire.NewMSatFromSatoshis(channelBal),
-		FeePerKw:      dcrutil.Amount(feePerKw),
-		CommitFee:     feePerKw.FeeForSize(lnwallet.CommitmentTxSize),
+		FeePerKw:      dcrutil.Amount(feePerKB),
+		CommitFee:     feePerKB.FeeForSize(lnwallet.CommitmentTxSize),
 		CommitTx:      bobCommitTx,
 		CommitSig:     bytes.Repeat([]byte{1}, 71),
 	}

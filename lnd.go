@@ -34,7 +34,9 @@ import (
 	"google.golang.org/grpc/credentials"
 
 	"github.com/decred/dcrd/dcrec/secp256k1"
+	walletloader "github.com/decred/dcrwallet/loader"
 	"github.com/decred/dcrwallet/wallet"
+	"github.com/decred/dcrwallet/wallet/txrules"
 	proxy "github.com/grpc-ecosystem/grpc-gateway/runtime"
 	flags "github.com/jessevdk/go-flags"
 
@@ -112,16 +114,16 @@ func lndMain() error {
 
 	var network string
 	switch {
-	case cfg.Bitcoin.TestNet3 || cfg.Litecoin.TestNet3:
+	case cfg.Decred.TestNet3:
 		network = "testnet"
 
-	case cfg.Bitcoin.MainNet || cfg.Litecoin.MainNet:
+	case cfg.Decred.MainNet:
 		network = "mainnet"
 
-	case cfg.Bitcoin.SimNet:
+	case cfg.Decred.SimNet:
 		network = "simnet"
 
-	case cfg.Bitcoin.RegTest:
+	case cfg.Decred.RegTest:
 		network = "regtest"
 	}
 
@@ -347,7 +349,7 @@ func lndMain() error {
 	// continue the start up of the remainder of the daemon. This ensures
 	// that we don't accept any possibly invalid state transitions, or
 	// accept channels with spent funds.
-	if !(cfg.Bitcoin.SimNet || cfg.Litecoin.SimNet) {
+	if !(cfg.Decred.SimNet) {
 		_, bestHeight, err := activeChainControl.chainIO.GetBestBlock()
 		if err != nil {
 			return err
@@ -660,10 +662,7 @@ func waitForWalletPassword(grpcEndpoints, restEndpoints []net.Addr,
 	// provided over RPC.
 	grpcServer := grpc.NewServer(serverOpts...)
 
-	chainConfig := cfg.Bitcoin
-	if registeredChains.PrimaryChain() == litecoinChain {
-		chainConfig = cfg.Litecoin
-	}
+	chainConfig := cfg.Decred
 
 	// The macaroon files are passed to the wallet unlocker since they are
 	// also encrypted with the wallet's password. These files will be
@@ -780,16 +779,17 @@ func waitForWalletPassword(grpcEndpoints, restEndpoints []net.Addr,
 		netDir := dcrwallet.NetworkDir(
 			chainConfig.ChainDir, activeNetParams.Params,
 		)
-		loader := wallet.NewLoader(
-			activeNetParams.Params, netDir, uint32(recoveryWindow),
-		)
+		loader := walletloader.NewLoader(activeNetParams.Params, netDir,
+			&walletloader.StakeOptions{}, wallet.DefaultGapLimit, false,
+			txrules.DefaultRelayFeePerKb.ToCoin(), wallet.DefaultAccountGapLimit)
 
 		// With the seed, we can now use the wallet loader to create
 		// the wallet, then pass it back to avoid unlocking it again.
 		birthday := cipherSeed.BirthdayTime()
 		newWallet, err := loader.CreateNewWallet(
-			password, password, cipherSeed.Entropy[:], birthday,
+			password, password, cipherSeed.Entropy[:],
 		)
+
 		if err != nil {
 			// Don't leave the file open in case the new wallet
 			// could not be created for whatever reason.
