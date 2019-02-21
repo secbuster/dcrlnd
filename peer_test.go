@@ -157,11 +157,11 @@ func TestPeerChannelClosureAcceptFeeInitiator(t *testing.T) {
 	}
 
 	estimator := lnwallet.NewStaticFeeEstimator(12500, 0)
-	feePerKw, err := estimator.EstimateFeePerKW(1)
+	feePerKB, err := estimator.EstimateFeePerKB(1)
 	if err != nil {
 		t.Fatalf("unable to query fee estimator: %v", err)
 	}
-	fee := responderChan.CalcFee(feePerKw)
+	fee := responderChan.CalcFee(feePerKB)
 	closeSig, _, _, err := responderChan.CreateCloseProposal(fee,
 		dummyDeliveryScript, initiatorDeliveryScript)
 	if err != nil {
@@ -447,7 +447,7 @@ func TestPeerChannelClosureFeeNegotiationsInitiator(t *testing.T) {
 	}
 
 	estimator := lnwallet.NewStaticFeeEstimator(12500, 0)
-	initiatorIdealFeeRate, err := estimator.EstimateFeePerKW(1)
+	initiatorIdealFeeRate, err := estimator.EstimateFeePerKB(1)
 	if err != nil {
 		t.Fatalf("unable to query fee estimator: %v", err)
 	}

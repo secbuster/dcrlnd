@@ -18,6 +18,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/decred/dcrd/chaincfg"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrd/dcrutil"
@@ -182,7 +183,7 @@ var (
 		{
 			amt:         dcrutil.Amount(3e4),
 			outpoint:    breachOutPoints[2],
-			witnessType: lnwallet.CommitmentDelayOutput,
+			witnessType: lnwallet.CommitmentTimeLock,
 			signDesc: lnwallet.SignDescriptor{
 				SingleTweak: []byte{
 					0x02, 0x02, 0x02, 0x02, 0x02, 0x02,
@@ -1342,7 +1343,7 @@ func createTestArbiter(t *testing.T, contractBreaches chan *ContractBreachEvent,
 		Notifier:           notifier,
 		PublishTransaction: func(_ *wire.MsgTx) error { return nil },
 		Store:              store,
-		NetParams: 			&chaincfg.RegNetParams,
+		NetParams:          &chaincfg.RegNetParams,
 	})
 
 	if err := ba.Start(); err != nil {
@@ -1361,6 +1362,8 @@ func createTestArbiter(t *testing.T, contractBreaches chan *ContractBreachEvent,
 // with 5 DCR allocated to each side. Within the channel, Alice is the
 // initiator.
 func createInitChannels(revocationWindow int) (*lnwallet.LightningChannel, *lnwallet.LightningChannel, func(), error) {
+
+	chainParams := &chaincfg.RegNetParams
 
 	aliceKeyPriv, aliceKeyPub := secp256k1.PrivKeyFromBytes(alicesPrivKey)
 	bobKeyPriv, bobKeyPub := secp256k1.PrivKeyFromBytes(bobsPrivKey)
@@ -1433,7 +1436,7 @@ func createInitChannels(revocationWindow int) (*lnwallet.LightningChannel, *lnwa
 		},
 	}
 
-	bobRoot, err := chainhash.NewHash(bobKeyPriv.Serialize())
+	bobRoot, err := shachain.NewHash(bobKeyPriv.Serialize())
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -1444,7 +1447,7 @@ func createInitChannels(revocationWindow int) (*lnwallet.LightningChannel, *lnwa
 	}
 	bobCommitPoint := lnwallet.ComputeCommitmentPoint(bobFirstRevoke[:])
 
-	aliceRoot, err := chainhash.NewHash(aliceKeyPriv.Serialize())
+	aliceRoot, err := shachain.NewHash(aliceKeyPriv.Serialize())
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -1457,7 +1460,7 @@ func createInitChannels(revocationWindow int) (*lnwallet.LightningChannel, *lnwa
 
 	aliceCommitTx, bobCommitTx, err := lnwallet.CreateCommitmentTxns(channelBal,
 		channelBal, &aliceCfg, &bobCfg, aliceCommitPoint, bobCommitPoint,
-		*fundingTxIn)
+		*fundingTxIn, chainParams)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -1475,7 +1478,7 @@ func createInitChannels(revocationWindow int) (*lnwallet.LightningChannel, *lnwa
 	}
 
 	estimator := lnwallet.NewStaticFeeEstimator(12500, 0)
-	feePerKw, err := estimator.EstimateFeePerKW(1)
+	feePerKB, err := estimator.EstimateFeePerKB(1)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -1485,7 +1488,7 @@ func createInitChannels(revocationWindow int) (*lnwallet.LightningChannel, *lnwa
 		CommitHeight:  0,
 		LocalBalance:  lnwire.NewMSatFromSatoshis(channelBal),
 		RemoteBalance: lnwire.NewMSatFromSatoshis(channelBal),
-		FeePerKw:      dcrutil.Amount(feePerKw),
+		FeePerKw:      dcrutil.Amount(feePerKB),
 		CommitFee:     8688,
 		CommitTx:      aliceCommitTx,
 		CommitSig:     bytes.Repeat([]byte{1}, 71),
@@ -1494,7 +1497,7 @@ func createInitChannels(revocationWindow int) (*lnwallet.LightningChannel, *lnwa
 		CommitHeight:  0,
 		LocalBalance:  lnwire.NewMSatFromSatoshis(channelBal),
 		RemoteBalance: lnwire.NewMSatFromSatoshis(channelBal),
-		FeePerKw:      dcrutil.Amount(feePerKw),
+		FeePerKw:      dcrutil.Amount(feePerKB),
 		CommitFee:     8688,
 		CommitTx:      bobCommitTx,
 		CommitSig:     bytes.Repeat([]byte{1}, 71),
@@ -1692,4 +1695,3 @@ func forceStateTransition(chanA, chanB *lnwallet.LightningChannel) error {
 
 	return nil
 }
-
