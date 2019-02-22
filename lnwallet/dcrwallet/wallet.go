@@ -63,32 +63,35 @@ var _ lnwallet.WalletController = (*DcrWallet)(nil)
 // New returns a new fully initialized instance of DcrWallet given a valid
 // configuration struct.
 func New(cfg Config) (*DcrWallet, error) {
-	// Ensure the wallet exists or create it when the create flag is set.
-	netDir := NetworkDir(cfg.DataDir, cfg.NetParams)
 
-	loader := walletloader.NewLoader(cfg.NetParams, netDir,
-		&walletloader.StakeOptions{}, base.DefaultGapLimit, false,
-		txrules.DefaultRelayFeePerKb.ToCoin(), base.DefaultAccountGapLimit)
-	walletExists, err := loader.WalletExists()
-	if err != nil {
-		return nil, err
-	}
+	wallet := cfg.Wallet
+	if cfg.Wallet == nil {
+		// Ensure the wallet exists or create it when the create flag is set.
+		netDir := NetworkDir(cfg.DataDir, cfg.NetParams)
 
-	var wallet *base.Wallet
-	if !walletExists {
-		// Wallet has never been created, perform initial set up.
-		wallet, err = loader.CreateNewWallet(cfg.PublicPass, cfg.PrivatePass,
-			cfg.HdSeed)
+		loader := walletloader.NewLoader(cfg.NetParams, netDir,
+			&walletloader.StakeOptions{}, base.DefaultGapLimit, false,
+			txrules.DefaultRelayFeePerKb.ToCoin(), base.DefaultAccountGapLimit)
+		walletExists, err := loader.WalletExists()
 		if err != nil {
 			return nil, err
 		}
-	} else {
-		// Wallet has been created and been initialized at this point,
-		// open it along with all the required DB namepsaces, and the
-		// DB itself.
-		wallet, err = loader.OpenExistingWallet(cfg.PublicPass)
-		if err != nil {
-			return nil, err
+
+		if !walletExists {
+			// Wallet has never been created, perform initial set up.
+			wallet, err = loader.CreateNewWallet(cfg.PublicPass, cfg.PrivatePass,
+				cfg.HdSeed)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			// Wallet has been created and been initialized at this point,
+			// open it along with all the required DB namepsaces, and the
+			// DB itself.
+			wallet, err = loader.OpenExistingWallet(cfg.PublicPass)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -153,9 +156,9 @@ func (b *DcrWallet) Start() error {
 		ctx := context.TODO()
 		err := syncer.Run(ctx, true)
 
-		// TODO(decred) Log or surface sync errors.
-		_ = err
+		dcrwLog.Errorf("Wallet rpc syncer failed: %v", err)
 		if err != nil {
+			// TODO(decred) What to do?
 			panic(err)
 		}
 	}()
@@ -168,6 +171,7 @@ func (b *DcrWallet) Start() error {
 //
 // This is a part of the WalletController interface.
 func (b *DcrWallet) Stop() error {
+	dcrwLog.Debug("Requesting wallet shutdown")
 	b.wallet.Stop()
 
 	b.wallet.WaitForShutdown()

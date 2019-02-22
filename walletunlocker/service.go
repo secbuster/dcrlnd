@@ -257,7 +257,10 @@ func (u *UnlockerService) UnlockWallet(ctx context.Context,
 	in *lnrpc.UnlockWalletRequest) (*lnrpc.UnlockWalletResponse, error) {
 
 	password := in.WalletPassword
-	gapLimit := int(in.RecoveryWindow)
+	gapLimit := wallet.DefaultGapLimit
+	if int(in.RecoveryWindow) > gapLimit {
+		gapLimit = int(in.RecoveryWindow)
+	}
 
 	netDir := dcrwallet.NetworkDir(u.chainDir, u.netParams)
 	loader := walletloader.NewLoader(u.netParams, netDir,

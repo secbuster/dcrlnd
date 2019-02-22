@@ -253,7 +253,7 @@ func (b *DcrdFeeEstimator) fetchEstimate(confTarget uint32) (AtomPerKByte, error
 		atomsPerKB = b.minFeePerKB
 	}
 
-	walletLog.Debugf("Returning %s for conf target of %s",
+	walletLog.Debugf("Returning %s for conf target of %d",
 		atomsPerKB, confTarget)
 
 	return atomsPerKB, nil

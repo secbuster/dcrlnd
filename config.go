@@ -31,7 +31,7 @@ import (
 )
 
 const (
-	defaultConfigFilename      = "lnd.conf"
+	defaultConfigFilename      = "dcrlnd.conf"
 	defaultDataDirname         = "data"
 	defaultChainSubDirname     = "chain"
 	defaultGraphSubDirname     = "graph"
@@ -197,7 +197,7 @@ type config struct {
 	UnsafeReplay       bool `long:"unsafe-replay" description:"Causes a link to replay the adds on its commitment txn after starting up, this enables testing of the sphinx replay logic."`
 	MaxPendingChannels int  `long:"maxpendingchannels" description:"The maximum number of incoming pending channels permitted per peer."`
 
-	Decred  *chainConfig `group:"Decred" namespace:"decred"`
+	Decred   *chainConfig `group:"Decred" namespace:"decred"`
 	DcrdMode *dcrdConfig  `group:"dcrd" namespace:"dcrd"`
 
 	Autopilot *autoPilotConfig `group:"Autopilot" namespace:"autopilot"`

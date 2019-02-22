@@ -155,7 +155,7 @@ func extractPathArgs(ctx *cli.Context) (string, string, error) {
 	// specified.
 	chain := strings.ToLower(ctx.GlobalString("chain"))
 	switch chain {
-	case "bitcoin", "litecoin":
+	case "decred":
 	default:
 		return "", "", fmt.Errorf("unknown chain: %v", chain)
 	}
@@ -222,6 +222,11 @@ func main() {
 			Name:  "tlscertpath",
 			Value: defaultTLSCertPath,
 			Usage: "path to TLS certificate",
+		},
+		cli.StringFlag{
+			Name:  "chain, c",
+			Usage: "the chain lnd is running on e.g. decred",
+			Value: "decred",
 		},
 		cli.StringFlag{
 			Name: "network, n",
