@@ -16,7 +16,7 @@ else
     TAG=$1
 fi
 
-PACKAGE=lnd
+PACKAGE=dcrlnd
 MAINDIR=$PACKAGE-$TAG
 mkdir -p $MAINDIR
 cd $MAINDIR
@@ -27,7 +27,7 @@ SYS=${LNDBUILDSYS:-"windows-386 windows-amd64 openbsd-386 openbsd-amd64 linux-38
 
 # Use the first element of $GOPATH in the case where GOPATH is a list
 # (something that is totally allowed).
-PKG="github.com/lightningnetwork/lnd"
+PKG="github.com/decred/dcrlnd"
 COMMIT=$(git describe --abbrev=40 --dirty)
 COMMITFLAGS="-X $PKG/build.Commit=$COMMIT"
 
@@ -45,8 +45,8 @@ for i in $SYS; do
     mkdir $PACKAGE-$i-$TAG
     cd $PACKAGE-$i-$TAG
     echo "Building:" $OS $ARCH $ARM
-    env GOOS=$OS GOARCH=$ARCH GOARM=$ARM go build -v -ldflags "$COMMITFLAGS" github.com/lightningnetwork/lnd
-    env GOOS=$OS GOARCH=$ARCH GOARM=$ARM go build -v -ldflags "$COMMITFLAGS" github.com/lightningnetwork/lnd/cmd/lncli
+    env GOOS=$OS GOARCH=$ARCH GOARM=$ARM go build -v -ldflags "$COMMITFLAGS" github.com/decred/dcrlnd
+    env GOOS=$OS GOARCH=$ARCH GOARM=$ARM go build -v -ldflags "$COMMITFLAGS" github.com/decred/dcrlnd/cmd/lncli
     cd ..
     if [[ $OS = "windows" ]]; then
 	zip -r $PACKAGE-$i-$TAG.zip $PACKAGE-$i-$TAG
