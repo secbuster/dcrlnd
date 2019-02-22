@@ -335,7 +335,7 @@ func (tc *testContext) extractFundingInput() (*Utxo, *wire.TxOut, error) {
 	}
 
 	block1Utxo := Utxo{
-		AddressType: WitnessPubKey,
+		AddressType: PubKeyHash,
 		Value:       dcrutil.Amount(txout.Value),
 		OutPoint: wire.OutPoint{
 			Hash:  *tx.Hash(),

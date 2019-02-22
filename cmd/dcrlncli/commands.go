@@ -122,13 +122,11 @@ func newAddress(ctx *cli.Context) error {
 	// type enum. An unrecognized address type will result in an error.
 	var addrType lnrpc.AddressType
 	switch stringAddrType { // TODO(roasbeef): make them ints on the cli?
-	case "p2wkh":
-		addrType = lnrpc.AddressType_WITNESS_PUBKEY_HASH
-	case "np2wkh":
-		addrType = lnrpc.AddressType_NESTED_PUBKEY_HASH
+	case "p2pkh":
+		addrType = lnrpc.AddressType_PUBKEY_HASH
 	default:
 		return fmt.Errorf("invalid address type %v, support address type "+
-			"are: p2wkh and np2wkh", stringAddrType)
+			"are: p2pkh", stringAddrType)
 	}
 
 	ctxb := context.Background()

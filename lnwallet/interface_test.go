@@ -1102,7 +1102,7 @@ func testListTransactionDetails(miner *rpctest.Harness,
 	const outputAmt = dcrutil.AtomsPerCoin
 	txids := make(map[chainhash.Hash]struct{})
 	for i := 0; i < numTxns; i++ {
-		addr, err := alice.NewAddress(lnwallet.WitnessPubKey, false)
+		addr, err := alice.NewAddress(lnwallet.PubKeyHash, false)
 		if err != nil {
 			t.Fatalf("unable to create new address: %v", err)
 		}
@@ -1359,7 +1359,7 @@ func testTransactionSubscriptions(miner *rpctest.Harness,
 	// Next, fetch a fresh address from the wallet, create 3 new outputs
 	// with the pkScript.
 	for i := 0; i < numTxns; i++ {
-		addr, err := alice.NewAddress(lnwallet.WitnessPubKey, false)
+		addr, err := alice.NewAddress(lnwallet.PubKeyHash, false)
 		if err != nil {
 			t.Fatalf("unable to create new address: %v", err)
 		}
@@ -2169,7 +2169,7 @@ func testChangeOutputSpendConfirmation(r *rpctest.Harness,
 	}
 
 	// Now, we'll send an output back to Alice from Bob of 1 DCR.
-	alicePkScript := newPkScript(t, alice, lnwallet.WitnessPubKey)
+	alicePkScript := newPkScript(t, alice, lnwallet.PubKeyHash)
 	output = &wire.TxOut{
 		Value:    dcrutil.AtomsPerCoin,
 		PkScript: alicePkScript,

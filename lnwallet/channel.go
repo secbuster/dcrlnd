@@ -2399,6 +2399,8 @@ func (lc *LightningChannel) createCommitmentTx(c *commitment,
 		}
 	}
 
+	fmt.Println(spew.Sdump(commitTx))
+
 	// Set the state hint of the commitment transaction to facilitate
 	// quickly recovering the necessary penalty state in the case of an
 	// uncooperative broadcast.
@@ -5765,7 +5767,7 @@ func (lc *LightningChannel) CreateCloseProposal(proposedFee dcrutil.Amount,
 	// consensus rules such as being too big, or having any value with a
 	// negative output.
 	if err := blockchain.CheckTransactionSanity(closeTx, lc.netParams); err != nil {
-		return nil, nil, 0, err
+		return nil, nil, 0, fmt.Errorf("transaction not sane: %v", err)
 	}
 
 	// Finally, sign the completed cooperative closure transaction. As the

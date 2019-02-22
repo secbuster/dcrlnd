@@ -176,7 +176,7 @@ func (n *NetworkHarness) SetUp(lndArgs []string) error {
 	// each.
 	ctxb := context.Background()
 	addrReq := &lnrpc.NewAddressRequest{
-		Type: lnrpc.AddressType_WITNESS_PUBKEY_HASH,
+		Type: lnrpc.AddressType_PUBKEY_HASH,
 	}
 	clients := []lnrpc.LightningClient{n.Alice, n.Bob}
 	for _, client := range clients {
@@ -1203,7 +1203,7 @@ func (n *NetworkHarness) SendCoins(ctx context.Context, amt dcrutil.Amount,
 	target *HarnessNode) error {
 
 	return n.sendCoins(
-		ctx, amt, target, lnrpc.AddressType_WITNESS_PUBKEY_HASH,
+		ctx, amt, target, lnrpc.AddressType_PUBKEY_HASH,
 		true,
 	)
 }
@@ -1215,19 +1215,8 @@ func (n *NetworkHarness) SendCoinsUnconfirmed(ctx context.Context,
 	amt dcrutil.Amount, target *HarnessNode) error {
 
 	return n.sendCoins(
-		ctx, amt, target, lnrpc.AddressType_WITNESS_PUBKEY_HASH,
+		ctx, amt, target, lnrpc.AddressType_PUBKEY_HASH,
 		false,
-	)
-}
-
-// SendCoinsNP2WKH attempts to send amt satoshis from the internal mining node
-// to the targeted lightning node using a NP2WKH address.
-func (n *NetworkHarness) SendCoinsNP2WKH(ctx context.Context,
-	amt dcrutil.Amount, target *HarnessNode) error {
-
-	return n.sendCoins(
-		ctx, amt, target, lnrpc.AddressType_NESTED_PUBKEY_HASH,
-		true,
 	)
 }
 

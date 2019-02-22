@@ -1295,7 +1295,7 @@ func (l *LightningWallet) selectCoinsAndChange(feeRate AtomPerKByte,
 	// selection, but only if the addition of the output won't lead to the
 	// creation of dust.
 	if changeAmt != 0 && changeAmt > DefaultDustLimit() {
-		changeAddr, err := l.NewAddress(WitnessPubKey, true)
+		changeAddr, err := l.NewAddress(PubKeyHash, true)
 		if err != nil {
 			return err
 		}

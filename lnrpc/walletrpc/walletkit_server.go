@@ -234,7 +234,7 @@ func (w *WalletKit) DeriveKey(ctx context.Context,
 func (w *WalletKit) NextAddr(ctx context.Context,
 	req *AddrRequest) (*AddrResponse, error) {
 
-	addr, err := w.cfg.Wallet.NewAddress(lnwallet.WitnessPubKey, false)
+	addr, err := w.cfg.Wallet.NewAddress(lnwallet.PubKeyHash, false)
 	if err != nil {
 		return nil, err
 	}
