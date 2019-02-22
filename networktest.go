@@ -789,7 +789,7 @@ func (n *networkHarness) SetUp() error {
 	// each.
 	ctxb := context.Background()
 	addrReq := &lnrpc.NewAddressRequest{
-		Type: lnrpc.AddressType_WITNESS_PUBKEY_HASH,
+		Type: lnrpc.AddressType_PUBKEY_HASH,
 	}
 	clients := []lnrpc.LightningClient{n.Alice, n.Bob}
 	for _, client := range clients {
@@ -1365,7 +1365,7 @@ func (n *networkHarness) SendCoins(ctx context.Context, amt dcrutil.Amount,
 	// to receive a p2wkh address s.t the output can immediately be used as
 	// an input to a funding transaction.
 	addrReq := &lnrpc.NewAddressRequest{
-		Type: lnrpc.AddressType_WITNESS_PUBKEY_HASH,
+		Type: lnrpc.AddressType_PUBKEY_HASH,
 	}
 	resp, err := target.NewAddress(ctx, addrReq)
 	if err != nil {

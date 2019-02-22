@@ -624,8 +624,7 @@ func getChanInfo(ctx context.Context, node *lntest.HarnessNode) (
 }
 
 const (
-	AddrTypeWitnessPubkeyHash = lnrpc.AddressType_WITNESS_PUBKEY_HASH
-	AddrTypeNestedPubkeyHash  = lnrpc.AddressType_NESTED_PUBKEY_HASH
+	AddrTypePubkeyHash = lnrpc.AddressType_WITNESS_PUBKEY_HASH
 )
 
 // testOnchainFundRecovery checks lnd's ability to rescan for onchain outputs
@@ -704,44 +703,23 @@ func testOnchainFundRecovery(net *lntest.NetworkHarness, t *harnessTest) {
 	// behavior to both default P2WKH and NP2WKH scopes.
 	skipAndSend := func(nskip int) func(*lntest.HarnessNode) {
 		return func(node *lntest.HarnessNode) {
-			newP2WKHAddrReq := &lnrpc.NewAddressRequest{
-				Type: AddrTypeWitnessPubkeyHash,
-			}
-
-			newNP2WKHAddrReq := &lnrpc.NewAddressRequest{
-				Type: AddrTypeNestedPubkeyHash,
+			newP2PKHAddrReq := &lnrpc.NewAddressRequest{
+				Type: AddrTypePubkeyHash,
 			}
 
 			// Generate and skip the number of addresses requested.
 			for i := 0; i < nskip; i++ {
 				ctxt, _ := context.WithTimeout(ctxb, defaultTimeout)
-				_, err = node.NewAddress(ctxt, newP2WKHAddrReq)
+				_, err = node.NewAddress(ctxt, newP2PKHAddrReq)
 				if err != nil {
 					t.Fatalf("unable to generate new "+
 						"p2wkh address: %v", err)
 				}
-
-				ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
-				_, err = node.NewAddress(ctxt, newNP2WKHAddrReq)
-				if err != nil {
-					t.Fatalf("unable to generate new "+
-						"np2wkh address: %v", err)
-				}
 			}
 
-			// Send one DCR to the next P2WKH address.
+			// Send one DCR to the next P2PKH address.
 			ctxt, _ := context.WithTimeout(ctxb, defaultTimeout)
 			err = net.SendCoins(
-				ctxt, dcrutil.AtomsPerCoin, node,
-			)
-			if err != nil {
-				t.Fatalf("unable to send coins to node: %v",
-					err)
-			}
-
-			// And another to the next NP2WKH address.
-			ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
-			err = net.SendCoinsNP2WKH(
 				ctxt, dcrutil.AtomsPerCoin, node,
 			)
 			if err != nil {

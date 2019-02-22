@@ -1542,7 +1542,7 @@ func (p *peer) ChannelSnapshots() []*channeldb.ChannelSnapshot {
 // the case of a cooperative channel close negotiation.
 func (p *peer) genDeliveryScript() ([]byte, error) {
 	deliveryAddr, err := p.server.cc.wallet.NewAddress(
-		lnwallet.WitnessPubKey, false,
+		lnwallet.PubKeyHash, false,
 	)
 	if err != nil {
 		return nil, err

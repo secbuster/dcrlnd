@@ -218,8 +218,8 @@ func (*mockWalletController) ConfirmedBalance(confs int32) (dcrutil.Amount, erro
 // NewAddress is called to get new addresses for delivery, change etc.
 func (m *mockWalletController) NewAddress(addrType lnwallet.AddressType,
 	change bool) (dcrutil.Address, error) {
-	addr, _ := dcrutil.NewAddressPubKey(
-		m.rootKey.PubKey().SerializeCompressed(), &chaincfg.MainNetParams)
+	addr, _ := dcrutil.NewAddressSecpPubKeyCompressed(
+		m.rootKey.PubKey(), &chaincfg.RegNetParams)
 	return addr, nil
 }
 
@@ -238,7 +238,7 @@ func (*mockWalletController) SendOutputs(outputs []*wire.TxOut,
 func (m *mockWalletController) ListUnspentWitness(minconfirms,
 	maxconfirms int32) ([]*lnwallet.Utxo, error) {
 	utxo := &lnwallet.Utxo{
-		AddressType: lnwallet.WitnessPubKey,
+		AddressType: lnwallet.PubKeyHash,
 		Value:       dcrutil.Amount(10 * dcrutil.AtomsPerCoin),
 		PkScript:    make([]byte, 22),
 		OutPoint: wire.OutPoint{

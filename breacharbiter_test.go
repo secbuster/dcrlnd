@@ -75,7 +75,7 @@ var (
 			0xd4, 0xc0, 0x3f, 0x99, 0x9b, 0x86, 0x43, 0xf6, 0x56,
 			0xb4, 0x12, 0xa3,
 		},
-		{0x07, 0x11, 0xdb, 0x93, 0xe1, 0xdc, 0xdb, 0x8a,
+		{0x04, 0x11, 0xdb, 0x93, 0xe1, 0xdc, 0xdb, 0x8a,
 			0x01, 0x6b, 0x49, 0x84, 0x0f, 0x8c, 0x53, 0xbc, 0x1e,
 			0xb6, 0x8a, 0x38, 0x2e, 0x97, 0xb1, 0x48, 0x2e, 0xca,
 			0xd7, 0xb1, 0x48, 0xa6, 0x90, 0x9a, 0x5c, 0xb2, 0xe0,
@@ -1373,6 +1373,13 @@ func createInitChannels(revocationWindow int) (*lnwallet.LightningChannel, *lnwa
 		return nil, nil, nil, err
 	}
 
+	estimator := lnwallet.NewStaticFeeEstimator(12500, 0)
+	feePerKB, err := estimator.EstimateFeePerKB(1)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	initiatorFee := feePerKB.FeeForSize(lnwallet.EstimateCommitmentTxSize(0))
+
 	channelBal := channelCapacity / 2
 	aliceDustLimit := dcrutil.Amount(200)
 	bobDustLimit := dcrutil.Amount(1300)
@@ -1383,7 +1390,7 @@ func createInitChannels(revocationWindow int) (*lnwallet.LightningChannel, *lnwa
 		Hash:  chainhash.Hash(testHdSeed),
 		Index: 0,
 	}
-	fundingTxIn := wire.NewTxIn(prevOut, 0, nil) // TODO(decred): Need correct input value
+	fundingTxIn := wire.NewTxIn(prevOut, int64(channelCapacity), nil)
 
 	aliceCfg := channeldb.ChannelConfig{
 		ChannelConstraints: channeldb.ChannelConstraints{
@@ -1458,7 +1465,7 @@ func createInitChannels(revocationWindow int) (*lnwallet.LightningChannel, *lnwa
 	}
 	aliceCommitPoint := lnwallet.ComputeCommitmentPoint(aliceFirstRevoke[:])
 
-	aliceCommitTx, bobCommitTx, err := lnwallet.CreateCommitmentTxns(channelBal,
+	aliceCommitTx, bobCommitTx, err := lnwallet.CreateCommitmentTxns(channelBal-initiatorFee,
 		channelBal, &aliceCfg, &bobCfg, aliceCommitPoint, bobCommitPoint,
 		*fundingTxIn, chainParams)
 	if err != nil {
@@ -1477,16 +1484,10 @@ func createInitChannels(revocationWindow int) (*lnwallet.LightningChannel, *lnwa
 		return nil, nil, nil, err
 	}
 
-	estimator := lnwallet.NewStaticFeeEstimator(12500, 0)
-	feePerKB, err := estimator.EstimateFeePerKB(1)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
 	// TODO(roasbeef): need to factor in commit fee?
 	aliceCommit := channeldb.ChannelCommitment{
 		CommitHeight:  0,
-		LocalBalance:  lnwire.NewMSatFromSatoshis(channelBal),
+		LocalBalance:  lnwire.NewMSatFromSatoshis(channelBal - initiatorFee),
 		RemoteBalance: lnwire.NewMSatFromSatoshis(channelBal),
 		FeePerKw:      dcrutil.Amount(feePerKB),
 		CommitFee:     8688,
@@ -1496,7 +1497,7 @@ func createInitChannels(revocationWindow int) (*lnwallet.LightningChannel, *lnwa
 	bobCommit := channeldb.ChannelCommitment{
 		CommitHeight:  0,
 		LocalBalance:  lnwire.NewMSatFromSatoshis(channelBal),
-		RemoteBalance: lnwire.NewMSatFromSatoshis(channelBal),
+		RemoteBalance: lnwire.NewMSatFromSatoshis(channelBal - initiatorFee),
 		FeePerKw:      dcrutil.Amount(feePerKB),
 		CommitFee:     8688,
 		CommitTx:      bobCommitTx,
@@ -1663,34 +1664,34 @@ func createHTLC(data int, amount lnwire.MilliSatoshi) (*lnwire.UpdateAddHTLC, [3
 func forceStateTransition(chanA, chanB *lnwallet.LightningChannel) error {
 	aliceSig, aliceHtlcSigs, err := chanA.SignNextCommitment()
 	if err != nil {
-		return err
+		return fmt.Errorf("error on chanA.SignNextCommitment: %v", err)
 	}
 	if err = chanB.ReceiveNewCommitment(aliceSig, aliceHtlcSigs); err != nil {
-		return err
+		return fmt.Errorf("error on chanB.ReceiveNewCommitment: %v", err)
 	}
 
 	bobRevocation, _, err := chanB.RevokeCurrentCommitment()
 	if err != nil {
-		return err
+		return fmt.Errorf("error on chanB.RevokeCurrentCommitment: %v", err)
 	}
 	bobSig, bobHtlcSigs, err := chanB.SignNextCommitment()
 	if err != nil {
-		return err
+		return fmt.Errorf("error on chanB.SignNextCommitment: %v", err)
 	}
 
 	if _, _, _, err := chanA.ReceiveRevocation(bobRevocation); err != nil {
-		return err
+		return fmt.Errorf("error on chanA.ReceiveRevocation: %v", err)
 	}
 	if err := chanA.ReceiveNewCommitment(bobSig, bobHtlcSigs); err != nil {
-		return err
+		return fmt.Errorf("error on chanA.ReceiveNewCommitment: %v", err)
 	}
 
 	aliceRevocation, _, err := chanA.RevokeCurrentCommitment()
 	if err != nil {
-		return err
+		return fmt.Errorf("error on chanA.RevokeCurrentCommitment: %v", err)
 	}
 	if _, _, _, err := chanB.ReceiveRevocation(aliceRevocation); err != nil {
-		return err
+		return fmt.Errorf("error on chanB.ReceiveRevocation: %v", err)
 	}
 
 	return nil

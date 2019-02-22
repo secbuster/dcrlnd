@@ -724,11 +724,8 @@ func (r *rpcServer) ListUnspent(ctx context.Context,
 		var addrType lnrpc.AddressType
 		switch utxo.AddressType {
 
-		case lnwallet.WitnessPubKey:
-			addrType = lnrpc.AddressType_WITNESS_PUBKEY_HASH
-
-		case lnwallet.NestedWitnessPubKey:
-			addrType = lnrpc.AddressType_NESTED_PUBKEY_HASH
+		case lnwallet.PubKeyHash:
+			addrType = lnrpc.AddressType_PUBKEY_HASH
 
 		case lnwallet.UnknownAddressType:
 			rpcsLog.Warnf("[listunspent] utxo with address of "+
@@ -856,10 +853,8 @@ func (r *rpcServer) NewAddress(ctx context.Context,
 	// available address types.
 	var addrType lnwallet.AddressType
 	switch in.Type {
-	case lnrpc.AddressType_WITNESS_PUBKEY_HASH:
-		addrType = lnwallet.WitnessPubKey
-	case lnrpc.AddressType_NESTED_PUBKEY_HASH:
-		addrType = lnwallet.NestedWitnessPubKey
+	case lnrpc.AddressType_PUBKEY_HASH:
+		addrType = lnwallet.PubKeyHash
 	}
 
 	addr, err := r.server.cc.wallet.NewAddress(addrType, false)
