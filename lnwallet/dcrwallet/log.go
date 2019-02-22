@@ -1,18 +1,21 @@
-package lnwallet
+package dcrwallet
 
 import (
 	"github.com/decred/dcrlnd/build"
+	"github.com/decred/dcrwallet/chain"
+	"github.com/decred/dcrwallet/loader"
+	base "github.com/decred/dcrwallet/wallet"
 	"github.com/decred/slog"
 )
 
-// walletLog is a logger that is initialized with no output filters.  This
+// dcrwLog is a logger that is initialized with no output filters.  This
 // means the package will not perform any logging by default until the caller
 // requests it.
-var walletLog slog.Logger
+var dcrwLog slog.Logger
 
 // The default amount of logging is none.
 func init() {
-	UseLogger(build.NewSubLogger("LNWL", nil))
+	UseLogger(build.NewSubLogger("DCRW", nil))
 }
 
 // DisableLog disables all library log output.  Logging output is disabled
@@ -25,7 +28,10 @@ func DisableLog() {
 // This should be used in preference to SetLogWriter if the caller is also
 // using slog.
 func UseLogger(logger slog.Logger) {
-	walletLog = logger
+	dcrwLog = logger
+	base.UseLogger(logger)
+	loader.UseLogger(logger)
+	chain.UseLogger(logger)
 }
 
 // logClosure is used to provide a closure over expensive logging operations

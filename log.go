@@ -19,6 +19,7 @@ import (
 	"github.com/decred/dcrlnd/lnrpc/signrpc"
 	"github.com/decred/dcrlnd/lnrpc/walletrpc"
 	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwallet/dcrwallet"
 	"github.com/decred/dcrlnd/routing"
 	"github.com/decred/dcrlnd/signal"
 	"github.com/decred/dcrlnd/sweep"
@@ -50,6 +51,7 @@ var (
 
 	ltndLog = build.NewSubLogger("LTND", backendLog.Logger)
 	lnwlLog = build.NewSubLogger("LNWL", backendLog.Logger)
+	dcrwLog = build.NewSubLogger("DCRW", backendLog.Logger)
 	peerLog = build.NewSubLogger("PEER", backendLog.Logger)
 	discLog = build.NewSubLogger("DISC", backendLog.Logger)
 	rpcsLog = build.NewSubLogger("RPCS", backendLog.Logger)
@@ -75,6 +77,7 @@ var (
 // Initialize package-global logger variables.
 func init() {
 	lnwallet.UseLogger(lnwlLog)
+	dcrwallet.UseLogger(dcrwLog)
 	discovery.UseLogger(discLog)
 	chainntnfs.UseLogger(ntfnLog)
 	channeldb.UseLogger(chdbLog)
@@ -97,6 +100,7 @@ func init() {
 var subsystemLoggers = map[string]slog.Logger{
 	"LTND": ltndLog,
 	"LNWL": lnwlLog,
+	"DCRW": dcrwLog,
 	"PEER": peerLog,
 	"DISC": discLog,
 	"RPCS": rpcsLog,
