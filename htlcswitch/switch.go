@@ -2,7 +2,6 @@ package htlcswitch
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"errors"
 	"fmt"
 	"sync"
@@ -10,6 +9,7 @@ import (
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
+	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrd/dcrutil"
 	"github.com/decred/dcrd/wire"
@@ -60,7 +60,7 @@ var (
 
 	// zeroPreimage is the empty preimage which is returned when we have
 	// some errors.
-	zeroPreimage [sha256.Size]byte
+	zeroPreimage [chainhash.HashSize]byte
 )
 
 // pendingPayment represents the payment which made by user and waits for
@@ -70,7 +70,7 @@ type pendingPayment struct {
 	paymentHash lnwallet.PaymentHash
 	amount      lnwire.MilliSatoshi
 
-	preimage chan [sha256.Size]byte
+	preimage chan [chainhash.HashSize]byte
 	err      chan error
 
 	// deobfuscator is a serializable entity which is used if we received
@@ -352,7 +352,7 @@ func (s *Switch) ProcessContractResolution(msg contractcourt.ResolutionMsg) erro
 // package in order to send the htlc update.
 func (s *Switch) SendHTLC(firstHop lnwire.ShortChannelID,
 	htlc *lnwire.UpdateAddHTLC,
-	deobfuscator ErrorDecrypter) ([sha256.Size]byte, error) {
+	deobfuscator ErrorDecrypter) ([chainhash.HashSize]byte, error) {
 
 	// Before sending, double check that we don't already have 1) an
 	// in-flight payment to this payment hash, or 2) a complete payment for
@@ -365,7 +365,7 @@ func (s *Switch) SendHTLC(firstHop lnwire.ShortChannelID,
 	// able to retrieve it and return response to the user.
 	payment := &pendingPayment{
 		err:          make(chan error, 1),
-		preimage:     make(chan [sha256.Size]byte, 1),
+		preimage:     make(chan [chainhash.HashSize]byte, 1),
 		paymentHash:  htlc.PaymentHash,
 		amount:       htlc.Amount,
 		deobfuscator: deobfuscator,
@@ -401,7 +401,7 @@ func (s *Switch) SendHTLC(firstHop lnwire.ShortChannelID,
 
 	// Returns channels so that other subsystem might wait/skip the
 	// waiting of handling of payment.
-	var preimage [sha256.Size]byte
+	var preimage [chainhash.HashSize]byte
 
 	select {
 	case e := <-payment.err:

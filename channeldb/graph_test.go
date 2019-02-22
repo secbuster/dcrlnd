@@ -2,7 +2,6 @@ package channeldb
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"fmt"
 	"image/color"
 	"math"
@@ -863,7 +862,7 @@ func TestGraphTraversal(t *testing.T) {
 	const numChannels = 5
 	chanIndex := map[uint64]struct{}{}
 	for i := 0; i < numChannels; i++ {
-		txHash := sha256.Sum256([]byte{byte(i)})
+		txHash := chainhash.HashH([]byte{byte(i)})
 		chanID := uint64(i + 1)
 		op := wire.OutPoint{
 			Hash:  txHash,
@@ -1102,7 +1101,7 @@ func TestGraphPruning(t *testing.T) {
 	channelPoints := make([]*wire.OutPoint, 0, numNodes-1)
 	edgePoints := make([]EdgePoint, 0, numNodes-1)
 	for i := 0; i < numNodes-1; i++ {
-		txHash := sha256.Sum256([]byte{byte(i)})
+		txHash := chainhash.HashH([]byte{byte(i)})
 		chanID := uint64(i + 1)
 		op := wire.OutPoint{
 			Hash:  txHash,
@@ -1131,7 +1130,7 @@ func TestGraphPruning(t *testing.T) {
 			t.Fatalf("unable to add node: %v", err)
 		}
 
-		pkScript, err := genMultiSigP2WSH(
+		pkScript, err := genMultiSigP2SH(
 			edgeInfo.BitcoinKey1Bytes[:], edgeInfo.BitcoinKey2Bytes[:],
 		)
 		if err != nil {
@@ -1205,12 +1204,12 @@ func TestGraphPruning(t *testing.T) {
 
 	// Next we'll create a block that doesn't close any channels within the
 	// graph to test the negative error case.
-	fakeHash := sha256.Sum256([]byte("test prune"))
+	fakeHash := chainhash.HashH([]byte("test prune"))
 	nonChannel := &wire.OutPoint{
 		Hash:  fakeHash,
 		Index: 9,
 	}
-	blockHash = sha256.Sum256(blockHash[:])
+	blockHash = chainhash.HashH(blockHash[:])
 	blockHeight = 2
 	prunedChans, err = graph.PruneGraph(
 		[]*wire.OutPoint{nonChannel}, &blockHash, blockHeight,
@@ -1232,7 +1231,7 @@ func TestGraphPruning(t *testing.T) {
 
 	// Finally, create a block that prunes the remainder of the channels
 	// from the graph.
-	blockHash = sha256.Sum256(blockHash[:])
+	blockHash = chainhash.HashH(blockHash[:])
 	blockHeight = 3
 	prunedChans, err = graph.PruneGraph(
 		channelPoints[2:], &blockHash, blockHeight,
@@ -1393,7 +1392,7 @@ func TestChanUpdatesInHorizon(t *testing.T) {
 	endTime := startTime
 	edges := make([]ChannelEdge, 0, numChans)
 	for i := 0; i < numChans; i++ {
-		txHash := sha256.Sum256([]byte{byte(i)})
+		txHash := chainhash.HashH([]byte{byte(i)})
 		op := wire.OutPoint{
 			Hash:  txHash,
 			Index: 0,
@@ -1895,7 +1894,7 @@ func TestFetchChanInfos(t *testing.T) {
 	edges := make([]ChannelEdge, 0, numChans)
 	edgeQuery := make([]uint64, 0, numChans)
 	for i := 0; i < numChans; i++ {
-		txHash := sha256.Sum256([]byte{byte(i)})
+		txHash := chainhash.HashH([]byte{byte(i)})
 		op := wire.OutPoint{
 			Hash:  txHash,
 			Index: 0,
@@ -1997,7 +1996,7 @@ func TestIncompleteChannelPolicies(t *testing.T) {
 	}
 
 	// Create channel between nodes.
-	txHash := sha256.Sum256([]byte{0})
+	txHash := chainhash.HashH([]byte{0})
 	op := wire.OutPoint{
 		Hash:  txHash,
 		Index: 0,

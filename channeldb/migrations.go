@@ -2,9 +2,10 @@ package channeldb
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
+
+	"github.com/decred/dcrd/chaincfg/chainhash"
 
 	bolt "go.etcd.io/bbolt"
 )
@@ -443,7 +444,7 @@ func paymentStatusesMigration(tx *bolt.Tx) error {
 		}
 
 		// Calculate payment hash for current payment.
-		paymentHash := sha256.Sum256(payment.PaymentPreimage[:])
+		paymentHash := chainhash.HashB(payment.PaymentPreimage[:])
 
 		// Update status for current payment to completed. If it fails,
 		// the migration is aborted and the payment bucket is returned

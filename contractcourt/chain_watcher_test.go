@@ -2,7 +2,6 @@ package contractcourt
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"testing"
 	"time"
 
@@ -156,7 +155,7 @@ func TestChainWatcherRemoteUnilateralClosePendingCommit(t *testing.T) {
 	// for Bob.
 	htlcAmount := lnwire.NewMSatFromSatoshis(20000)
 	preimage := bytes.Repeat([]byte{byte(1)}, 32)
-	paymentHash := sha256.Sum256(preimage)
+	paymentHash := chainhash.HashH(preimage)
 	var returnPreimage [32]byte
 	copy(returnPreimage[:], preimage)
 	htlc := &lnwire.UpdateAddHTLC{

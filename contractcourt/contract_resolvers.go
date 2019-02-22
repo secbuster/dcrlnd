@@ -2,13 +2,13 @@ package contractcourt
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
 	"io"
 	"io/ioutil"
 
 	"github.com/davecgh/go-spew/spew"
+	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/txscript"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
@@ -1097,7 +1097,7 @@ func (h *htlcIncomingContestResolver) Resolve() (ContractResolver, error) {
 		case preimage := <-preimageSubscription.WitnessUpdates:
 			// If this isn't our preimage, then we'll continue
 			// onwards.
-			newHash := sha256.Sum256(preimage)
+			newHash := chainhash.HashB(preimage)
 			preimageMatches := bytes.Equal(newHash[:], h.payHash[:])
 			if !preimageMatches {
 				continue

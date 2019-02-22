@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"crypto/rand"
-	"crypto/sha256"
 	"crypto/tls"
 	"encoding/hex"
 	"errors"
@@ -3014,7 +3013,7 @@ func (r *rpcServer) AddInvoice(ctx context.Context,
 
 	// Next, generate the payment hash itself from the preimage. This will
 	// be used by clients to query for the state of a particular invoice.
-	rHash := sha256.Sum256(paymentPreimage[:])
+	rHash := chainhash.HashH(paymentPreimage[:])
 
 	// We also create an encoded payment request which allows the
 	// caller to compactly send the invoice to the payer. We'll create a
@@ -4292,7 +4291,7 @@ func (r *rpcServer) ListPayments(ctx context.Context,
 		msatValue := int64(payment.Terms.Value)
 		satValue := int64(payment.Terms.Value.ToSatoshis())
 
-		paymentHash := sha256.Sum256(payment.PaymentPreimage[:])
+		paymentHash := chainhash.HashH(payment.PaymentPreimage[:])
 		paymentsResp.Payments[i] = &lnrpc.Payment{
 			PaymentHash:     hex.EncodeToString(paymentHash[:]),
 			Value:           satValue,

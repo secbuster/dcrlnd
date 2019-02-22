@@ -3,7 +3,6 @@ package htlcswitch
 import (
 	"bytes"
 	"crypto/rand"
-	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
 	"io/ioutil"
@@ -182,8 +181,8 @@ func createTestChannel(alicePrivKey, bobPrivKey []byte,
 		MaxAcceptedHtlcs: lnwallet.MaxHTLCNumber / 2,
 	}
 
-	var hash [sha256.Size]byte
-	randomSeed, err := generateRandomBytes(sha256.Size)
+	var hash [chainhash.HashSize]byte
+	randomSeed, err := generateRandomBytes(chainhash.HashSize)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
@@ -528,8 +527,8 @@ func getChanID(msg lnwire.Message) (lnwire.ChannelID, error) {
 func generatePayment(invoiceAmt, htlcAmt lnwire.MilliSatoshi, timelock uint32,
 	blob [lnwire.OnionPacketSize]byte) (*channeldb.Invoice, *lnwire.UpdateAddHTLC, error) {
 
-	var preimage [sha256.Size]byte
-	r, err := generateRandomBytes(sha256.Size)
+	var preimage [chainhash.HashSize]byte
+	r, err := generateRandomBytes(chainhash.HashSize)
 	if err != nil {
 		return nil, nil, err
 	}

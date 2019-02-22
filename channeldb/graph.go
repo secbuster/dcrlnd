@@ -2,7 +2,6 @@ package channeldb
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -2646,8 +2645,8 @@ func (c *ChannelGraph) IsPublicNode(pubKey [33]byte) (bool, error) {
 	return nodeIsPublic, nil
 }
 
-// genMultiSigP2WSH generates the p2wsh'd multisig script for 2 of 2 pubkeys.
-func genMultiSigP2WSH(aPub, bPub []byte) ([]byte, error) {
+// genMultiSigP2SH generates the p2wsh'd multisig script for 2 of 2 pubkeys.
+func genMultiSigP2SH(aPub, bPub []byte) ([]byte, error) {
 	if len(aPub) != 33 || len(bPub) != 33 {
 		return nil, fmt.Errorf("Pubkey size error. Compressed " +
 			"pubkeys only")
@@ -2675,13 +2674,9 @@ func genMultiSigP2WSH(aPub, bPub []byte) ([]byte, error) {
 
 	// With the witness script generated, we'll now turn it into a p2sh
 	// script:
-	//  * OP_0 <sha256(script)>
-	bldr = txscript.NewScriptBuilder()
-	bldr.AddOp(txscript.OP_0)
-	scriptHash := sha256.Sum256(witnessScript)
-	bldr.AddData(scriptHash[:])
-
-	return bldr.Script()
+	//  * OP_HASH160 <HASH160(script)> OP_EQUAL
+	sh := dcrutil.Hash160(witnessScript)
+	return txscript.PayToScriptHashScript(sh)
 }
 
 // EdgePoint couples the outpoint of a channel with the funding script that it
@@ -2744,7 +2739,9 @@ func (c *ChannelGraph) ChannelView() ([]EdgePoint, error) {
 				return err
 			}
 
-			pkScript, err := genMultiSigP2WSH(
+			// TODO(decred) ideally this should use the same thing as in
+			// lnwallet's script_utils.go file.
+			pkScript, err := genMultiSigP2SH(
 				edgeInfo.BitcoinKey1Bytes[:],
 				edgeInfo.BitcoinKey2Bytes[:],
 			)

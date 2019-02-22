@@ -2,12 +2,12 @@ package channeldb
 
 import (
 	"crypto/rand"
-	"crypto/sha256"
 	"reflect"
 	"testing"
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
+	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrlnd/lnwire"
 )
 
@@ -77,7 +77,7 @@ func TestInvoiceWorkflow(t *testing.T) {
 	// Attempt to retrieve the invoice which was just added to the
 	// database. It should be found, and the invoice returned should be
 	// identical to the one created above.
-	paymentHash := sha256.Sum256(fakeInvoice.Terms.PaymentPreimage[:])
+	paymentHash := chainhash.HashH(fakeInvoice.Terms.PaymentPreimage[:])
 	dbInvoice, err := db.LookupInvoice(paymentHash)
 	if err != nil {
 		t.Fatalf("unable to find invoice: %v", err)
@@ -256,7 +256,7 @@ func TestInvoiceAddTimeSeries(t *testing.T) {
 	for i := 10; i < len(invoices); i++ {
 		invoice := &invoices[i]
 
-		paymentHash := sha256.Sum256(
+		paymentHash := chainhash.HashH(
 			invoice.Terms.PaymentPreimage[:],
 		)
 
@@ -339,7 +339,7 @@ func TestDuplicateSettleInvoice(t *testing.T) {
 	}
 
 	// With the invoice in the DB, we'll now attempt to settle the invoice.
-	payHash := sha256.Sum256(invoice.Terms.PaymentPreimage[:])
+	payHash := chainhash.HashH(invoice.Terms.PaymentPreimage[:])
 	dbInvoice, err := db.SettleInvoice(payHash, amt)
 	if err != nil {
 		t.Fatalf("unable to settle invoice: %v", err)
@@ -403,7 +403,7 @@ func TestQueryInvoices(t *testing.T) {
 
 		// We'll only settle half of all invoices created.
 		if i%2 == 0 {
-			paymentHash := sha256.Sum256(invoice.Terms.PaymentPreimage[:])
+			paymentHash := chainhash.HashH(invoice.Terms.PaymentPreimage[:])
 			if _, err := db.SettleInvoice(paymentHash, i); err != nil {
 				t.Fatalf("unable to settle invoice: %v", err)
 			}

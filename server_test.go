@@ -41,3 +41,6 @@ func TestParseHexColor(t *testing.T) {
 		}
 	}
 }
+
+// TODO(decred) Add test for full invoice generation/payment roundtrip using the
+// actual server.
