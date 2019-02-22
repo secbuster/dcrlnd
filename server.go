@@ -17,6 +17,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/btcsuite/btcd/btcec"
+	bitcoinCfg "github.com/btcsuite/btcd/chaincfg"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/connmgr"
 	"github.com/decred/dcrd/dcrec/secp256k1"
@@ -269,10 +271,13 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB, cc *chainControl,
 	graphDir := chanDB.Path()
 	sharedSecretPath := filepath.Join(graphDir, "sphinxreplay.db")
 	replayLog := htlcswitch.NewDecayedLog(sharedSecretPath, cc.chainNotifier)
+
 	// TODO(decred) fix this. The main problem is the activeNetParams.
 	//sphinxRouter := sphinx.NewRouter(privKey, activeNetParams.Params, replayLog)
-	_ = replayLog
-	var sphinxRouter *sphinx.Router
+	btcecPrivKey := &btcec.PrivateKey{PublicKey: privKey.PublicKey, D: privKey.D}
+	sphinxRouter := sphinx.NewRouter(
+		btcecPrivKey, &bitcoinCfg.MainNetParams, replayLog,
+	)
 
 	s := &server{
 		chanDB:  chanDB,
