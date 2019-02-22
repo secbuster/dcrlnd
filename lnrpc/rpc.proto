@@ -861,10 +861,14 @@ message ListUnspentResponse {
 
 - `p2wkh`: Pay to witness key hash (`WITNESS_PUBKEY_HASH` = 0)
 - `np2wkh`: Pay to nested witness key hash (`NESTED_PUBKEY_HASH` = 1)
+- `p2pkh`: Pay to pubkey hash (`PUBKEY_HASH` = 2)
+- `p2sh`: Pay to script hash (`SCRIPT_HASH` = 3)
 */
 enum AddressType {
         WITNESS_PUBKEY_HASH = 0;
         NESTED_PUBKEY_HASH = 1;
+        PUBKEY_HASH = 2;
+        SCRIPT_HASH = 3;
 }
 
 message NewAddressRequest {
