@@ -194,7 +194,12 @@ func (n *NetworkHarness) SetUp(lndArgs []string) error {
 	}
 	clients := []lnrpc.LightningClient{n.Alice, n.Bob}
 	for _, client := range clients {
-		for i := 0; i < 10; i++ {
+
+		// Generate 10 addresses first, then send the outputs on a separate
+		// loop to prevent triggering dcrwallet's #1372 deadlock condition.
+		nbOutputs := 10
+		scripts := make([][]byte, nbOutputs)
+		for i := 0; i < nbOutputs; i++ {
 			resp, err := client.NewAddress(ctxb, addrReq)
 			if err != nil {
 				return err
@@ -208,11 +213,21 @@ func (n *NetworkHarness) SetUp(lndArgs []string) error {
 				return err
 			}
 
+			scripts[i] = addrScript
+		}
+
+		// Wait a bit before sending, to allow the wallet to lock the address
+		// manager and not trigger #1372.
+		time.Sleep(time.Millisecond * 100)
+
+		// Send an output to each address.
+		for i := 0; i < nbOutputs; i++ {
 			output := &wire.TxOut{
-				PkScript: addrScript,
+				PkScript: scripts[i],
 				Value:    dcrutil.AtomsPerCoin,
 			}
-			_, err = n.Miner.SendOutputs([]*wire.TxOut{output}, 7500)
+
+			_, err := n.Miner.SendOutputs([]*wire.TxOut{output}, 7500)
 			if err != nil {
 				return err
 			}
@@ -387,7 +402,7 @@ func (n *NetworkHarness) newNode(name string, extraArgs []string,
 	n.mtx.Unlock()
 
 	if err := node.start(n.lndErrorChan); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to start new node: %v", err)
 	}
 
 	// If this node is to have a seed, it will need to be unlocked or
@@ -1268,6 +1283,10 @@ func (n *NetworkHarness) sendCoins(ctx context.Context, amt dcrutil.Amount,
 	if err != nil {
 		return err
 	}
+
+	// Sleep to allow the wallet's address manager to lock and prevent
+	// triggering dcrwallet's #1372 deadlock condition.
+	time.Sleep(time.Millisecond * 100)
 
 	// Generate a transaction which creates an output to the target
 	// pkScript of the desired amount.

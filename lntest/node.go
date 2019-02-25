@@ -345,7 +345,7 @@ func (hn *HarnessNode) start(lndError chan<- error) error {
 	}
 
 	if err := hn.cmd.Start(); err != nil {
-		return err
+		return fmt.Errorf("unable to start %s's lnd-itest: %v", hn.Name(), err)
 	}
 
 	// Launch a new goroutine which that bubbles up any potential fatal
@@ -379,7 +379,7 @@ func (hn *HarnessNode) start(lndError chan<- error) error {
 	conn, err := hn.ConnectRPC(useMacaroons)
 	if err != nil {
 		hn.cmd.Process.Kill()
-		return err
+		return fmt.Errorf("unable to connect to %s's RPC: %v", hn.Name(), err)
 	}
 
 	// If the node was created with a seed, we will need to perform an
@@ -416,7 +416,7 @@ func (hn *HarnessNode) Init(ctx context.Context,
 		conn, err = hn.ConnectRPC(true)
 		return err == nil
 	}, 5*time.Second); err != nil {
-		return err
+		return fmt.Errorf("unable to connect to %s's rpc: %v", hn.Name(), err)
 	}
 
 	return hn.initLightningClient(conn)
@@ -432,7 +432,7 @@ func (hn *HarnessNode) initLightningClient(conn *grpc.ClientConn) error {
 	// Set the harness node's pubkey to what the node claims in GetInfo.
 	err := hn.FetchNodeInfo()
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to fetch %s's node info: %v", hn.Name(), err)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
