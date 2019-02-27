@@ -15,6 +15,7 @@ import (
 	"github.com/decred/dcrlnd/discovery"
 	"github.com/decred/dcrlnd/htlcswitch"
 	"github.com/decred/dcrlnd/invoices"
+	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lnrpc/autopilotrpc"
 	"github.com/decred/dcrlnd/lnrpc/signrpc"
 	"github.com/decred/dcrlnd/lnrpc/walletrpc"
@@ -51,6 +52,7 @@ var (
 
 	ltndLog = build.NewSubLogger("LTND", backendLog.Logger)
 	lnwlLog = build.NewSubLogger("LNWL", backendLog.Logger)
+	kchnLog = build.NewSubLogger("KCHN", backendLog.Logger)
 	dcrwLog = build.NewSubLogger("DCRW", backendLog.Logger)
 	peerLog = build.NewSubLogger("PEER", backendLog.Logger)
 	discLog = build.NewSubLogger("DISC", backendLog.Logger)
@@ -78,6 +80,7 @@ var (
 func init() {
 	lnwallet.UseLogger(lnwlLog)
 	dcrwallet.UseLogger(dcrwLog)
+	keychain.UseLogger(kchnLog)
 	discovery.UseLogger(discLog)
 	chainntnfs.UseLogger(ntfnLog)
 	channeldb.UseLogger(chdbLog)
@@ -100,6 +103,7 @@ func init() {
 var subsystemLoggers = map[string]slog.Logger{
 	"LTND": ltndLog,
 	"LNWL": lnwlLog,
+	"KCHN": kchnLog,
 	"DCRW": dcrwLog,
 	"PEER": peerLog,
 	"DISC": discLog,

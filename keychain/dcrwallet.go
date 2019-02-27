@@ -65,6 +65,8 @@ func (b *WalletKeyRing) createAccountsUpTo(keyFam KeyFamily) error {
 		return nil
 	}
 
+	keychainLog.Infof("Creating wallet accounts up to %d", keyFam)
+
 	// Figure out all uncreated accounts between 0..keyFam
 	accounts, err := b.wallet.Accounts()
 	if err != nil {
@@ -78,6 +80,7 @@ func (b *WalletKeyRing) createAccountsUpTo(keyFam KeyFamily) error {
 	}
 
 	for i := uint32(maxExistAccount + 1); i <= uint32(keyFam); i++ {
+		keychainLog.Debugf("Creating account %d", i)
 		_, err = b.wallet.NextAccount(fmt.Sprintf("%d", i))
 		if err != nil {
 			return err
