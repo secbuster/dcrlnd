@@ -281,6 +281,47 @@ func lndMain() error {
 		defer chainCleanUp()
 	}
 
+	// Wait until we're fully synced to continue the start up of the remainder
+	// of the daemon. This ensures that we don't accept any possibly invalid
+	// state transitions, or accept channels with spent funds.
+	// 
+	// This is also required on decred due to various things dcrwallet does at
+	// startup (mainly, slip0044 upgrade, account and address discovery) which
+	// may deadlock if we try to start using it to (e.g.) derive the node's id
+	// private key before the wallet is fully synced for the first time.
+	_, bestHeight, err := activeChainControl.chainIO.GetBestBlock()
+	if err != nil {
+		return err
+	}
+
+	ltndLog.Infof("Waiting for chain backend to finish sync, "+
+		"start_height=%v", bestHeight)
+
+	for {
+		if !signal.Alive() {
+			return nil
+		}
+
+		synced, _, err := activeChainControl.wallet.IsSynced()
+		if err != nil {
+			return err
+		}
+
+		if synced {
+			break
+		}
+
+		time.Sleep(time.Second * 1)
+	}
+
+	_, bestHeight, err = activeChainControl.chainIO.GetBestBlock()
+	if err != nil {
+		return err
+	}
+
+	ltndLog.Infof("Chain backend is fully synced (end_height=%v)!",
+		bestHeight)
+
 	// Finally before we start the server, we'll register the "holy
 	// trinity" of interface for our current "home chain" with the active
 	// chainRegistry interface.
@@ -298,6 +339,8 @@ func lndMain() error {
 		return err
 	}
 	idPrivKey.Curve = secp256k1.S256()
+	idPubKey := idPrivKey.PubKey()
+	srvrLog.Infof("Derived node public key %x", idPubKey.Serialize())
 
 	if cfg.Tor.Active {
 		srvrLog.Infof("Proxying all network traffic via Tor "+
@@ -344,45 +387,6 @@ func lndMain() error {
 		return err
 	}
 	defer rpcServer.Stop()
-
-	// If we're not in simnet mode, We'll wait until we're fully synced to
-	// continue the start up of the remainder of the daemon. This ensures
-	// that we don't accept any possibly invalid state transitions, or
-	// accept channels with spent funds.
-	if !(cfg.Decred.SimNet) {
-		_, bestHeight, err := activeChainControl.chainIO.GetBestBlock()
-		if err != nil {
-			return err
-		}
-
-		ltndLog.Infof("Waiting for chain backend to finish sync, "+
-			"start_height=%v", bestHeight)
-
-		for {
-			if !signal.Alive() {
-				return nil
-			}
-
-			synced, _, err := activeChainControl.wallet.IsSynced()
-			if err != nil {
-				return err
-			}
-
-			if synced {
-				break
-			}
-
-			time.Sleep(time.Second * 1)
-		}
-
-		_, bestHeight, err = activeChainControl.chainIO.GetBestBlock()
-		if err != nil {
-			return err
-		}
-
-		ltndLog.Infof("Chain backend is fully synced (end_height=%v)!",
-			bestHeight)
-	}
 
 	// With all the relevant chains initialized, we can finally start the
 	// server itself.
