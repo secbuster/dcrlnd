@@ -145,7 +145,7 @@ func mineBlocks(t *harnessTest, net *lntest.NetworkHarness,
 
 	blocks := make([]*wire.MsgBlock, num)
 
-	blockHashes, err := net.Miner.Node.Generate(num)
+	blockHashes, err := net.Generate(num)
 	if err != nil {
 		t.Fatalf("unable to generate blocks: %v", err)
 	}
@@ -215,6 +215,10 @@ func openChannelAndAssert(ctx context.Context, t *harnessTest,
 	}
 	if err := net.AssertChannelExists(ctx, bob, &chanPoint); err != nil {
 		t.Fatalf("unable to assert channel existence: %v", err)
+	}
+
+	if _, err := net.FillStakepool() ; err != nil {
+		t.Fatalf("unable to fill stakepool: %v", err)
 	}
 
 	return fundingChanPoint
@@ -370,7 +374,7 @@ func cleanupForceClose(t *harnessTest, net *lntest.NetworkHarness,
 
 	// Mine enough blocks for the node to sweep its funds from the force
 	// closed channel.
-	_, err = net.Miner.Node.Generate(defaultCSV)
+	_, err = net.Generate(defaultCSV)
 	if err != nil {
 		t.Fatalf("unable to generate blocks: %v", err)
 	}
@@ -1543,7 +1547,7 @@ func testOpenChannelAfterReorg(net *lntest.NetworkHarness, t *harnessTest) {
 	if err != nil {
 		t.Fatalf("unable to create mining node: %v", err)
 	}
-	if err := miner.SetUp(true, 50); err != nil {
+	if err := miner.SetUp(true, 16); err != nil {
 		t.Fatalf("unable to set up mining node: %v", err)
 	}
 	defer miner.TearDown()
@@ -1943,7 +1947,7 @@ func testChannelFundingPersistence(net *lntest.NetworkHarness, t *harnessTest) {
 
 	// Next, mine enough blocks s.t the channel will open with a single
 	// additional block mined.
-	if _, err := net.Miner.Node.Generate(3); err != nil {
+	if _, err := net.Generate(3); err != nil {
 		t.Fatalf("unable to mine blocks: %v", err)
 	}
 
@@ -1953,7 +1957,7 @@ func testChannelFundingPersistence(net *lntest.NetworkHarness, t *harnessTest) {
 	assertNumOpenChannelsPending(ctxt, t, net.Alice, carol, 1)
 
 	// Finally, mine the last block which should mark the channel as open.
-	if _, err := net.Miner.Node.Generate(1); err != nil {
+	if _, err := net.Generate(1); err != nil {
 		t.Fatalf("unable to mine blocks: %v", err)
 	}
 
@@ -2384,7 +2388,7 @@ func testChannelForceClosure(net *lntest.NetworkHarness, t *harnessTest) {
 		t.Fatalf("failed to find commitment in miner mempool: %v", err)
 	}
 
-	if _, err := net.Miner.Node.Generate(1); err != nil {
+	if _, err := net.Generate(1); err != nil {
 		t.Fatalf("unable to generate block: %v", err)
 	}
 
@@ -2462,7 +2466,7 @@ func testChannelForceClosure(net *lntest.NetworkHarness, t *harnessTest) {
 	// For the persistence test, we generate three blocks, then trigger
 	// a restart and then generate the final block that should trigger
 	// the creation of the sweep transaction.
-	if _, err := net.Miner.Node.Generate(defaultCSV - 1); err != nil {
+	if _, err := net.Generate(defaultCSV - 1); err != nil {
 		t.Fatalf("unable to mine blocks: %v", err)
 	}
 
@@ -2531,7 +2535,7 @@ func testChannelForceClosure(net *lntest.NetworkHarness, t *harnessTest) {
 
 	// Generate an additional block, which should cause the CSV delayed
 	// output from the commitment txn to expire.
-	if _, err := net.Miner.Node.Generate(1); err != nil {
+	if _, err := net.Generate(1); err != nil {
 		t.Fatalf("unable to mine blocks: %v", err)
 	}
 
@@ -2566,7 +2570,7 @@ func testChannelForceClosure(net *lntest.NetworkHarness, t *harnessTest) {
 	// Next, we mine an additional block which should include the sweep
 	// transaction as the input scripts and the sequence locks on the
 	// inputs should be properly met.
-	blockHash, err := net.Miner.Node.Generate(1)
+	blockHash, err := net.Generate(1)
 	if err != nil {
 		t.Fatalf("unable to generate block: %v", err)
 	}
@@ -2632,7 +2636,7 @@ func testChannelForceClosure(net *lntest.NetworkHarness, t *harnessTest) {
 
 	// Advance the blockchain until just before the CLTV expires, nothing
 	// exciting should have happened during this time.
-	blockHash, err = net.Miner.Node.Generate(cltvHeightDelta)
+	err = net.GenerateWithTickets(cltvHeightDelta)
 	if err != nil {
 		t.Fatalf("unable to generate block: %v", err)
 	}
@@ -2708,7 +2712,7 @@ func testChannelForceClosure(net *lntest.NetworkHarness, t *harnessTest) {
 
 	// Now, generate the block which will cause Alice to broadcast the
 	// presigned htlc timeout txns.
-	blockHash, err = net.Miner.Node.Generate(1)
+	_, err = net.Generate(1)
 	if err != nil {
 		t.Fatalf("unable to generate block: %v", err)
 	}
@@ -2757,7 +2761,7 @@ func testChannelForceClosure(net *lntest.NetworkHarness, t *harnessTest) {
 
 	// Generate a block that mines the htlc timeout txns. Doing so now
 	// activates the 2nd-stage CSV delayed outputs.
-	blockHash, err = net.Miner.Node.Generate(1)
+	_, err = net.Generate(1)
 	if err != nil {
 		t.Fatalf("unable to generate block: %v", err)
 	}
@@ -2770,7 +2774,7 @@ func testChannelForceClosure(net *lntest.NetworkHarness, t *harnessTest) {
 	}
 
 	// Advance the chain until just before the 2nd-layer CSV delays expire.
-	blockHash, err = net.Miner.Node.Generate(defaultCSV - 1)
+	_, err = net.Generate(defaultCSV - 1)
 	if err != nil {
 		t.Fatalf("unable to generate block: %v", err)
 	}
@@ -2824,7 +2828,7 @@ func testChannelForceClosure(net *lntest.NetworkHarness, t *harnessTest) {
 
 	// Generate a block that causes Alice to sweep the htlc outputs in the
 	// kindergarten bucket.
-	blockHash, err = net.Miner.Node.Generate(1)
+	_, err = net.Generate(1)
 	if err != nil {
 		t.Fatalf("unable to generate block: %v", err)
 	}
@@ -2927,7 +2931,7 @@ func testChannelForceClosure(net *lntest.NetworkHarness, t *harnessTest) {
 
 	// Generate the final block that sweeps all htlc funds into the user's
 	// wallet.
-	blockHash, err = net.Miner.Node.Generate(1)
+	_, err = net.Generate(1)
 	if err != nil {
 		t.Fatalf("unable to generate block: %v", err)
 	}
@@ -5822,7 +5826,7 @@ func testFailingChannel(net *lntest.NetworkHarness, t *harnessTest) {
 
 	// Mine enough blocks for Alice to sweep her funds from the force
 	// closed channel.
-	_, err = net.Miner.Node.Generate(defaultCSV)
+	_, err = net.Generate(defaultCSV)
 	if err != nil {
 		t.Fatalf("unable to generate blocks: %v", err)
 	}
@@ -5834,7 +5838,7 @@ func testFailingChannel(net *lntest.NetworkHarness, t *harnessTest) {
 	}
 
 	// Mine the sweep.
-	_, err = net.Miner.Node.Generate(1)
+	_, err = net.Generate(1)
 	if err != nil {
 		t.Fatalf("unable to generate blocks: %v", err)
 	}
@@ -5911,6 +5915,7 @@ func testGarbageCollectLinkNodes(net *lntest.NetworkHarness, t *harnessTest) {
 		t.Fatalf("unable to create dave's node: %v", err)
 	}
 	defer shutdownAndAssert(net, t, dave)
+	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
 	if err := net.ConnectNodes(ctxt, net.Alice, dave); err != nil {
 		t.Fatalf("unable to connect alice to dave: %v", err)
 	}
@@ -6052,7 +6057,7 @@ func testGarbageCollectLinkNodes(net *lntest.NetworkHarness, t *harnessTest) {
 
 	// We'll need to mine some blocks in order to mark the channel fully
 	// closed.
-	_, err = net.Miner.Node.Generate(defaultBitcoinTimeLockDelta - defaultCSV)
+	err = net.GenerateWithTickets(defaultDecredTimeLockDelta - defaultCSV)
 	if err != nil {
 		t.Fatalf("unable to generate blocks: %v", err)
 	}
@@ -8918,7 +8923,7 @@ func testMultiHopHtlcLocalTimeout(net *lntest.NetworkHarness, t *harnessTest) {
 	// commitment transaction due to the fact that the HTLC is about to
 	// timeout.
 	numBlocks := uint32(finalCltvDelta - defaultBroadcastDelta)
-	if _, err := net.Miner.Node.Generate(numBlocks); err != nil {
+	if _, err := net.Generate(numBlocks); err != nil {
 		t.Fatalf("unable to generate blocks: %v", err)
 	}
 
@@ -8959,7 +8964,7 @@ func testMultiHopHtlcLocalTimeout(net *lntest.NetworkHarness, t *harnessTest) {
 
 	// We'll mine defaultCSV blocks in order to generate the sweep transaction
 	// of Bob's funding output.
-	if _, err := net.Miner.Node.Generate(defaultCSV); err != nil {
+	if _, err := net.Generate(defaultCSV); err != nil {
 		t.Fatalf("unable to generate blocks: %v", err)
 	}
 
@@ -8970,7 +8975,9 @@ func testMultiHopHtlcLocalTimeout(net *lntest.NetworkHarness, t *harnessTest) {
 
 	// We'll now mine the remaining blocks to cause the HTLC itself to
 	// timeout.
-	if _, err := net.Miner.Node.Generate(defaultBroadcastDelta - defaultCSV); err != nil {
+	// We'll stop right after the second-level transaction is published but
+	// before it is mined.
+	if _, err := net.Generate(defaultBroadcastDelta - defaultCSV -1); err != nil {
 		t.Fatalf("unable to generate blocks: %v", err)
 	}
 
@@ -9037,7 +9044,7 @@ func testMultiHopHtlcLocalTimeout(net *lntest.NetworkHarness, t *harnessTest) {
 
 	// We'll now mine four more blocks. After the 4th block, a transaction
 	// sweeping the HTLC output should be broadcast.
-	if _, err := net.Miner.Node.Generate(4); err != nil {
+	if _, err := net.Generate(4); err != nil {
 		t.Fatalf("unable to generate blocks: %v", err)
 	}
 	_, err = waitForTxInMempool(net.Miner.Node, minerMempoolTimeout)
@@ -9047,7 +9054,7 @@ func testMultiHopHtlcLocalTimeout(net *lntest.NetworkHarness, t *harnessTest) {
 
 	// Next, we'll mine a final block that should confirm the second-layer
 	// sweeping transaction.
-	if _, err := net.Miner.Node.Generate(1); err != nil {
+	if _, err := net.Generate(1); err != nil {
 		t.Fatalf("unable to generate blocks: %v", err)
 	}
 
@@ -9141,9 +9148,9 @@ func testMultiHopReceiverChainClaim(net *lntest.NetworkHarness, t *harnessTest) 
 	// Now we'll mine enough blocks to prompt carol to actually go to the
 	// chain in order to sweep her HTLC since the value is high enough.
 	// TODO(roasbeef): modify once go to chain policy changes
-	numBlocks := uint32(defaultBitcoinTimeLockDelta - (2 * defaultBroadcastDelta))
-	if _, err := net.Miner.Node.Generate(numBlocks); err != nil {
-		t.Fatalf("unable to generate blocks")
+	numBlocks := uint32(defaultDecredTimeLockDelta - (2 * defaultBroadcastDelta))
+	if err := net.GenerateWithTickets(numBlocks); err != nil {
+		t.Fatalf("unable to generate blocks: %v", err)
 	}
 
 	// At this point, Carol should broadcast her active commitment
@@ -9215,7 +9222,7 @@ func testMultiHopReceiverChainClaim(net *lntest.NetworkHarness, t *harnessTest) 
 
 	// We'll now mine an additional block which should confirm both the
 	// second layer transactions.
-	if _, err := net.Miner.Node.Generate(1); err != nil {
+	if _, err := net.Generate(1); err != nil {
 		t.Fatalf("unable to generate block: %v", err)
 	}
 
@@ -9268,7 +9275,7 @@ func testMultiHopReceiverChainClaim(net *lntest.NetworkHarness, t *harnessTest) 
 
 	// If we mine 4 additional blocks, then both outputs should now be
 	// mature.
-	if _, err := net.Miner.Node.Generate(defaultCSV); err != nil {
+	if _, err := net.Generate(defaultCSV); err != nil {
 		t.Fatalf("unable to generate blocks: %v", err)
 	}
 
@@ -9281,7 +9288,7 @@ func testMultiHopReceiverChainClaim(net *lntest.NetworkHarness, t *harnessTest) 
 	// Finally, if we mine an additional block to confirm these two sweep
 	// transactions, Carol should not show a pending channel in her report
 	// afterwards.
-	if _, err := net.Miner.Node.Generate(1); err != nil {
+	if _, err := net.Generate(1); err != nil {
 		t.Fatalf("unable to mine block: %v", err)
 	}
 	err = lntest.WaitPredicate(func() bool {
@@ -9410,7 +9417,7 @@ func testMultiHopLocalForceCloseOnChainHtlcTimeout(net *lntest.NetworkHarness,
 
 	// We'll mine defaultCSV blocks in order to generate the sweep transaction
 	// of Bob's funding output.
-	if _, err := net.Miner.Node.Generate(defaultCSV); err != nil {
+	if _, err := net.Generate(defaultCSV); err != nil {
 		t.Fatalf("unable to generate blocks: %v", err)
 	}
 
@@ -9421,7 +9428,7 @@ func testMultiHopLocalForceCloseOnChainHtlcTimeout(net *lntest.NetworkHarness,
 
 	// We'll now mine enough blocks for the HTLC to expire. After this, Bob
 	// should hand off the now expired HTLC output to the utxo nursery.
-	if _, err := net.Miner.Node.Generate(finalCltvDelta - defaultCSV - 1); err != nil {
+	if err := net.GenerateWithTickets(finalCltvDelta - defaultCSV - 1); err != nil {
 		t.Fatalf("unable to generate blocks: %v", err)
 	}
 
@@ -9528,7 +9535,7 @@ func testMultiHopLocalForceCloseOnChainHtlcTimeout(net *lntest.NetworkHarness,
 	// We'll now mine 4 additional blocks. This should be enough for Bob's
 	// CSV timelock to expire and the sweeping transaction of the HTLC to be
 	// broadcast.
-	if _, err := net.Miner.Node.Generate(defaultCSV); err != nil {
+	if _, err := net.Generate(defaultCSV); err != nil {
 		t.Fatalf("unable to mine blocks: %v", err)
 	}
 
@@ -9673,7 +9680,7 @@ func testMultiHopRemoteForceCloseOnChainHtlcTimeout(net *lntest.NetworkHarness,
 	// Next, we'll mine enough blocks for the HTLC to expire. At this
 	// point, Bob should hand off the output to his internal utxo nursery,
 	// which will broadcast a sweep transaction.
-	if _, err := net.Miner.Node.Generate(finalCltvDelta - 1); err != nil {
+	if _, err := net.Generate(finalCltvDelta - 1); err != nil {
 		t.Fatalf("unable to generate blocks: %v", err)
 	}
 
@@ -9727,7 +9734,7 @@ func testMultiHopRemoteForceCloseOnChainHtlcTimeout(net *lntest.NetworkHarness,
 		// we'll fail.
 		// TODO(halseth): can we use waitForChannelPendingForceClose to
 		// avoid this hack?
-		if _, err := net.Miner.Node.Generate(1); err != nil {
+		if _, err := net.Generate(1); err != nil {
 			t.Fatalf("unable to generate block: %v", err)
 		}
 		sweepTx, err = waitForTxInMempool(net.Miner.Node, minerMempoolTimeout)
@@ -9862,9 +9869,11 @@ func testMultiHopHtlcLocalChainClaim(net *lntest.NetworkHarness, t *harnessTest)
 
 	// We'll now mine enough blocks so Carol decides that she needs to go
 	// on-chain to claim the HTLC as Bob has been inactive.
-	numBlocks := uint32(defaultBitcoinTimeLockDelta - (2 * defaultBroadcastDelta))
-	if _, err := net.Miner.Node.Generate(numBlocks); err != nil {
-		t.Fatalf("unable to generate blocks")
+	// We mine up to just before the deadline to check the transaction is in
+	// the mempool.
+	numBlocks := uint32(defaultDecredTimeLockDelta - (2 * defaultBroadcastDelta) - 1)
+	if err := net.GenerateWithTickets(numBlocks); err != nil {
+		t.Fatalf("unable to generate blocks: %v", err)
 	}
 
 	// Carol's commitment transaction should now be in the mempool.
@@ -10020,7 +10029,7 @@ func testMultiHopHtlcLocalChainClaim(net *lntest.NetworkHarness, t *harnessTest)
 
 	// If we then mine 3 additional blocks, Carol's second level tx should
 	// mature, and she can pull the funds from it with a sweep tx.
-	if _, err := net.Miner.Node.Generate(carolSecondLevelCSV); err != nil {
+	if _, err := net.Generate(carolSecondLevelCSV); err != nil {
 		t.Fatalf("unable to generate block: %v", err)
 	}
 	bobSecondLevelCSV -= carolSecondLevelCSV
@@ -10202,7 +10211,7 @@ func testMultiHopHtlcRemoteChainClaim(net *lntest.NetworkHarness, t *harnessTest
 
 	// Mine enough blocks for Alice to sweep her funds from the force
 	// closed channel.
-	_, err = net.Miner.Node.Generate(defaultCSV)
+	_, err = net.Generate(defaultCSV)
 	if err != nil {
 		t.Fatalf("unable to generate blocks: %v", err)
 	}
@@ -10215,9 +10224,11 @@ func testMultiHopHtlcRemoteChainClaim(net *lntest.NetworkHarness, t *harnessTest
 
 	// We'll now mine enough blocks so Carol decides that she needs to go
 	// on-chain to claim the HTLC as Bob has been inactive.
+	// We mine up to just before the deadline to check the transaction is in
+	// the mempool.
 	claimDelta := uint32(2 * defaultBroadcastDelta)
-	numBlocks := uint32(defaultBitcoinTimeLockDelta-claimDelta) - defaultCSV
-	if _, err := net.Miner.Node.Generate(numBlocks); err != nil {
+	numBlocks := uint32(defaultDecredTimeLockDelta-claimDelta) - defaultCSV -1
+	if err := net.GenerateWithTickets(numBlocks); err != nil {
 		t.Fatalf("unable to generate blocks")
 	}
 
@@ -10351,7 +10362,7 @@ func testMultiHopHtlcRemoteChainClaim(net *lntest.NetworkHarness, t *harnessTest
 
 	// If we then mine 3 additional blocks, Carol's second level tx will
 	// mature, and she should pull the funds.
-	if _, err := net.Miner.Node.Generate(carolSecondLevelCSV); err != nil {
+	if _, err := net.Generate(carolSecondLevelCSV); err != nil {
 		t.Fatalf("unable to generate block: %v", err)
 	}
 
@@ -12833,6 +12844,12 @@ func TestLightningNetworkDaemon(t *testing.T) {
 		// framework.
 		if !success {
 			break
+		}
+
+		// Fill the stakepool with new tickets if needed, so we can keep the
+		// network advancing.
+		if _, err := lndHarness.FillStakepool(); err != nil {
+			t.Fatalf("unable to fill stakepool: %v", err)
 		}
 	}
 }
