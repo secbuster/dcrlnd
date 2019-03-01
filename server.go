@@ -222,24 +222,12 @@ func parseAddr(address string) (net.Addr, error) {
 
 // noiseDial is a factory function which creates a connmgr compliant dialing
 // function by returning a closure which includes the server's identity key.
-func noiseDial(idPriv *secp256k1.PrivateKey) func(string, string) (net.Conn, error) {
-	return func(string, string) (net.Conn, error) {
-		// TODO(decred) btcd was changed to use net.Address instead of (string, string)
-		// as func signature for the connmgr dial function. We'll likely need
-		// to do the same for decred, given that brontide.Dial needs an lnwire.Address
-		// to connect to.
-		return nil, fmt.Errorf("not implemented... this needs fixing.")
-	}
-}
-
-/*
 func noiseDial(idPriv *secp256k1.PrivateKey) func(net.Addr) (net.Conn, error) {
 	return func(a net.Addr) (net.Conn, error) {
 		lnAddr := a.(*lnwire.NetAddress)
 		return brontide.Dial(idPriv, lnAddr, cfg.net.Dial)
 	}
 }
-*/
 
 // newServer creates a new instance of the server which is to listen using the
 // passed listener address.
@@ -944,7 +932,7 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB, cc *chainControl,
 		OnAccept:       s.InboundPeerConnected,
 		RetryDuration:  time.Second * 5,
 		TargetOutbound: 100,
-		Dial:           noiseDial(s.identityPriv),
+		DialAddr:       noiseDial(s.identityPriv),
 		OnConnection:   s.OutboundPeerConnected,
 	})
 	if err != nil {

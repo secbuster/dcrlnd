@@ -14,16 +14,18 @@ require (
 	github.com/decred/dcrd v1.3.0
 	github.com/decred/dcrd/blockchain v1.1.1
 	github.com/decred/dcrd/blockchain/stake v1.1.0
-	github.com/decred/dcrd/chaincfg v1.2.1
+	github.com/decred/dcrd/certgen v1.0.2
+	github.com/decred/dcrd/chaincfg v1.3.0
 	github.com/decred/dcrd/chaincfg/chainhash v1.0.1
 	github.com/decred/dcrd/connmgr v1.0.2
-	github.com/decred/dcrd/dcrec v0.0.0-20190105003738-0774a3168208
+	github.com/decred/dcrd/dcrec v0.0.0-20190214012338-9265b4051009
 	github.com/decred/dcrd/dcrec/secp256k1 v1.0.1
-	github.com/decred/dcrd/dcrjson v1.1.0
+	github.com/decred/dcrd/dcrjson v1.2.0
 	github.com/decred/dcrd/dcrutil v1.2.0
 	github.com/decred/dcrd/hdkeychain v1.1.1
 	github.com/decred/dcrd/mempool v1.1.1
 	github.com/decred/dcrd/rpcclient v1.1.0
+	github.com/decred/dcrd/rpcclient/v2 v2.0.0
 	github.com/decred/dcrd/txscript v1.0.2
 	github.com/decred/dcrd/wire v1.2.0
 	github.com/decred/dcrwallet v1.2.2
@@ -74,8 +76,9 @@ require (
 )
 
 replace (
-	github.com/decred/dcrd => github.com/matheusd/dcrd v0.0.0-20190221094611-cddf96d68b28
-	github.com/decred/dcrd/rpctest => github.com/davecgh/btcd/rpctest v0.0.0-20190221094611-cddf96d68b28
+	github.com/decred/dcrd => github.com/matheusd/dcrd v0.0.0-20190301141217-a65145576746
+	github.com/decred/dcrd/connmgr => github.com/matheusd/dcrd/connmgr v0.0.0-20190301141217-a65145576746
+	github.com/decred/dcrd/rpctest => github.com/davecgh/btcd/rpctest v0.0.0-20190301141217-a65145576746
 
 	github.com/decred/dcrwallet => github.com/matheusd/dcrwallet v0.0.0-20190225211924-3a618c61edb8
 	github.com/decred/dcrwallet/wallet/v2 => github.com/matheusd/dcrwallet/wallet/v2 v2.0.0-20190225211924-3a618c61edb8
