@@ -2399,8 +2399,6 @@ func (lc *LightningChannel) createCommitmentTx(c *commitment,
 		}
 	}
 
-	fmt.Println(spew.Sdump(commitTx))
-
 	// Set the state hint of the commitment transaction to facilitate
 	// quickly recovering the necessary penalty state in the case of an
 	// uncooperative broadcast.
