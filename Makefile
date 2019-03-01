@@ -1,4 +1,9 @@
-PKG := github.com/decred/dcrlnd
+# This is currently changed to use the local dir (.) as package instead of
+# github.com/decred/dcrlnd so that makefile actions (such as running integration
+# tests) are executed against the local dir (possibly with local changes)
+# instead of trying to execute them against the official repo module's.
+#PKG := github.com/decred/dcrlnd
+PKG := .
 ESCPKG := github.com\/decred\/dcrlnd
 
 DCRD_PKG := github.com/decred/dcrd
@@ -97,19 +102,19 @@ dcrd:
 # ============
 
 build:
-	@$(call print, "Building debug lnd and lncli.")
+	@$(call print, "Building debug dcrlnd and dcrlncli.")
 	$(GOBUILD) -tags="$(DEV_TAGS)" -o lnd-debug $(LDFLAGS) $(PKG)
-	$(GOBUILD) -tags="$(DEV_TAGS)" -o lncli-debug $(LDFLAGS) $(PKG)/cmd/lncli
+	$(GOBUILD) -tags="$(DEV_TAGS)" -o lncli-debug $(LDFLAGS) $(PKG)/cmd/dcrlncli
 
 build-itest:
-	@$(call print, "Building itest lnd and lncli.")
+	@$(call print, "Building itest dcrlnd and dcrlncli.")
 	$(GOBUILD) -tags="$(ITEST_TAGS)" -o lnd-itest $(LDFLAGS) $(PKG)
-	$(GOBUILD) -tags="$(ITEST_TAGS)" -o lncli-itest $(LDFLAGS) $(PKG)/cmd/lncli
+	$(GOBUILD) -tags="$(ITEST_TAGS)" -o lncli-itest $(LDFLAGS) $(PKG)/cmd/dcrlncli
 
 install:
-	@$(call print, "Installing lnd and lncli.")
+	@$(call print, "Installing dcrlnd and dcrlncli.")
 	$(GOINSTALL) -tags="${tags}" $(LDFLAGS) $(PKG)
-	$(GOINSTALL) -tags="${tags}" $(LDFLAGS) $(PKG)/cmd/lncli
+	$(GOINSTALL) -tags="${tags}" $(LDFLAGS) $(PKG)/cmd/dcrlncli
 
 scratch: build
 
