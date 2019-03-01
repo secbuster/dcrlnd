@@ -1875,7 +1875,7 @@ func testChannelFundingPersistence(net *lntest.NetworkHarness, t *harnessTest) {
 	// confirmation before it's open, with the current set of defaults,
 	// we'll need to create a new node instance.
 	const numConfs = 5
-	carolArgs := []string{fmt.Sprintf("--bitcoin.defaultchanconfs=%v", numConfs)}
+	carolArgs := []string{fmt.Sprintf("--decred.defaultchanconfs=%v", numConfs)}
 	carol, err := net.NewNode("Carol", carolArgs)
 	if err != nil {
 		t.Fatalf("unable to create new node: %v", err)
@@ -2406,10 +2406,11 @@ func testChannelForceClosure(net *lntest.NetworkHarness, t *harnessTest) {
 			return false
 		}
 
-		forceClose, predErr := findForceClosedChannel(
+		forceClose, err := findForceClosedChannel(
 			pendingChanResp, &op,
 		)
-		if predErr != nil {
+		if err != nil {
+			predErr = err
 			return false
 		}
 
@@ -2490,10 +2491,11 @@ func testChannelForceClosure(net *lntest.NetworkHarness, t *harnessTest) {
 			return false
 		}
 
-		forceClose, predErr := findForceClosedChannel(
+		forceClose, err := findForceClosedChannel(
 			pendingChanResp, &op,
 		)
-		if predErr != nil {
+		if err != nil {
+			predErr = err
 			return false
 		}
 
@@ -2657,13 +2659,17 @@ func testChannelForceClosure(net *lntest.NetworkHarness, t *harnessTest) {
 
 		predErr = checkNumForceClosedChannels(pendingChanResp, 1)
 		if predErr != nil {
+			predErr = fmt.Errorf("unable to check num of force-closed "+
+				"channels: %v", predErr)
 			return false
 		}
 
-		forceClose, predErr := findForceClosedChannel(
+		forceClose, err := findForceClosedChannel(
 			pendingChanResp, &op,
 		)
-		if predErr != nil {
+		if err != nil {
+			predErr = fmt.Errorf("unable to find force-closed "+
+				"channel: %v", err)
 			return false
 		}
 
@@ -2671,12 +2677,16 @@ func testChannelForceClosure(net *lntest.NetworkHarness, t *harnessTest) {
 		// will attempt to broadcast the htlc timeout transactions.
 		predErr = checkPendingChannelNumHtlcs(forceClose, numInvoices)
 		if predErr != nil {
+			predErr = fmt.Errorf("unable to check pending num of "+
+				"htlcs: %v", predErr)
 			return false
 		}
 		predErr = checkPendingHtlcStageAndMaturity(
 			forceClose, 1, htlcExpiryHeight, 1,
 		)
 		if predErr != nil {
+			predErr = fmt.Errorf("unable to check pending htlc "+
+				"stage and maturity: %v", predErr)
 			return false
 		}
 
@@ -6906,7 +6916,8 @@ func testRevokedCloseRetributionRemoteHodl(net *lntest.NetworkHarness,
 	// expected inputs in the justice tx.
 	var predErr error
 	var justiceTxid *chainhash.Hash
-	errNotFound := errors.New("justice tx not found")
+	exNumInputs := 2 + numInvoices
+	errNotFound := fmt.Errorf("justice tx with %d inputs not found", exNumInputs)
 	findJusticeTx := func() (*chainhash.Hash, error) {
 		mempool, err := net.Miner.Node.GetRawMempool(dcrjson.GRMRegular)
 		if err != nil {
@@ -6923,7 +6934,6 @@ func testRevokedCloseRetributionRemoteHodl(net *lntest.NetworkHarness,
 					"txs: %v", err)
 			}
 
-			exNumInputs := 2 + numInvoices
 			if len(tx.MsgTx().TxIn) == exNumInputs {
 				return txid, nil
 			}
@@ -12483,6 +12493,13 @@ type testCase struct {
 }
 
 var testsCases = []*testCase{
+	// This test needs to happen before SVH, so that we don't have to run a
+	// second voter on the second chain to observe the reorg.
+	{
+		name: "open channel reorg test",
+		test: testOpenChannelAfterReorg,
+	},
+	// TOOD(decred) review this test again.
 	// {
 	// 	name: "onchain fund recovery",
 	// 	test: testOnchainFundRecovery,
@@ -12498,10 +12515,6 @@ var testsCases = []*testCase{
 	{
 		name: "update channel policy",
 		test: testUpdateChannelPolicy,
-	},
-	{
-		name: "open channel reorg test",
-		test: testOpenChannelAfterReorg,
 	},
 	{
 		name: "disconnecting target peer",
@@ -12713,7 +12726,10 @@ func TestLightningNetworkDaemon(t *testing.T) {
 	// better guarantees of getting included in to blocks.
 	logDir := "./.backendlogs"
 	args := []string{
-		"--rejectnonstd",
+		// rejectnonstd cannot be used in decred due to votes in simnet
+		// using a non-standard signature script.
+		//"--rejectnonstd",
+
 		"--txindex",
 		"--debuglevel=debug",
 		"--logdir=" + logDir,
