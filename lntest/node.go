@@ -435,6 +435,14 @@ func (hn *HarnessNode) initLightningClient(conn *grpc.ClientConn) error {
 		return err
 	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	err = hn.WaitForBlockchainSync(ctx)
+	if err != nil {
+		return fmt.Errorf("initial blockchain sync of %s failed: %v", hn.Name(),
+			err)
+	}
+
 	// Launch the watcher that will hook into graph related topology change
 	// from the PoV of this node.
 	hn.wg.Add(1)
@@ -514,7 +522,8 @@ func (hn *HarnessNode) ConnectRPC(useMacs bool) (*grpc.ClientConn, error) {
 
 	opts := []grpc.DialOption{
 		grpc.WithBlock(),
-		grpc.WithTimeout(time.Second * 20),
+		grpc.WithTimeout(time.Second * 40),
+		grpc.WithBackoffMaxDelay(time.Millisecond * 20),
 	}
 
 	tlsCreds, err := credentials.NewClientTLSFromFile(hn.cfg.TLSCertPath, "")
