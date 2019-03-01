@@ -2,7 +2,7 @@ package lnwallet
 
 import (
 	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrwallet/wallet/txrules"
+	"github.com/decred/dcrwallet/wallet/v2/txrules"
 )
 
 // lnTxVersion is the version that transactions need to be defined to use so

@@ -19,8 +19,8 @@ import (
 	"github.com/decred/dcrlnd/chainntnfs/dcrdnotify"
 	bolt "go.etcd.io/bbolt"
 
-	"github.com/decred/dcrwallet/chain"
-	_ "github.com/decred/dcrwallet/wallet/drivers/bdb"
+	"github.com/decred/dcrwallet/chain/v2"
+	_ "github.com/decred/dcrwallet/wallet/v2/drivers/bdb"
 
 	"github.com/decred/dcrd/chaincfg"
 	"github.com/decred/dcrd/chaincfg/chainhash"

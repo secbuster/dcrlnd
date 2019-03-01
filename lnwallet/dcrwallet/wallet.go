@@ -20,12 +20,12 @@ import (
 	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lnwallet"
 
-	"github.com/decred/dcrwallet/chain"
+	"github.com/decred/dcrwallet/chain/v2"
 	"github.com/decred/dcrwallet/errors"
 	walletloader "github.com/decred/dcrwallet/loader"
-	base "github.com/decred/dcrwallet/wallet"
-	"github.com/decred/dcrwallet/wallet/txrules"
-	"github.com/decred/dcrwallet/wallet/udb"
+	base "github.com/decred/dcrwallet/wallet/v2"
+	"github.com/decred/dcrwallet/wallet/v2/txrules"
+	"github.com/decred/dcrwallet/wallet/v2/udb"
 )
 
 const (
@@ -71,7 +71,8 @@ func New(cfg Config) (*DcrWallet, error) {
 
 		loader := walletloader.NewLoader(cfg.NetParams, netDir,
 			&walletloader.StakeOptions{}, base.DefaultGapLimit, false,
-			txrules.DefaultRelayFeePerKb.ToCoin(), base.DefaultAccountGapLimit)
+			txrules.DefaultRelayFeePerKb.ToCoin(), base.DefaultAccountGapLimit,
+			false)
 		walletExists, err := loader.WalletExists()
 		if err != nil {
 			return nil, err
@@ -149,6 +150,7 @@ func (b *DcrWallet) Start() error {
 	b.wallet.SetNetworkBackend(b.walletNetBackend)
 
 	go func() {
+		dcrwLog.Debugf("Starting rpc syncer")
 		syncer := chain.NewRPCSyncer(b.wallet, b.chain)
 		syncer.SetNotifications(&chain.Notifications{
 			Synced: b.onRpcSyncerSynced,

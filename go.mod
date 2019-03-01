@@ -27,9 +27,10 @@ require (
 	github.com/decred/dcrd/txscript v1.0.2
 	github.com/decred/dcrd/wire v1.2.0
 	github.com/decred/dcrwallet v1.2.2
-	github.com/decred/dcrwallet/chain v1.1.1
+	github.com/decred/dcrwallet/chain/v2 v2.0.0
 	github.com/decred/dcrwallet/errors v1.0.1
-	github.com/decred/dcrwallet/wallet v1.1.2
+	github.com/decred/dcrwallet/ticketbuyer v1.0.2 // indirect
+	github.com/decred/dcrwallet/wallet/v2 v2.0.0
 	github.com/decred/lnd v0.2.1-alpha
 	github.com/decred/slog v1.0.0
 	github.com/go-errors/errors v1.0.1
@@ -75,5 +76,7 @@ require (
 replace (
 	github.com/decred/dcrd => github.com/matheusd/dcrd v0.0.0-20190221094611-cddf96d68b28
 	github.com/decred/dcrd/rpctest => github.com/davecgh/btcd/rpctest v0.0.0-20190221094611-cddf96d68b28
-	github.com/decred/dcrwallet/wallet => github.com/matheusd/dcrwallet/wallet v0.0.0-20190115143705-93473c7512c8
+
+	github.com/decred/dcrwallet => github.com/matheusd/dcrwallet v0.0.0-20190225211924-3a618c61edb8
+	github.com/decred/dcrwallet/wallet/v2 => github.com/matheusd/dcrwallet/wallet/v2 v2.0.0-20190225211924-3a618c61edb8
 )

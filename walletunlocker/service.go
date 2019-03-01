@@ -15,8 +15,8 @@ import (
 
 	"github.com/decred/dcrlnd/lnwallet/dcrwallet"
 	walletloader "github.com/decred/dcrwallet/loader"
-	"github.com/decred/dcrwallet/wallet"
-	"github.com/decred/dcrwallet/wallet/txrules"
+	"github.com/decred/dcrwallet/wallet/v2"
+	"github.com/decred/dcrwallet/wallet/v2/txrules"
 	"golang.org/x/net/context"
 )
 
@@ -111,7 +111,8 @@ func (u *UnlockerService) GenSeed(ctx context.Context,
 	netDir := dcrwallet.NetworkDir(u.chainDir, u.netParams)
 	loader := walletloader.NewLoader(u.netParams, netDir,
 		&walletloader.StakeOptions{}, wallet.DefaultGapLimit, false,
-		txrules.DefaultRelayFeePerKb.ToCoin(), wallet.DefaultAccountGapLimit)
+		txrules.DefaultRelayFeePerKb.ToCoin(), wallet.DefaultAccountGapLimit,
+		false)
 	walletExists, err := loader.WalletExists()
 	if err != nil {
 		return nil, err
@@ -210,7 +211,8 @@ func (u *UnlockerService) InitWallet(ctx context.Context,
 	netDir := dcrwallet.NetworkDir(u.chainDir, u.netParams)
 	loader := walletloader.NewLoader(u.netParams, netDir,
 		&walletloader.StakeOptions{}, gapLimit, false,
-		txrules.DefaultRelayFeePerKb.ToCoin(), wallet.DefaultAccountGapLimit)
+		txrules.DefaultRelayFeePerKb.ToCoin(), wallet.DefaultAccountGapLimit,
+		false)
 
 	walletExists, err := loader.WalletExists()
 	if err != nil {
@@ -265,7 +267,8 @@ func (u *UnlockerService) UnlockWallet(ctx context.Context,
 	netDir := dcrwallet.NetworkDir(u.chainDir, u.netParams)
 	loader := walletloader.NewLoader(u.netParams, netDir,
 		&walletloader.StakeOptions{}, gapLimit, false,
-		txrules.DefaultRelayFeePerKb.ToCoin(), wallet.DefaultAccountGapLimit)
+		txrules.DefaultRelayFeePerKb.ToCoin(), wallet.DefaultAccountGapLimit,
+		false)
 
 	// Check if wallet already exists.
 	walletExists, err := loader.WalletExists()
@@ -311,7 +314,8 @@ func (u *UnlockerService) ChangePassword(ctx context.Context,
 	netDir := dcrwallet.NetworkDir(u.chainDir, u.netParams)
 	loader := walletloader.NewLoader(u.netParams, netDir,
 		&walletloader.StakeOptions{}, wallet.DefaultGapLimit, false,
-		txrules.DefaultRelayFeePerKb.ToCoin(), wallet.DefaultAccountGapLimit)
+		txrules.DefaultRelayFeePerKb.ToCoin(), wallet.DefaultAccountGapLimit,
+		false)
 
 	// First, we'll make sure the wallet exists for the specific chain and
 	// network.

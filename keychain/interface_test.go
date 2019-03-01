@@ -12,10 +12,10 @@ import (
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	walletloader "github.com/decred/dcrwallet/loader"
-	"github.com/decred/dcrwallet/wallet"
-	"github.com/decred/dcrwallet/wallet/txrules"
+	"github.com/decred/dcrwallet/wallet/v2"
+	"github.com/decred/dcrwallet/wallet/v2/txrules"
 
-	_ "github.com/decred/dcrwallet/wallet/drivers/bdb" // Required in order to create the default database.
+	_ "github.com/decred/dcrwallet/wallet/v2/drivers/bdb" // Required in order to create the default database.
 )
 
 // versionZeroKeyFamilies is a slice of all the known key families for first
@@ -46,7 +46,8 @@ func createTestWallet() (func(), *wallet.Wallet, error) {
 	}
 	loader := walletloader.NewLoader(&chaincfg.RegNetParams, tempDir,
 		&walletloader.StakeOptions{}, wallet.DefaultGapLimit, false,
-		txrules.DefaultRelayFeePerKb.ToCoin(), wallet.DefaultAccountGapLimit)
+		txrules.DefaultRelayFeePerKb.ToCoin(), wallet.DefaultAccountGapLimit, 
+		false)
 
 	pass := []byte("test")
 

@@ -8,7 +8,7 @@ import (
 	"github.com/decred/dcrd/dcrutil"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/lnwallet"
-	"github.com/decred/dcrwallet/chain"
+	"github.com/decred/dcrwallet/chain/v2"
 
 	//"github.com/decred/dcrlnd/lnwallet" // TODO(decred): Finish
 
@@ -16,8 +16,8 @@ import (
 	// init function of the package, it registers itself. The import is used
 	// to activate the side effects w/o actually binding the package name to
 	// a file-level variable.
-	"github.com/decred/dcrwallet/wallet"
-	_ "github.com/decred/dcrwallet/wallet/drivers/bdb"
+	"github.com/decred/dcrwallet/wallet/v2"
+	_ "github.com/decred/dcrwallet/wallet/v2/drivers/bdb"
 )
 
 var (

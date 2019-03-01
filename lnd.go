@@ -35,8 +35,8 @@ import (
 
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	walletloader "github.com/decred/dcrwallet/loader"
-	"github.com/decred/dcrwallet/wallet"
-	"github.com/decred/dcrwallet/wallet/txrules"
+	"github.com/decred/dcrwallet/wallet/v2"
+	"github.com/decred/dcrwallet/wallet/v2/txrules"
 	proxy "github.com/grpc-ecosystem/grpc-gateway/runtime"
 	flags "github.com/jessevdk/go-flags"
 
@@ -785,7 +785,8 @@ func waitForWalletPassword(grpcEndpoints, restEndpoints []net.Addr,
 		)
 		loader := walletloader.NewLoader(activeNetParams.Params, netDir,
 			&walletloader.StakeOptions{}, wallet.DefaultGapLimit, false,
-			txrules.DefaultRelayFeePerKb.ToCoin(), wallet.DefaultAccountGapLimit)
+			txrules.DefaultRelayFeePerKb.ToCoin(), wallet.DefaultAccountGapLimit,
+			false)
 
 		// With the seed, we can now use the wallet loader to create
 		// the wallet, then pass it back to avoid unlocking it again.

@@ -20,8 +20,8 @@ import (
 	"github.com/decred/dcrlnd/lnwallet/dcrwallet"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/routing/chainview"
-	"github.com/decred/dcrwallet/chain"
-	"github.com/decred/dcrwallet/wallet"
+	"github.com/decred/dcrwallet/chain/v2"
+	"github.com/decred/dcrwallet/wallet/v2"
 )
 
 const (

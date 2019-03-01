@@ -2,9 +2,10 @@ package dcrwallet
 
 import (
 	"github.com/decred/dcrlnd/build"
-	"github.com/decred/dcrwallet/chain"
+	"github.com/decred/dcrwallet/chain/v2"
 	"github.com/decred/dcrwallet/loader"
-	base "github.com/decred/dcrwallet/wallet"
+	base "github.com/decred/dcrwallet/wallet/v2"
+	"github.com/decred/dcrwallet/wallet/v2/udb"
 	"github.com/decred/slog"
 )
 
@@ -32,6 +33,7 @@ func UseLogger(logger slog.Logger) {
 	base.UseLogger(logger)
 	loader.UseLogger(logger)
 	chain.UseLogger(logger)
+	udb.UseLogger(logger)
 }
 
 // logClosure is used to provide a closure over expensive logging operations

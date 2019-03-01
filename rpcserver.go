@@ -35,7 +35,7 @@ import (
 	"github.com/decred/dcrlnd/routing"
 	"github.com/decred/dcrlnd/signal"
 	"github.com/decred/dcrlnd/zpay32"
-	"github.com/decred/dcrwallet/wallet/udb"
+	"github.com/decred/dcrwallet/wallet/v2/udb"
 	proxy "github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/tv42/zbase32"
 	bolt "go.etcd.io/bbolt"

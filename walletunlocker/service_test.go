@@ -15,8 +15,8 @@ import (
 	"github.com/decred/dcrlnd/lnwallet/dcrwallet"
 	"github.com/decred/dcrlnd/walletunlocker"
 	walletloader "github.com/decred/dcrwallet/loader"
-	"github.com/decred/dcrwallet/wallet"
-	"github.com/decred/dcrwallet/wallet/txrules"
+	"github.com/decred/dcrwallet/wallet/v2"
+	"github.com/decred/dcrwallet/wallet/v2/txrules"
 	"golang.org/x/net/context"
 )
 
@@ -44,7 +44,8 @@ func createTestWallet(t *testing.T, dir string, netParams *chaincfg.Params) {
 	netDir := dcrwallet.NetworkDir(dir, netParams)
 	loader := walletloader.NewLoader(netParams, netDir,
 		&walletloader.StakeOptions{}, wallet.DefaultGapLimit, false,
-		txrules.DefaultRelayFeePerKb.ToCoin(), wallet.DefaultAccountGapLimit)
+		txrules.DefaultRelayFeePerKb.ToCoin(), wallet.DefaultAccountGapLimit,
+		false)
 	_, err := loader.CreateNewWallet(
 		testPassword, testPassword, testSeed,
 	)
