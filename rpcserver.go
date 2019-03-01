@@ -854,6 +854,8 @@ func (r *rpcServer) NewAddress(ctx context.Context,
 	switch in.Type {
 	case lnrpc.AddressType_PUBKEY_HASH:
 		addrType = lnwallet.PubKeyHash
+	default:
+		return nil, fmt.Errorf("unsupported address type %s", in.Type)
 	}
 
 	addr, err := r.server.cc.wallet.NewAddress(addrType, false)
