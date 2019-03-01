@@ -3174,7 +3174,7 @@ func testSingleHopInvoice(net *lntest.NetworkHarness, t *harnessTest) {
 	// Open a channel with 100k satoshis between Alice and Bob with Alice being
 	// the sole funder of the channel.
 	ctxt, _ := context.WithTimeout(ctxb, channelOpenTimeout)
-	chanAmt := dcrutil.Amount(100000)
+	chanAmt := dcrutil.Amount(300000)
 	chanPoint := openChannelAndAssert(
 		ctxt, t, net, net.Alice, net.Bob,
 		lntest.OpenChannelParams{
@@ -3210,9 +3210,9 @@ func testSingleHopInvoice(net *lntest.NetworkHarness, t *harnessTest) {
 	}
 
 	// Now that the channel is open, create an invoice for Bob which
-	// expects a payment of 1000 satoshis from Alice paid via a particular
+	// expects a payment of 20000 satoshis from Alice paid via a particular
 	// preimage.
-	const paymentAmt = 1000
+	const paymentAmt = 20000
 	preimage := bytes.Repeat([]byte("A"), 32)
 	invoice := &lnrpc.Invoice{
 		Memo:      "testing",
@@ -3348,9 +3348,9 @@ func testListPayments(net *lntest.NetworkHarness, t *harnessTest) {
 	)
 
 	// Now that the channel is open, create an invoice for Bob which
-	// expects a payment of 1000 satoshis from Alice paid via a particular
+	// expects a payment of 20000 satoshis from Alice paid via a particular
 	// preimage.
-	const paymentAmt = 1000
+	const paymentAmt = 20000
 	preimage := bytes.Repeat([]byte("B"), 32)
 	invoice := &lnrpc.Invoice{
 		Memo:      "testing",
@@ -6650,9 +6650,9 @@ func testRevokedCloseRetributionRemoteHodl(net *lntest.NetworkHarness,
 	ctxb := context.Background()
 
 	const (
-		chanAmt     = maxBtcFundingAmount
-		pushAmt     = 200000
-		paymentAmt  = 10000
+		chanAmt     = maxDecredFundingAmount
+		pushAmt     = 400000
+		paymentAmt  = 20000
 		numInvoices = 6
 	)
 
@@ -8359,6 +8359,9 @@ func testAsyncPayments(net *lntest.NetworkHarness, t *harnessTest) {
 	// Calculate the number of invoices. We will deplete the channel
 	// all the way down to the channel reserve.
 	chanReserve := channelCapacity / 100
+	if chanReserve < lnwallet.DefaultDustLimit() {
+		chanReserve = lnwallet.DefaultDustLimit()
+	}
 	availableBalance := dcrutil.Amount(info.LocalBalance) - chanReserve
 	numInvoices := int(availableBalance / paymentAmt)
 
