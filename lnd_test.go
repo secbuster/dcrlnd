@@ -6148,7 +6148,8 @@ func testRevokedCloseRetribution(net *lntest.NetworkHarness, t *harnessTest) {
 	// protection logic automatically.
 	carol, err := net.NewNode(
 		"Carol",
-		[]string{"--debughtlc", "--hodl.exit-settle", "--nolisten"},
+		[]string{"--debughtlc", "--hodl.exit-settle", "--nolisten",
+			"--unsafe-disconnect"},
 	)
 	if err != nil {
 		t.Fatalf("unable to create new carol node: %v", err)
@@ -6266,6 +6267,14 @@ func testRevokedCloseRetribution(net *lntest.NetworkHarness, t *harnessTest) {
 	bobChan, err = getChanInfo(ctxt, net.Bob)
 	if err != nil {
 		t.Fatalf("unable to get bob chan info: %v", err)
+	}
+
+	// Disconnect the nodes to prevent Carol trying to reconnect to Bob after
+	// Bob is restarted and fixing the wrong state.
+	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	err = net.DisconnectNodes(ctxt, carol, net.Bob)
+	if err != nil {
+		t.Fatalf("unable to disconnect carol and bob: %v", err)
 	}
 
 	// Now we shutdown Bob, copying over the his temporary database state
@@ -6663,7 +6672,7 @@ func testRevokedCloseRetributionRemoteHodl(net *lntest.NetworkHarness,
 	// trigger the channel data protection logic automatically.
 	dave, err := net.NewNode(
 		"Dave",
-		[]string{"--debughtlc", "--hodl.exit-settle", "--nolisten"},
+		[]string{"--debughtlc", "--hodl.exit-settle", "--nolisten", "--unsafe-disconnect"},
 	)
 	if err != nil {
 		t.Fatalf("unable to create new dave node: %v", err)
@@ -6834,6 +6843,16 @@ func testRevokedCloseRetributionRemoteHodl(net *lntest.NetworkHarness,
 	time.Sleep(500 * time.Millisecond)
 	checkCarolBalance(pushAmt - 3*paymentAmt)
 	checkCarolNumUpdatesAtLeast(carolStateNumPreCopy + 1)
+
+	// Disconnect Carol and Dave, so that the channel isn't corrected once Carol
+	// is restarted.
+	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	err = net.DisconnectNodes(ctxt, dave, carol)
+	if err != nil {
+		t.Fatalf("unable to disconnect dave and carol: %v", err)
+	}
+
+	time.Sleep(500 * time.Millisecond)
 
 	// Now we shutdown Carol, copying over the her temporary database state
 	// which has the *prior* channel state over her current most up to date
@@ -7098,7 +7117,7 @@ func testDataLossProtection(net *lntest.NetworkHarness, t *harnessTest) {
 	// Carol will be the up-to-date party. We set --nolisten to ensure Dave
 	// won't be able to connect to her and trigger the channel data
 	// protection logic automatically.
-	carol, err := net.NewNode("Carol", []string{"--nolisten"})
+	carol, err := net.NewNode("Carol", []string{"--nolisten", "--unsafe-disconnect"})
 	if err != nil {
 		t.Fatalf("unable to create new carol node: %v", err)
 	}
@@ -7237,6 +7256,14 @@ func testDataLossProtection(net *lntest.NetworkHarness, t *harnessTest) {
 			t.Fatalf("unable to get dave chan info: %v", err)
 		}
 
+		// Disconnect the nodes, to prevent Carol attempting to reconnect
+		// and restore the node state.
+		ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+		err = net.DisconnectNodes(ctxt, carol, node)
+		if err != nil {
+			t.Fatalf("unable to disconnect carol and dave: %v", err)
+		}
+
 		// Now we shutdown the node, copying over the its temporary
 		// database state which has the *prior* channel state over his
 		// current most up to date state. With this, we essentially
@@ -7267,10 +7294,26 @@ func testDataLossProtection(net *lntest.NetworkHarness, t *harnessTest) {
 			t.Fatalf("unable to get dave's balance: %v", err)
 		}
 
-		restart, err := net.SuspendNode(node)
+		restartNode, err := net.SuspendNode(node)
 		if err != nil {
 			t.Fatalf("unable to suspend node: %v", err)
 		}
+
+		restart := func () error {
+			err := restartNode()
+			if err != nil {
+				return err
+			}
+
+			// Reconnect carol to the node.
+			err = net.ConnectNodes(ctxt, carol, node)
+			if err != nil {
+				return err
+			}
+
+			return nil
+		}
+
 		return restart, chanPoint, balResp.ConfirmedBalance, nil
 	}
 
