@@ -1239,6 +1239,15 @@ func TestBreachSecondLevelTransfer(t *testing.T) {
 		t.Fatalf("htlc in not found")
 	}
 
+	timeout := time.After(5 * time.Second)
+	for !notifier.hasSpenderNotification(htlcOutpoint) {
+		select {
+		case <- timeout:
+			t.Fatalf("breach arbiter did not register for spend notification")
+		case <- time.After(time.Millisecond):
+		}
+	}
+
 	// Since publishing the transaction failed above, the breach arbiter
 	// will attempt another second level check. Now notify that the htlc
 	// output is spent by a second level tx.
