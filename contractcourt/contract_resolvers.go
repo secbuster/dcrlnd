@@ -805,7 +805,6 @@ func (h *htlcOutgoingContestResolver) Resolve() (ContractResolver, error) {
 		if err != nil {
 			return nil, err
 		}
-		fmt.Printf("xxxxxxxxxx\n%s\n", spew.Sdump(sigScriptPushes))
 		scriptToWatch, err = lnwallet.ScriptHashPkScript(
 			sigScriptPushes[len(sigScriptPushes)-1],
 		)
