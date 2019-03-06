@@ -153,7 +153,7 @@ func (b *DcrWallet) Start() error {
 		dcrwLog.Debugf("Starting rpc syncer")
 		syncer := chain.NewRPCSyncer(b.wallet, b.chain)
 		syncer.SetNotifications(&chain.Notifications{
-			Synced: b.onRpcSyncerSynced,
+			Synced: b.onRPCSyncerSynced,
 		})
 		ctx := context.TODO()
 		err := syncer.Run(ctx, true)
@@ -700,6 +700,6 @@ func (b *DcrWallet) IsSynced() (bool, int64, error) {
 	return walletSynced, walletBestHeader.Timestamp.Unix(), nil
 }
 
-func (b *DcrWallet) onRpcSyncerSynced(synced bool) {
+func (b *DcrWallet) onRPCSyncerSynced(synced bool) {
 	atomic.StoreUint32(&b.atomicWalletSynced, 1)
 }

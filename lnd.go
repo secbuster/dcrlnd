@@ -284,7 +284,7 @@ func lndMain() error {
 	// Wait until we're fully synced to continue the start up of the remainder
 	// of the daemon. This ensures that we don't accept any possibly invalid
 	// state transitions, or accept channels with spent funds.
-	// 
+	//
 	// This is also required on decred due to various things dcrwallet does at
 	// startup (mainly, slip0044 upgrade, account and address discovery) which
 	// may deadlock if we try to start using it to (e.g.) derive the node's id

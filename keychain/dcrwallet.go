@@ -22,10 +22,10 @@ const (
 	CoinTypeTestnet = 1
 )
 
-// Yep I WalletKeyRing is an implementation of both the KeyRing and SecretKeyRing
-// interfaces backed by dcrwallet's internal root udb.  Internally, we'll
-// be using a ScopedKeyManager to do all of our derivations, using the key
-// scope and scope addr scehma defined above. Re-using the existing key scope
+// WalletKeyRing is an implementation of both the KeyRing and SecretKeyRing
+// interfaces backed by dcrwallet's internal root udb. Internally, we'll be
+// using a ScopedKeyManager to do all of our derivations, using the key scope
+// and scope addr scehma defined above. Re-using the existing key scope
 // construction means that all key derivation will be protected under the root
 // seed of the wallet, making each derived key fully deterministic.
 type WalletKeyRing struct {
@@ -222,31 +222,31 @@ func (b *WalletKeyRing) DerivePrivKey(keyDesc KeyDescriptor) (*secp256k1.Private
 			return nil, err
 		}
 		return privKey.ECPrivKey()
-	} else {
-		// If the public key isn't nil, then this indicates that we
-		// need to scan for the private key, assuming that we know the
-		// valid key family.
-		for i := 0; i < MaxKeyRangeScan; i++ {
-			// Derive the next key in the range and fetch its
-			// managed address.
-			privKey, err := famBranchPriv.Child(uint32(i))
-			if err == hdkeychain.ErrInvalidChild {
-				continue
-			}
+	}
 
-			if err != nil {
-				return nil, err
-			}
+	// If the public key isn't nil, then this indicates that we
+	// need to scan for the private key, assuming that we know the
+	// valid key family.
+	for i := 0; i < MaxKeyRangeScan; i++ {
+		// Derive the next key in the range and fetch its
+		// managed address.
+		privKey, err := famBranchPriv.Child(uint32(i))
+		if err == hdkeychain.ErrInvalidChild {
+			continue
+		}
 
-			pubKey, err := privKey.ECPubKey()
-			if err != nil {
-				// simply skip invalid keys here
-				continue
-			}
+		if err != nil {
+			return nil, err
+		}
 
-			if keyDesc.PubKey.IsEqual(pubKey) {
-				return privKey.ECPrivKey()
-			}
+		pubKey, err := privKey.ECPubKey()
+		if err != nil {
+			// simply skip invalid keys here
+			continue
+		}
+
+		if keyDesc.PubKey.IsEqual(pubKey) {
+			return privKey.ECPrivKey()
 		}
 	}
 

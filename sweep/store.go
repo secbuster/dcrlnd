@@ -6,10 +6,10 @@ import (
 	"errors"
 	"fmt"
 
-	bolt "go.etcd.io/bbolt"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/channeldb"
+	bolt "go.etcd.io/bbolt"
 )
 
 var (

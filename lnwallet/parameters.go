@@ -15,9 +15,9 @@ func DefaultDustLimit() dcrutil.Amount {
 	return DustThresholdForRelayFee(AtomPerKByte(txrules.DefaultRelayFeePerKb))
 }
 
-// GetDustThreshold returns the minimum amount an output of the given size
-// should have in order to not be considered a dust output for networks using
-// the provided relay fee.
+// DustThresholdForRelayFee returns the minimum amount an output of the given
+// size should have in order to not be considered a dust output for networks
+// using the provided relay fee.
 //
 // It is assumed the output is paying to a P2PKH script.
 func DustThresholdForRelayFee(relayFeeRate AtomPerKByte) dcrutil.Amount {

@@ -208,12 +208,12 @@ func createSweepTx(inputs []Input, outputPkScript []byte,
 	// classes if fees are too low.
 	btx := dcrutil.NewTx(sweepTx)
 	if err := blockchain.CheckTransactionSanity(btx.MsgTx(), netParams); err != nil {
-		if ruleErr, is := err.(blockchain.RuleError) ; is {
+		if ruleErr, is := err.(blockchain.RuleError); is {
 			return nil, fmt.Errorf("rule error checking sweepTx sanity: %s %v",
 				ruleErr.ErrorCode, err)
-		} else {
-			return nil, fmt.Errorf("error checking sweepTx sanity: %v", err)
 		}
+
+		return nil, fmt.Errorf("error checking sweepTx sanity: %v", err)
 	}
 
 	// With all the inputs in place, use each output's unique witness

@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/keychain"
 )
 

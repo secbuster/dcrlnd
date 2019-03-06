@@ -87,7 +87,6 @@ func (b *DcrWallet) fetchOutputAddr(scriptVersion uint16, script []byte) (udb.Ma
 	return nil, lnwallet.ErrNotMine
 }
 
-
 // maybeTweakPrivKey examines the single and double tweak parameters on the
 // passed sign descriptor and may perform a mapping on the passed private key
 // in order to utilize the tweaks, if populated.

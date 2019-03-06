@@ -960,7 +960,7 @@ func (b *breachArbiter) createJusticeTx(
 	// transaction.
 	var (
 		spendableOutputs []sweep.Input
-		sizeEstimate   lnwallet.TxSizeEstimator
+		sizeEstimate     lnwallet.TxSizeEstimator
 	)
 
 	// Allocate enough space to potentially hold each of the breached

@@ -94,14 +94,14 @@ const (
 	// size of the standard signature scripts used to redeem the corresponding
 	// public key scripts in decred transactions' input.
 
-	// p2pkhSigScriptSize is the worst case (largest) serialize size
-	// of a transaction input script that redeems a compressed P2PKH output.
-	// It is calculated as:
+	// P2PKHSigScriptSize is the worst case (largest) serialize size of a
+	// transaction input script that redeems a compressed P2PKH output. It is
+	// calculated as:
 	//
-	//		- OP_DATA_73                 1 byte
-	//		- signature+hash_type       73 bytes
-	//		- OP_DATA_33                 1 byte
-	//		- compressed pubkey         33 bytes
+	//      - OP_DATA_73                 1 byte
+	//      - signature+hash_type       73 bytes
+	//      - OP_DATA_33                 1 byte
+	//      - compressed pubkey         33 bytes
 	//
 	// Total: 108 bytes
 	P2PKHSigScriptSize int64 = 1 + 73 + 1 + 33

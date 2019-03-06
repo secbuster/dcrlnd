@@ -6,10 +6,11 @@ import (
 	"github.com/decred/dcrd/wire"
 )
 
-// TODO(decred) rename from WitnessType to SigScriptType
 // WitnessType determines how an output's witness will be generated. The
 // default commitmentTimeLock type will generate a witness that will allow
 // spending of a time-locked transaction enforced by CheckSequenceVerify.
+//
+// TODO(decred) rename from WitnessType to SigScriptType
 type WitnessType uint16
 
 const (

@@ -46,7 +46,7 @@ func createTestWallet() (func(), *wallet.Wallet, error) {
 	}
 	loader := walletloader.NewLoader(&chaincfg.RegNetParams, tempDir,
 		&walletloader.StakeOptions{}, wallet.DefaultGapLimit, false,
-		txrules.DefaultRelayFeePerKb.ToCoin(), wallet.DefaultAccountGapLimit, 
+		txrules.DefaultRelayFeePerKb.ToCoin(), wallet.DefaultAccountGapLimit,
 		false)
 
 	pass := []byte("test")

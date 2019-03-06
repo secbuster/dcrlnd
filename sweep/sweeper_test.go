@@ -427,7 +427,7 @@ func testTxIns(t *testing.T, tx *wire.MsgTx, inputs []*wire.OutPoint) bool {
 
 	if len(tx.TxIn) != len(inputs) {
 		t.Errorf("Expected Inputs:\n%s\nBut found Inputs:\n%s\n",
-		spew.Sdump(inputs), spew.Sdump(ins))
+			spew.Sdump(inputs), spew.Sdump(ins))
 		return false
 	}
 
