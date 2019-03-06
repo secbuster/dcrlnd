@@ -34,7 +34,6 @@ require (
 	github.com/decred/dcrwallet/wallet/v2 v2.0.0
 	github.com/decred/lnd v0.2.1-alpha
 	github.com/decred/slog v1.0.0
-	github.com/dnldd/dcrd v1.0.5
 	github.com/go-errors/errors v1.0.1
 	github.com/golang/protobuf v1.2.0
 	github.com/grpc-ecosystem/grpc-gateway v1.6.4
@@ -77,6 +76,7 @@ require (
 
 replace (
 	github.com/decred/dcrd => github.com/matheusd/dcrd v0.0.0-20190306151227-fe7df03d5792
+	github.com/decred/dcrd/blockchain => github.com/matheusd/dcrd/blockchain v0.0.0-20190306151227-fe7df03d5792
 	github.com/decred/dcrd/connmgr => github.com/matheusd/dcrd/connmgr v0.0.0-20190306151227-fe7df03d5792
 	github.com/decred/dcrd/rpctest => github.com/davecgh/btcd/rpctest v0.0.0-20190306151227-fe7df03d5792
 
