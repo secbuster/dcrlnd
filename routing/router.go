@@ -123,7 +123,7 @@ type ChannelGraphSource interface {
 type FeeSchema struct {
 	// BaseFee is the base amount of milli-satoshis that will be chained
 	// for ANY payment forwarded.
-	BaseFee lnwire.MilliSatoshi
+	BaseFee lnwire.MilliAtom
 
 	// FeeRate is the rate that will be charged for forwarding payments.
 	// This value should be interpreted as the numerator for a fraction
@@ -188,7 +188,7 @@ type Config struct {
 	// a value of zero should be returned. Otherwise, the current up to
 	// date knowledge of the available bandwidth of the link should be
 	// returned.
-	QueryBandwidth func(edge *channeldb.ChannelEdgeInfo) lnwire.MilliSatoshi
+	QueryBandwidth func(edge *channeldb.ChannelEdgeInfo) lnwire.MilliAtom
 
 	// AssumeChannelValid toggles whether or not the router will check for
 	// spentness of channel outpoints. For neutrino, this saves long rescans
@@ -202,12 +202,12 @@ type Config struct {
 // amount. We required the target amount as that will influence the available
 // set of paths for a payment.
 type routeTuple struct {
-	amt  lnwire.MilliSatoshi
+	amt  lnwire.MilliAtom
 	dest [33]byte
 }
 
 // newRouteTuple creates a new route tuple from the target and amount.
-func newRouteTuple(amt lnwire.MilliSatoshi, dest []byte) routeTuple {
+func newRouteTuple(amt lnwire.MilliAtom, dest []byte) routeTuple {
 	r := routeTuple{
 		amt: amt,
 	}
@@ -1328,7 +1328,7 @@ func pruneChannelFromRoutes(routes []*Route, skipChan uint64) []*Route {
 // initial set of paths as it's possible we drop a route if it can't handle the
 // total payment flow after fees are calculated.
 func pathsToFeeSortedRoutes(source Vertex, paths [][]*channeldb.ChannelEdgePolicy,
-	finalCLTVDelta uint16, amt, feeLimit lnwire.MilliSatoshi,
+	finalCLTVDelta uint16, amt, feeLimit lnwire.MilliAtom,
 	currentHeight uint32) ([]*Route, error) {
 
 	validRoutes := make([]*Route, 0, len(paths))
@@ -1387,7 +1387,7 @@ func pathsToFeeSortedRoutes(source Vertex, paths [][]*channeldb.ChannelEdgePolic
 // route that will be ranked the highest is the one with the lowest cumulative
 // fee along the route.
 func (r *ChannelRouter) FindRoutes(target *secp256k1.PublicKey,
-	amt, feeLimit lnwire.MilliSatoshi, numPaths uint32,
+	amt, feeLimit lnwire.MilliAtom, numPaths uint32,
 	finalExpiry ...uint16) ([]*Route, error) {
 
 	var finalCLTVDelta uint16
@@ -1577,12 +1577,12 @@ type LightningPayment struct {
 
 	// Amount is the value of the payment to send through the network in
 	// milli-satoshis.
-	Amount lnwire.MilliSatoshi
+	Amount lnwire.MilliAtom
 
-	// FeeLimit is the maximum fee in millisatoshis that the payment should
+	// FeeLimit is the maximum fee in MilliAtoms that the payment should
 	// accept when sending it through the network. The payment will fail
 	// if there isn't a route with lower fees than this limit.
-	FeeLimit lnwire.MilliSatoshi
+	FeeLimit lnwire.MilliAtom
 
 	// PaymentHash is the r-hash value to use within the HTLC extended to
 	// the first hop.
@@ -2073,8 +2073,8 @@ func (r *ChannelRouter) applyChannelUpdate(msg *lnwire.ChannelUpdate,
 		Flags:                     msg.Flags,
 		TimeLockDelta:             msg.TimeLockDelta,
 		MinHTLC:                   msg.HtlcMinimumMsat,
-		FeeBaseMSat:               lnwire.MilliSatoshi(msg.BaseFee),
-		FeeProportionalMillionths: lnwire.MilliSatoshi(msg.FeeRate),
+		FeeBaseMSat:               lnwire.MilliAtom(msg.BaseFee),
+		FeeProportionalMillionths: lnwire.MilliAtom(msg.FeeRate),
 	})
 	if err != nil && !IsError(err, ErrIgnored, ErrOutdated) {
 		log.Errorf("Unable to apply channel update: %v", err)

@@ -109,7 +109,7 @@ type ContractTerm struct {
 
 	// Value is the expected amount of milli-satoshis to be paid to an HTLC
 	// which can be satisfied by the above preimage.
-	Value lnwire.MilliSatoshi
+	Value lnwire.MilliAtom
 
 	// State describes the state the invoice is in.
 	State ContractState
@@ -177,7 +177,7 @@ type Invoice struct {
 	// this invoice. We specify this value independently as it's possible
 	// that the invoice originally didn't specify an amount, or the sender
 	// overpaid.
-	AmtPaid lnwire.MilliSatoshi
+	AmtPaid lnwire.MilliAtom
 }
 
 func validateInvoice(i *Invoice) error {
@@ -597,7 +597,7 @@ func (d *DB) QueryInvoices(q InvoiceQuery) (InvoiceSlice, error) {
 // hash doesn't existing within the database, then the action will fail with a
 // "not found" error.
 func (d *DB) SettleInvoice(paymentHash [32]byte,
-	amtPaid lnwire.MilliSatoshi) (*Invoice, error) {
+	amtPaid lnwire.MilliAtom) (*Invoice, error) {
 
 	var settledInvoice *Invoice
 	err := d.Update(func(tx *bolt.Tx) error {
@@ -870,7 +870,7 @@ func deserializeInvoice(r io.Reader) (Invoice, error) {
 	if _, err := io.ReadFull(r, scratch[:]); err != nil {
 		return invoice, err
 	}
-	invoice.Terms.Value = lnwire.MilliSatoshi(byteOrder.Uint64(scratch[:]))
+	invoice.Terms.Value = lnwire.MilliAtom(byteOrder.Uint64(scratch[:]))
 
 	if err := binary.Read(r, byteOrder, &invoice.Terms.State); err != nil {
 		return invoice, err
@@ -890,7 +890,7 @@ func deserializeInvoice(r io.Reader) (Invoice, error) {
 }
 
 func settleInvoice(invoices, settleIndex *bolt.Bucket, invoiceNum []byte,
-	amtPaid lnwire.MilliSatoshi) (*Invoice, error) {
+	amtPaid lnwire.MilliAtom) (*Invoice, error) {
 
 	invoice, err := fetchInvoice(invoiceNum, invoices)
 	if err != nil {

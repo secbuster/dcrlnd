@@ -95,8 +95,8 @@ func createTestCtxFromGraphInstance(startingHeight uint32, graphInstance *testGr
 		},
 		ChannelPruneExpiry: time.Hour * 24,
 		GraphPruneInterval: time.Hour * 2,
-		QueryBandwidth: func(e *channeldb.ChannelEdgeInfo) lnwire.MilliSatoshi {
-			return lnwire.NewMSatFromSatoshis(e.Capacity)
+		QueryBandwidth: func(e *channeldb.ChannelEdgeInfo) lnwire.MilliAtom {
+			return lnwire.NewMAtFromAtoms(e.Capacity)
 		},
 	})
 	if err != nil {
@@ -180,7 +180,7 @@ func TestFindRoutesFeeSorting(t *testing.T) {
 	// selection.
 
 	// Execute a query for all possible routes between roasbeef and luo ji.
-	paymentAmt := lnwire.NewMSatFromSatoshis(100)
+	paymentAmt := lnwire.NewMAtFromAtoms(100)
 	target := ctx.aliases["luoji"]
 	routes, err := ctx.router.FindRoutes(
 		target, paymentAmt, noFeeLimit, defaultNumRoutes,
@@ -238,8 +238,8 @@ func TestFindRoutesWithFeeLimit(t *testing.T) {
 	// The second route violates our fee limit, so we should only expect to
 	// see the first route.
 	target := ctx.aliases["sophon"]
-	paymentAmt := lnwire.NewMSatFromSatoshis(100)
-	feeLimit := lnwire.NewMSatFromSatoshis(10)
+	paymentAmt := lnwire.NewMAtFromAtoms(100)
+	feeLimit := lnwire.NewMAtFromAtoms(10)
 
 	routes, err := ctx.router.FindRoutes(
 		target, paymentAmt, feeLimit, defaultNumRoutes,
@@ -288,7 +288,7 @@ func TestSendPaymentRouteFailureFallback(t *testing.T) {
 	// Craft a LightningPayment struct that'll send a payment from roasbeef
 	// to luo ji for 1000 satoshis, with a maximum of 1000 satoshis in fees.
 	var payHash [32]byte
-	paymentAmt := lnwire.NewMSatFromSatoshis(1000)
+	paymentAmt := lnwire.NewMAtFromAtoms(1000)
 	payment := LightningPayment{
 		Target:      ctx.aliases["luoji"],
 		Amount:      paymentAmt,
@@ -422,7 +422,7 @@ func TestChannelUpdateValidation(t *testing.T) {
 	}
 
 	route, err := NewRouteFromHops(
-		lnwire.MilliSatoshi(10000), 100,
+		lnwire.MilliAtom(10000), 100,
 		NewVertex(ctx.aliases["a"]), hops,
 	)
 	if err != nil {
@@ -527,7 +527,7 @@ func TestSendPaymentErrorRepeatedFeeInsufficient(t *testing.T) {
 	// Craft a LightningPayment struct that'll send a payment from roasbeef
 	// to luo ji for 100 satoshis.
 	var payHash [32]byte
-	amt := lnwire.NewMSatFromSatoshis(1000)
+	amt := lnwire.NewMAtFromAtoms(1000)
 	payment := LightningPayment{
 		Target:      ctx.aliases["sophon"],
 		Amount:      amt,
@@ -631,7 +631,7 @@ func TestSendPaymentErrorNonFinalTimeLockErrors(t *testing.T) {
 	// Craft a LightningPayment struct that'll send a payment from roasbeef
 	// to sophon for 1k satoshis.
 	var payHash [32]byte
-	amt := lnwire.NewMSatFromSatoshis(1000)
+	amt := lnwire.NewMAtFromAtoms(1000)
 	payment := LightningPayment{
 		Target:      ctx.aliases["sophon"],
 		Amount:      amt,
@@ -766,7 +766,7 @@ func TestSendPaymentErrorPathPruning(t *testing.T) {
 	// Craft a LightningPayment struct that'll send a payment from roasbeef
 	// to luo ji for 1000 satoshis, with a maximum of 1000 satoshis in fees.
 	var payHash [32]byte
-	paymentAmt := lnwire.NewMSatFromSatoshis(1000)
+	paymentAmt := lnwire.NewMAtFromAtoms(1000)
 	payment := LightningPayment{
 		Target:      ctx.aliases["luoji"],
 		Amount:      paymentAmt,
@@ -1216,7 +1216,7 @@ func TestAddEdgeUnknownVertexes(t *testing.T) {
 	}
 
 	// We should now be able to find two routes to node 2.
-	paymentAmt := lnwire.NewMSatFromSatoshis(100)
+	paymentAmt := lnwire.NewMAtFromAtoms(100)
 	targetNode := priv2.PubKey()
 	routes, err := ctx.router.FindRoutes(
 		targetNode, paymentAmt, noFeeLimit, defaultNumRoutes,
@@ -1865,7 +1865,7 @@ func TestFindPathFeeWeighting(t *testing.T) {
 	ignoreVertex := make(map[Vertex]struct{})
 	ignoreEdge := make(map[edgeLocator]struct{})
 
-	amt := lnwire.MilliSatoshi(100)
+	amt := lnwire.MilliAtom(100)
 
 	target := ctx.aliases["luoji"]
 	if target == nil {

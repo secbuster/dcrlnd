@@ -19,10 +19,10 @@ type nodeWithDist struct {
 	// amountToReceive is the amount that should be received by this node.
 	// Either as final payment to the final node or as an intermediate
 	// amount that includes also the fees for subsequent hops.
-	amountToReceive lnwire.MilliSatoshi
+	amountToReceive lnwire.MilliAtom
 
 	// fee is the fee that this node is charging for forwarding.
-	fee lnwire.MilliSatoshi
+	fee lnwire.MilliAtom
 }
 
 // distanceHeap is a min-distance heap that's used within our path finding

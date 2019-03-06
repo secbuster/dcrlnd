@@ -270,7 +270,7 @@ func (i *InvoiceRegistry) AddDebugInvoice(amt dcrutil.Amount, preimage chainhash
 	invoice := &channeldb.Invoice{
 		CreationDate: time.Now(),
 		Terms: channeldb.ContractTerm{
-			Value:           lnwire.NewMSatFromSatoshis(amt),
+			Value:           lnwire.NewMAtFromAtoms(amt),
 			PaymentPreimage: preimage,
 		},
 	}
@@ -351,7 +351,7 @@ func (i *InvoiceRegistry) LookupInvoice(rHash chainhash.Hash) (channeldb.Invoice
 // debug invoice, then this method is a noop as debug invoices are never fully
 // settled.
 func (i *InvoiceRegistry) SettleInvoice(rHash chainhash.Hash,
-	amtPaid lnwire.MilliSatoshi) error {
+	amtPaid lnwire.MilliAtom) error {
 
 	i.Lock()
 	defer i.Unlock()

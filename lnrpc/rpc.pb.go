@@ -3429,7 +3429,7 @@ type OpenChannelRequest struct {
 	SatPerByte int64 `protobuf:"varint,7,opt,name=sat_per_byte,json=satPerByte,proto3" json:"sat_per_byte,omitempty"`
 	// / Whether this channel should be private, not announced to the greater network.
 	Private bool `protobuf:"varint,8,opt,name=private,proto3" json:"private,omitempty"`
-	// / The minimum value in millisatoshi we will require for incoming HTLCs on the channel.
+	// / The minimum value in MilliAtom we will require for incoming HTLCs on the channel.
 	MinHtlcMsat int64 `protobuf:"varint,9,opt,name=min_htlc_msat,proto3" json:"min_htlc_msat,omitempty"`
 	// / The delay we require on the remote's commitment transaction. If this is not set, it will be scaled automatically with the channel size.
 	RemoteCsvDelay uint32 `protobuf:"varint,10,opt,name=remote_csv_delay,proto3" json:"remote_csv_delay,omitempty"`
@@ -4652,10 +4652,10 @@ type Route struct {
 	// Contains details concerning the specific forwarding details at each hop.
 	Hops []*Hop `protobuf:"bytes,4,rep,name=hops,proto3" json:"hops,omitempty"`
 	// *
-	// The total fees in millisatoshis.
+	// The total fees in MilliAtoms.
 	TotalFeesMsat int64 `protobuf:"varint,5,opt,name=total_fees_msat,proto3" json:"total_fees_msat,omitempty"`
 	// *
-	// The total amount in millisatoshis.
+	// The total amount in MilliAtoms.
 	TotalAmtMsat         int64    `protobuf:"varint,6,opt,name=total_amt_msat,proto3" json:"total_amt_msat,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
@@ -5747,7 +5747,7 @@ type HopHint struct {
 	NodeId string `protobuf:"bytes,1,opt,name=node_id,proto3" json:"node_id,omitempty"`
 	// / The unique identifier of the channel.
 	ChanId uint64 `protobuf:"varint,2,opt,name=chan_id,proto3" json:"chan_id,omitempty"`
-	// / The base fee of the channel denominated in millisatoshis.
+	// / The base fee of the channel denominated in MilliAtoms.
 	FeeBaseMsat uint32 `protobuf:"varint,3,opt,name=fee_base_msat,proto3" json:"fee_base_msat,omitempty"`
 	// *
 	// The fee rate of the channel for sending one satoshi across it denominated in
@@ -5929,7 +5929,7 @@ type Invoice struct {
 	// as well.
 	AmtPaidSat int64 `protobuf:"varint,19,opt,name=amt_paid_sat,proto3" json:"amt_paid_sat,omitempty"`
 	// *
-	// The amount that was accepted for this invoice, in millisatoshis. This will
+	// The amount that was accepted for this invoice, in MilliAtoms. This will
 	// ONLY be set if this invoice has been settled. We provide this field as if
 	// the invoice was created with a zero value, then we need to record what
 	// amount was ultimately accepted. Additionally, it's possible that the sender

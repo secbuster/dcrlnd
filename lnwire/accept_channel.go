@@ -25,7 +25,7 @@ type AcceptChannel struct {
 	// MaxValueInFlight represents the maximum amount of coins that can be
 	// pending within the channel at any given time. If the amount of funds
 	// in limbo exceeds this amount, then the channel will be failed.
-	MaxValueInFlight MilliSatoshi
+	MaxValueInFlight MilliAtom
 
 	// ChannelReserve is the amount of DCR that the receiving party MUST
 	// maintain a balance above at all times. This is a safety mechanism to
@@ -35,7 +35,7 @@ type AcceptChannel struct {
 
 	// HtlcMinimum is the smallest HTLC that the sender of this message
 	// will accept.
-	HtlcMinimum MilliSatoshi
+	HtlcMinimum MilliAtom
 
 	// MinAcceptDepth is the minimum depth that the initiator of the
 	// channel should wait before considering the channel open.

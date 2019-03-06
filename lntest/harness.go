@@ -786,7 +786,7 @@ type OpenChannelParams struct {
 	SpendUnconfirmed bool
 
 	// MinHtlc is the htlc_minimum_msat value set when opening the channel.
-	MinHtlc lnwire.MilliSatoshi
+	MinHtlc lnwire.MilliAtom
 }
 
 // OpenChannel attempts to open a channel between srcNode and destNode with the

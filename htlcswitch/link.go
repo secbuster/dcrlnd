@@ -68,17 +68,17 @@ type ForwardingPolicy struct {
 	// MinHTLC is the smallest HTLC that is to be forwarded. This is
 	// set when a channel is first opened, and will be static for the
 	// lifetime of the channel.
-	MinHTLC lnwire.MilliSatoshi
+	MinHTLC lnwire.MilliAtom
 
 	// BaseFee is the base fee, expressed in milli-satoshi that must be
 	// paid for each incoming HTLC. This field, combined with FeeRate is
 	// used to compute the required fee for a given HTLC.
-	BaseFee lnwire.MilliSatoshi
+	BaseFee lnwire.MilliAtom
 
 	// FeeRate is the fee rate, expressed in milli-satoshi that must be
 	// paid for each incoming HTLC. This field combined with BaseFee is
 	// used to compute the required fee for a given HTLC.
-	FeeRate lnwire.MilliSatoshi
+	FeeRate lnwire.MilliAtom
 
 	// TimeLockDelta is the absolute time-lock value, expressed in blocks,
 	// that will be subtracted from an incoming HTLC's timelock value to
@@ -102,7 +102,7 @@ type ForwardingPolicy struct {
 // TODO(roasbeef): also add in current available channel bandwidth, inverse
 // func
 func ExpectedFee(f ForwardingPolicy,
-	htlcAmt lnwire.MilliSatoshi) lnwire.MilliSatoshi {
+	htlcAmt lnwire.MilliAtom) lnwire.MilliAtom {
 
 	return f.BaseFee + (htlcAmt*f.FeeRate)/1000000
 }
@@ -1800,12 +1800,12 @@ func (l *channelLink) ChanID() lnwire.ChannelID {
 }
 
 // Bandwidth returns the total amount that can flow through the channel link at
-// this given instance. The value returned is expressed in millisatoshi and can
+// this given instance. The value returned is expressed in MilliAtom and can
 // be used by callers when making forwarding decisions to determine if a link
 // can accept an HTLC.
 //
 // NOTE: Part of the ChannelLink interface.
-func (l *channelLink) Bandwidth() lnwire.MilliSatoshi {
+func (l *channelLink) Bandwidth() lnwire.MilliAtom {
 	channelBandwidth := l.channel.AvailableBalance()
 	overflowBandwidth := l.overflowQueue.TotalHtlcAmount()
 
@@ -1817,7 +1817,7 @@ func (l *channelLink) Bandwidth() lnwire.MilliSatoshi {
 
 	// If the channel reserve is greater than the total available balance
 	// of the link, just return 0.
-	reserve := lnwire.NewMSatFromSatoshis(l.channel.LocalChanReserve())
+	reserve := lnwire.NewMAtFromAtoms(l.channel.LocalChanReserve())
 	if linkBandwidth < reserve {
 		return 0
 	}
@@ -1875,7 +1875,7 @@ func (l *channelLink) UpdateForwardingPolicy(newPolicy ForwardingPolicy) {
 //
 // NOTE: Part of the ChannelLink interface.
 func (l *channelLink) HtlcSatifiesPolicy(payHash [32]byte,
-	incomingHtlcAmt, amtToForward lnwire.MilliSatoshi,
+	incomingHtlcAmt, amtToForward lnwire.MilliAtom,
 	incomingTimeout, outgoingTimeout uint32,
 	heightNow uint32) lnwire.FailureMessage {
 
@@ -1998,7 +1998,7 @@ func (l *channelLink) HtlcSatifiesPolicy(payHash [32]byte,
 // Stats returns the statistics of channel link.
 //
 // NOTE: Part of the ChannelLink interface.
-func (l *channelLink) Stats() (uint64, lnwire.MilliSatoshi, lnwire.MilliSatoshi) {
+func (l *channelLink) Stats() (uint64, lnwire.MilliAtom, lnwire.MilliAtom) {
 	snapshot := l.channel.StateSnapshot()
 
 	return snapshot.ChannelCommitment.CommitHeight,

@@ -264,15 +264,15 @@ type ChannelEdgeUpdate struct {
 	Capacity dcrutil.Amount
 
 	// MinHTLC is the minimum HTLC amount that this channel will forward.
-	MinHTLC lnwire.MilliSatoshi
+	MinHTLC lnwire.MilliAtom
 
 	// BaseFee is the base fee that will charged for all HTLC's forwarded
 	// across the this channel direction.
-	BaseFee lnwire.MilliSatoshi
+	BaseFee lnwire.MilliAtom
 
 	// FeeRate is the fee rate that will be shared for all HTLC's forwarded
 	// across this channel direction.
-	FeeRate lnwire.MilliSatoshi
+	FeeRate lnwire.MilliAtom
 
 	// TimeLockDelta is the time-lock expressed in blocks that will be
 	// added to outgoing HTLC's from incoming HTLC's. This value is the

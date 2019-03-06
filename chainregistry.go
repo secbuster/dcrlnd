@@ -26,9 +26,9 @@ import (
 
 const (
 	// TODO(decred) verify these amounts
-	defaultDecredMinHTLCMSat   = lnwire.MilliSatoshi(1000)
-	defaultDecredBaseFeeMSat   = lnwire.MilliSatoshi(1000)
-	defaultDecredFeeRate       = lnwire.MilliSatoshi(1)
+	defaultDecredMinHTLCMSat   = lnwire.MilliAtom(1000)
+	defaultDecredBaseFeeMSat   = lnwire.MilliAtom(1000)
+	defaultDecredFeeRate       = lnwire.MilliAtom(1)
 	defaultDecredTimeLockDelta = 144
 
 	// defaultDecredStaticFeePerKB is the fee rate of 10000 atom/KB

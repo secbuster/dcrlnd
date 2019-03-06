@@ -202,7 +202,7 @@ func (p *packetQueue) Length() int32 {
 
 // TotalHtlcAmount is the total amount (in mSAT) of all HTLC's currently
 // residing within the overflow queue.
-func (p *packetQueue) TotalHtlcAmount() lnwire.MilliSatoshi {
+func (p *packetQueue) TotalHtlcAmount() lnwire.MilliAtom {
 	// TODO(roasbeef): also factor in fee rate?
-	return lnwire.MilliSatoshi(atomic.LoadInt64(&p.totalHtlcAmt))
+	return lnwire.MilliAtom(atomic.LoadInt64(&p.totalHtlcAmt))
 }

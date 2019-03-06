@@ -20,9 +20,9 @@ import (
 )
 
 var (
-	testMillisat24BTC    = lnwire.MilliSatoshi(2400000000000)
-	testMillisat2500uBTC = lnwire.MilliSatoshi(250000000)
-	testMillisat20mBTC   = lnwire.MilliSatoshi(2000000000)
+	testMillisat24BTC    = lnwire.MilliAtom(2400000000000)
+	testMillisat2500uBTC = lnwire.MilliAtom(250000000)
+	testMillisat20mBTC   = lnwire.MilliAtom(2000000000)
 
 	testPaymentHashSlice, _ = hex.DecodeString("0001020304050607080900010203040506070809000102030405060708090102")
 

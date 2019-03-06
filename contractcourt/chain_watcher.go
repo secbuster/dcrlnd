@@ -624,8 +624,8 @@ func (c *chainWatcher) dispatchLocalForceClose(
 	// commitment transaction, then we'll populate the balances on the
 	// close channel summary.
 	if forceClose.CommitResolution != nil {
-		closeSummary.SettledBalance = chanSnapshot.LocalBalance.ToSatoshis()
-		closeSummary.TimeLockedBalance = chanSnapshot.LocalBalance.ToSatoshis()
+		closeSummary.SettledBalance = chanSnapshot.LocalBalance.ToAtoms()
+		closeSummary.TimeLockedBalance = chanSnapshot.LocalBalance.ToAtoms()
 	}
 	for _, htlc := range forceClose.HtlcResolutions.OutgoingHTLCs {
 		htlcValue := dcrutil.Amount(htlc.SweepSignDesc.Output.Value)
@@ -783,7 +783,7 @@ func (c *chainWatcher) dispatchContractBreach(spendEvent *chainntnfs.SpendDetail
 	//
 	// TODO(roasbeef): instead mark we got all the monies?
 	// TODO(halseth): move responsibility to breach arbiter?
-	settledBalance := remoteCommit.LocalBalance.ToSatoshis()
+	settledBalance := remoteCommit.LocalBalance.ToAtoms()
 	closeSummary := channeldb.ChannelCloseSummary{
 		ChanPoint:               c.cfg.chanState.FundingOutpoint,
 		ChainHash:               c.cfg.chanState.ChainHash,

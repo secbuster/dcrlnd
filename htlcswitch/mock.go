@@ -647,12 +647,12 @@ func (f *mockChannelLink) HandleChannelUpdate(lnwire.Message) {
 
 func (f *mockChannelLink) UpdateForwardingPolicy(_ ForwardingPolicy) {
 }
-func (f *mockChannelLink) HtlcSatifiesPolicy([32]byte, lnwire.MilliSatoshi,
-	lnwire.MilliSatoshi, uint32, uint32, uint32) lnwire.FailureMessage {
+func (f *mockChannelLink) HtlcSatifiesPolicy([32]byte, lnwire.MilliAtom,
+	lnwire.MilliAtom, uint32, uint32, uint32) lnwire.FailureMessage {
 	return nil
 }
 
-func (f *mockChannelLink) Stats() (uint64, lnwire.MilliSatoshi, lnwire.MilliSatoshi) {
+func (f *mockChannelLink) Stats() (uint64, lnwire.MilliAtom, lnwire.MilliAtom) {
 	return 0, 0, 0
 }
 
@@ -669,7 +669,7 @@ func (f *mockChannelLink) Start() error {
 
 func (f *mockChannelLink) ChanID() lnwire.ChannelID                     { return f.chanID }
 func (f *mockChannelLink) ShortChanID() lnwire.ShortChannelID           { return f.shortChanID }
-func (f *mockChannelLink) Bandwidth() lnwire.MilliSatoshi               { return 99999999 }
+func (f *mockChannelLink) Bandwidth() lnwire.MilliAtom               { return 99999999 }
 func (f *mockChannelLink) Peer() lnpeer.Peer                            { return f.peer }
 func (f *mockChannelLink) Stop()                                        {}
 func (f *mockChannelLink) EligibleToForward() bool                      { return f.eligible }
@@ -709,7 +709,7 @@ func (i *mockInvoiceRegistry) LookupInvoice(rHash chainhash.Hash) (channeldb.Inv
 }
 
 func (i *mockInvoiceRegistry) SettleInvoice(rhash chainhash.Hash,
-	amt lnwire.MilliSatoshi) error {
+	amt lnwire.MilliAtom) error {
 
 	i.Lock()
 	defer i.Unlock()

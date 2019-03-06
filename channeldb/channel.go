@@ -146,14 +146,14 @@ type ChannelConstraints struct {
 	// MaxPendingAmount is the maximum pending HTLC value that the
 	// owner of these constraints can offer the remote node at a
 	// particular time.
-	MaxPendingAmount lnwire.MilliSatoshi
+	MaxPendingAmount lnwire.MilliAtom
 
 	// MinHTLC is the minimum HTLC value that the owner of these
 	// constraints can offer the remote node. If any HTLCs below this
 	// amount are offered, then the HTLC will be rejected. This, in
 	// tandem with the dust limit allows a node to regulate the
 	// smallest HTLC that it deems economically relevant.
-	MinHTLC lnwire.MilliSatoshi
+	MinHTLC lnwire.MilliAtom
 
 	// MaxAcceptedHtlcs is the maximum number of HTLCs that the owner of
 	// this set of constraints can offer the remote node. This allows each
@@ -247,11 +247,11 @@ type ChannelCommitment struct {
 
 	// LocalBalance is the current available settled balance within the
 	// channel directly spendable by us.
-	LocalBalance lnwire.MilliSatoshi
+	LocalBalance lnwire.MilliAtom
 
 	// RemoteBalance is the current available settled balance within the
 	// channel directly spendable by the remote node.
-	RemoteBalance lnwire.MilliSatoshi
+	RemoteBalance lnwire.MilliAtom
 
 	// CommitFee is the amount calculated to be paid in fees for the
 	// current set of commitment transactions. The fee amount is persisted
@@ -394,11 +394,11 @@ type OpenChannel struct {
 
 	// TotalMSatSent is the total number of milli-satoshis we've sent
 	// within this channel.
-	TotalMSatSent lnwire.MilliSatoshi
+	TotalMSatSent lnwire.MilliAtom
 
 	// TotalMSatReceived is the total number of milli-satoshis we've
 	// received within this channel.
-	TotalMSatReceived lnwire.MilliSatoshi
+	TotalMSatReceived lnwire.MilliAtom
 
 	// LocalChanCfg is the channel configuration for the local node.
 	LocalChanCfg ChannelConfig
@@ -933,7 +933,7 @@ type HTLC struct {
 	RHash [32]byte
 
 	// Amt is the amount of milli-satoshis this HTLC escrows.
-	Amt lnwire.MilliSatoshi
+	Amt lnwire.MilliAtom
 
 	// RefundTimeout is the absolute timeout on the HTLC that the sender
 	// must wait before reclaiming the funds in limbo.
@@ -1943,11 +1943,11 @@ type ChannelSnapshot struct {
 
 	// TotalMSatSent is the total number of milli-satoshis we've sent
 	// within this channel.
-	TotalMSatSent lnwire.MilliSatoshi
+	TotalMSatSent lnwire.MilliAtom
 
 	// TotalMSatReceived is the total number of milli-satoshis we've
 	// received within this channel.
-	TotalMSatReceived lnwire.MilliSatoshi
+	TotalMSatReceived lnwire.MilliAtom
 
 	// ChannelCommitment is the current up-to-date commitment for the
 	// target channel.

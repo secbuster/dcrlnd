@@ -1425,7 +1425,7 @@ func (d *AuthenticatedGossiper) processChanPolicyUpdate(
 		// Now that we know we should update this channel, we'll update
 		// its set of policies.
 		edge.FeeBaseMSat = policyUpdate.newSchema.BaseFee
-		edge.FeeProportionalMillionths = lnwire.MilliSatoshi(
+		edge.FeeProportionalMillionths = lnwire.MilliAtom(
 			policyUpdate.newSchema.FeeRate,
 		)
 		edge.TimeLockDelta = uint16(policyUpdate.newSchema.TimeLockDelta)
@@ -2012,8 +2012,8 @@ func (d *AuthenticatedGossiper) processNetworkAnnouncement(
 			Flags:                     msg.Flags,
 			TimeLockDelta:             msg.TimeLockDelta,
 			MinHTLC:                   msg.HtlcMinimumMsat,
-			FeeBaseMSat:               lnwire.MilliSatoshi(msg.BaseFee),
-			FeeProportionalMillionths: lnwire.MilliSatoshi(msg.FeeRate),
+			FeeBaseMSat:               lnwire.MilliAtom(msg.BaseFee),
+			FeeProportionalMillionths: lnwire.MilliAtom(msg.FeeRate),
 			ExtraOpaqueData:           msg.ExtraOpaqueData,
 		}
 

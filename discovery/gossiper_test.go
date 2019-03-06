@@ -453,7 +453,7 @@ func createUpdateAnnouncement(blockHeight uint32, flags lnwire.ChanUpdateFlag,
 		Timestamp:       timestamp,
 		TimeLockDelta:   uint16(prand.Int63()),
 		Flags:           flags,
-		HtlcMinimumMsat: lnwire.MilliSatoshi(prand.Int63()),
+		HtlcMinimumMsat: lnwire.MilliAtom(prand.Int63()),
 		FeeRate:         uint32(prand.Int31()),
 		BaseFee:         uint32(prand.Int31()),
 	}

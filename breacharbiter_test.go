@@ -954,7 +954,7 @@ func initBreachedState(t *testing.T) (*breachArbiter,
 	}
 
 	// Send one HTLC to Bob and perform a state transition to lock it in.
-	htlcAmount := lnwire.NewMSatFromSatoshis(20000)
+	htlcAmount := lnwire.NewMAtFromAtoms(20000)
 	htlc, _ := createHTLC(0, htlcAmount)
 	if _, err := alice.AddHTLC(htlc, nil); err != nil {
 		t.Fatalf("alice unable to add htlc: %v", err)
@@ -1242,9 +1242,9 @@ func TestBreachSecondLevelTransfer(t *testing.T) {
 	timeout := time.After(5 * time.Second)
 	for !notifier.hasSpenderNotification(htlcOutpoint) {
 		select {
-		case <- timeout:
+		case <-timeout:
 			t.Fatalf("breach arbiter did not register for spend notification")
-		case <- time.After(time.Millisecond):
+		case <-time.After(time.Millisecond):
 		}
 	}
 
@@ -1403,7 +1403,7 @@ func createInitChannels(revocationWindow int) (*lnwallet.LightningChannel, *lnwa
 	aliceCfg := channeldb.ChannelConfig{
 		ChannelConstraints: channeldb.ChannelConstraints{
 			DustLimit:        aliceDustLimit,
-			MaxPendingAmount: lnwire.MilliSatoshi(rand.Int63()),
+			MaxPendingAmount: lnwire.MilliAtom(rand.Int63()),
 			ChanReserve:      0,
 			MinHTLC:          0,
 			MaxAcceptedHtlcs: uint16(rand.Int31()),
@@ -1428,7 +1428,7 @@ func createInitChannels(revocationWindow int) (*lnwallet.LightningChannel, *lnwa
 	bobCfg := channeldb.ChannelConfig{
 		ChannelConstraints: channeldb.ChannelConstraints{
 			DustLimit:        bobDustLimit,
-			MaxPendingAmount: lnwire.MilliSatoshi(rand.Int63()),
+			MaxPendingAmount: lnwire.MilliAtom(rand.Int63()),
 			ChanReserve:      0,
 			MinHTLC:          0,
 			MaxAcceptedHtlcs: uint16(rand.Int31()),
@@ -1495,8 +1495,8 @@ func createInitChannels(revocationWindow int) (*lnwallet.LightningChannel, *lnwa
 	// TODO(roasbeef): need to factor in commit fee?
 	aliceCommit := channeldb.ChannelCommitment{
 		CommitHeight:  0,
-		LocalBalance:  lnwire.NewMSatFromSatoshis(channelBal - initiatorFee),
-		RemoteBalance: lnwire.NewMSatFromSatoshis(channelBal),
+		LocalBalance:  lnwire.NewMAtFromAtoms(channelBal - initiatorFee),
+		RemoteBalance: lnwire.NewMAtFromAtoms(channelBal),
 		FeePerKw:      dcrutil.Amount(feePerKB),
 		CommitFee:     8688,
 		CommitTx:      aliceCommitTx,
@@ -1504,8 +1504,8 @@ func createInitChannels(revocationWindow int) (*lnwallet.LightningChannel, *lnwa
 	}
 	bobCommit := channeldb.ChannelCommitment{
 		CommitHeight:  0,
-		LocalBalance:  lnwire.NewMSatFromSatoshis(channelBal),
-		RemoteBalance: lnwire.NewMSatFromSatoshis(channelBal - initiatorFee),
+		LocalBalance:  lnwire.NewMAtFromAtoms(channelBal),
+		RemoteBalance: lnwire.NewMAtFromAtoms(channelBal - initiatorFee),
 		FeePerKw:      dcrutil.Amount(feePerKB),
 		CommitFee:     8688,
 		CommitTx:      bobCommitTx,
@@ -1650,7 +1650,7 @@ func initRevocationWindows(chanA, chanB *lnwallet.LightningChannel, windowSize i
 // createHTLC is a utility function for generating an HTLC with a given
 // preimage and a given amount.
 // TODO(conner) remove code duplication
-func createHTLC(data int, amount lnwire.MilliSatoshi) (*lnwire.UpdateAddHTLC, [32]byte) {
+func createHTLC(data int, amount lnwire.MilliAtom) (*lnwire.UpdateAddHTLC, [32]byte) {
 	preimage := bytes.Repeat([]byte{byte(data)}, 32)
 	paymentHash := chainhash.HashH(preimage)
 

@@ -173,8 +173,8 @@ func TestHalfCircuitSerialization(t *testing.T) {
 	for i, test := range halfCircuitTests {
 		circuit := &htlcswitch.PaymentCircuit{
 			PaymentHash:    test.hash,
-			IncomingAmount: lnwire.NewMSatFromSatoshis(test.inValue),
-			OutgoingAmount: lnwire.NewMSatFromSatoshis(test.outValue),
+			IncomingAmount: lnwire.NewMAtFromAtoms(test.inValue),
+			OutgoingAmount: lnwire.NewMAtFromAtoms(test.outValue),
 			Incoming: htlcswitch.CircuitKey{
 				ChanID: test.chanID,
 				HtlcID: test.htlcID,

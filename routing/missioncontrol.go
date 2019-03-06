@@ -60,7 +60,7 @@ type missionControl struct {
 
 	selfNode *channeldb.LightningNode
 
-	queryBandwidth func(*channeldb.ChannelEdgeInfo) lnwire.MilliSatoshi
+	queryBandwidth func(*channeldb.ChannelEdgeInfo) lnwire.MilliAtom
 
 	sync.Mutex
 
@@ -74,7 +74,7 @@ type missionControl struct {
 //
 // TODO(roasbeef): persist memory
 func newMissionControl(g *channeldb.ChannelGraph, selfNode *channeldb.LightningNode,
-	qb func(*channeldb.ChannelEdgeInfo) lnwire.MilliSatoshi) *missionControl {
+	qb func(*channeldb.ChannelEdgeInfo) lnwire.MilliAtom) *missionControl {
 
 	return &missionControl{
 		failedEdges:    make(map[edgeLocator]time.Time),
@@ -163,7 +163,7 @@ type paymentSession struct {
 
 	additionalEdges map[Vertex][]*channeldb.ChannelEdgePolicy
 
-	bandwidthHints map[uint64]lnwire.MilliSatoshi
+	bandwidthHints map[uint64]lnwire.MilliAtom
 
 	// errFailedFeeChans is a map of the short channel IDs that were the
 	// source of policy related routing failures during this payment attempt.
@@ -213,10 +213,10 @@ func (m *missionControl) NewPaymentSession(routeHints [][]HopHint,
 			edge := &channeldb.ChannelEdgePolicy{
 				Node:      endNode,
 				ChannelID: hopHint.ChannelID,
-				FeeBaseMSat: lnwire.MilliSatoshi(
+				FeeBaseMSat: lnwire.MilliAtom(
 					hopHint.FeeBaseMSat,
 				),
-				FeeProportionalMillionths: lnwire.MilliSatoshi(
+				FeeProportionalMillionths: lnwire.MilliAtom(
 					hopHint.FeeProportionalMillionths,
 				),
 				TimeLockDelta: hopHint.CLTVExpiryDelta,
@@ -273,7 +273,7 @@ func (m *missionControl) NewPaymentSessionFromRoutes(routes []*Route) *paymentSe
 // skip channels that are inactive, or just don't have enough bandwidth to
 // carry the payment.
 func generateBandwidthHints(sourceNode *channeldb.LightningNode,
-	queryBandwidth func(*channeldb.ChannelEdgeInfo) lnwire.MilliSatoshi) (map[uint64]lnwire.MilliSatoshi, error) {
+	queryBandwidth func(*channeldb.ChannelEdgeInfo) lnwire.MilliAtom) (map[uint64]lnwire.MilliAtom, error) {
 
 	// First, we'll collect the set of outbound edges from the target
 	// source node.
@@ -292,7 +292,7 @@ func generateBandwidthHints(sourceNode *channeldb.LightningNode,
 	// Now that we have all of our outbound edges, we'll populate the set
 	// of bandwidth hints, querying the lower switch layer for the most up
 	// to date values.
-	bandwidthHints := make(map[uint64]lnwire.MilliSatoshi)
+	bandwidthHints := make(map[uint64]lnwire.MilliAtom)
 	for _, localChan := range localChans {
 		bandwidthHints[localChan.ChannelID] = queryBandwidth(localChan)
 	}

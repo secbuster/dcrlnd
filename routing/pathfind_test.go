@@ -44,7 +44,7 @@ const (
 	// noFeeLimit is the maximum value of a payment through Lightning. We
 	// can use this value to signal there is no fee limit since payments
 	// should never be larger than this.
-	noFeeLimit = lnwire.MilliSatoshi(math.MaxUint32)
+	noFeeLimit = lnwire.MilliAtom(math.MaxUint32)
 )
 
 var (
@@ -275,9 +275,9 @@ func parseTestGraph(path string) (*testGraphInstance, error) {
 			ChannelID:                 edge.ChannelID,
 			LastUpdate:                testTime,
 			TimeLockDelta:             edge.Expiry,
-			MinHTLC:                   lnwire.MilliSatoshi(edge.MinHTLC),
-			FeeBaseMSat:               lnwire.MilliSatoshi(edge.FeeBaseMsat),
-			FeeProportionalMillionths: lnwire.MilliSatoshi(edge.FeeRate),
+			MinHTLC:                   lnwire.MilliAtom(edge.MinHTLC),
+			FeeBaseMSat:               lnwire.MilliAtom(edge.FeeBaseMsat),
+			FeeProportionalMillionths: lnwire.MilliAtom(edge.FeeRate),
 		}
 		if err := graph.UpdateEdgePolicy(edgePolicy); err != nil {
 			return nil, err
@@ -293,9 +293,9 @@ func parseTestGraph(path string) (*testGraphInstance, error) {
 
 type testChannelPolicy struct {
 	Expiry      uint16
-	MinHTLC     lnwire.MilliSatoshi
-	FeeBaseMsat lnwire.MilliSatoshi
-	FeeRate     lnwire.MilliSatoshi
+	MinHTLC     lnwire.MilliAtom
+	FeeBaseMsat lnwire.MilliAtom
+	FeeRate     lnwire.MilliAtom
 }
 
 type testChannelEnd struct {
@@ -308,9 +308,9 @@ func defaultTestChannelEnd(alias string) *testChannelEnd {
 		Alias: alias,
 		testChannelPolicy: testChannelPolicy{
 			Expiry:      144,
-			MinHTLC:     lnwire.MilliSatoshi(1000),
-			FeeBaseMsat: lnwire.MilliSatoshi(1000),
-			FeeRate:     lnwire.MilliSatoshi(1),
+			MinHTLC:     lnwire.MilliAtom(1000),
+			FeeBaseMsat: lnwire.MilliAtom(1000),
+			FeeRate:     lnwire.MilliAtom(1),
 		},
 	}
 }
@@ -582,7 +582,7 @@ func TestFindLowestFeePath(t *testing.T) {
 		finalHopCLTV   = 1
 	)
 
-	paymentAmt := lnwire.NewMSatFromSatoshis(100)
+	paymentAmt := lnwire.NewMAtFromAtoms(100)
 	target := testGraphInstance.aliasMap["target"]
 	path, err := findPath(
 		&graphParams{
@@ -628,16 +628,16 @@ func getAliasFromPubKey(pubKey []byte,
 
 type expectedHop struct {
 	alias     string
-	fee       lnwire.MilliSatoshi
-	fwdAmount lnwire.MilliSatoshi
+	fee       lnwire.MilliAtom
+	fwdAmount lnwire.MilliAtom
 	timeLock  uint32
 }
 
 type basicGraphPathFindingTestCase struct {
 	target                string
 	paymentAmt            dcrutil.Amount
-	feeLimit              lnwire.MilliSatoshi
-	expectedTotalAmt      lnwire.MilliSatoshi
+	feeLimit              lnwire.MilliAtom
+	expectedTotalAmt      lnwire.MilliAtom
 	expectedTotalTimeLock uint32
 	expectedHops          []expectedHop
 	expectFailureNoPath   bool
@@ -728,7 +728,7 @@ func testBasicGraphPathFindingCase(t *testing.T, graphInstance *testGraphInstanc
 		finalHopCLTV   = 1
 	)
 
-	paymentAmt := lnwire.NewMSatFromSatoshis(test.paymentAmt)
+	paymentAmt := lnwire.NewMAtFromAtoms(test.paymentAmt)
 	target := graphInstance.aliasMap[test.target]
 	path, err := findPath(
 		&graphParams{
@@ -804,7 +804,7 @@ func testBasicGraphPathFindingCase(t *testing.T, graphInstance *testGraphInstanc
 			exitHop[:], hopPayloads[lastHopIndex].NextAddress)
 	}
 
-	var expectedTotalFee lnwire.MilliSatoshi
+	var expectedTotalFee lnwire.MilliAtom
 	for i := 0; i < expectedHopCount; i++ {
 		// We'll ensure that the amount to forward, and fees
 		// computed for each hop are correct.
@@ -860,7 +860,7 @@ func TestPathFindingWithAdditionalEdges(t *testing.T) {
 		t.Fatalf("unable to fetch source node: %v", err)
 	}
 
-	paymentAmt := lnwire.NewMSatFromSatoshis(100)
+	paymentAmt := lnwire.NewMAtFromAtoms(100)
 
 	// In this test, we'll test that we're able to find paths through
 	// private channels when providing them as additional edges in our path
@@ -937,7 +937,7 @@ func TestKShortestPathFinding(t *testing.T) {
 	// ji. Our algorithm should properly find both paths, and also rank
 	// them in order of their total "distance".
 
-	paymentAmt := lnwire.NewMSatFromSatoshis(100)
+	paymentAmt := lnwire.NewMAtFromAtoms(100)
 	target := graph.aliasMap["luoji"]
 	paths, err := findPaths(
 		nil, graph.graph, sourceNode, target, paymentAmt, noFeeLimit, 100,
@@ -979,9 +979,9 @@ func TestNewRoute(t *testing.T) {
 		finalHopCLTV   = 1
 	)
 
-	createHop := func(baseFee lnwire.MilliSatoshi,
-		feeRate lnwire.MilliSatoshi,
-		bandwidth lnwire.MilliSatoshi,
+	createHop := func(baseFee lnwire.MilliAtom,
+		feeRate lnwire.MilliAtom,
+		bandwidth lnwire.MilliAtom,
 		timeLockDelta uint16) *channeldb.ChannelEdgePolicy {
 
 		return &channeldb.ChannelEdgePolicy{
@@ -1002,11 +1002,11 @@ func TestNewRoute(t *testing.T) {
 
 		// paymentAmount is the amount that is send into the route
 		// indicated by hops.
-		paymentAmount lnwire.MilliSatoshi
+		paymentAmount lnwire.MilliAtom
 
 		// expectedFees is a list of fees that every hop is expected
 		// to charge for forwarding.
-		expectedFees []lnwire.MilliSatoshi
+		expectedFees []lnwire.MilliAtom
 
 		// expectedTimeLocks is a list of time lock values that every
 		// hop is expected to specify in its outgoing HTLC. The time
@@ -1017,7 +1017,7 @@ func TestNewRoute(t *testing.T) {
 		// expectedTotalAmount is the total amount that is expected to
 		// be returned from newRoute. This amount should include all
 		// the fees to be paid to intermediate hops.
-		expectedTotalAmount lnwire.MilliSatoshi
+		expectedTotalAmount lnwire.MilliAtom
 
 		// expectedTotalTimeLock is the time lock that is expected to
 		// be returned from newRoute. This is the time lock that should
@@ -1033,7 +1033,7 @@ func TestNewRoute(t *testing.T) {
 		// expectError is true.
 		expectedErrorCode errorCode
 
-		feeLimit lnwire.MilliSatoshi
+		feeLimit lnwire.MilliAtom
 	}{
 		{
 			// For a single hop payment, no fees are expected to be paid.
@@ -1042,7 +1042,7 @@ func TestNewRoute(t *testing.T) {
 			hops: []*channeldb.ChannelEdgePolicy{
 				createHop(100, 1000, 1000000, 10),
 			},
-			expectedFees:          []lnwire.MilliSatoshi{0},
+			expectedFees:          []lnwire.MilliAtom{0},
 			expectedTimeLocks:     []uint32{1},
 			expectedTotalAmount:   100000,
 			expectedTotalTimeLock: 1,
@@ -1057,7 +1057,7 @@ func TestNewRoute(t *testing.T) {
 				createHop(0, 1000, 1000000, 10),
 				createHop(30, 1000, 1000000, 5),
 			},
-			expectedFees:          []lnwire.MilliSatoshi{130, 0},
+			expectedFees:          []lnwire.MilliAtom{130, 0},
 			expectedTimeLocks:     []uint32{1, 1},
 			expectedTotalAmount:   100130,
 			expectedTotalTimeLock: 6,
@@ -1075,7 +1075,7 @@ func TestNewRoute(t *testing.T) {
 				createHop(0, 10, 1000000, 5),
 				createHop(0, 10, 1000000, 3),
 			},
-			expectedFees:          []lnwire.MilliSatoshi{1, 1, 0},
+			expectedFees:          []lnwire.MilliAtom{1, 1, 0},
 			expectedTotalAmount:   100002,
 			expectedTimeLocks:     []uint32{4, 1, 1},
 			expectedTotalTimeLock: 9,
@@ -1091,7 +1091,7 @@ func TestNewRoute(t *testing.T) {
 				createHop(0, 10000, 1000000, 5),
 				createHop(0, 10000, 1000000, 3),
 			},
-			expectedFees:          []lnwire.MilliSatoshi{1010, 1000, 0},
+			expectedFees:          []lnwire.MilliAtom{1010, 1000, 0},
 			expectedTotalAmount:   102010,
 			expectedTimeLocks:     []uint32{4, 1, 1},
 			expectedTotalTimeLock: 9,
@@ -1113,7 +1113,7 @@ func TestNewRoute(t *testing.T) {
 				// Second hop charges a fixed 1000 msat.
 				createHop(1000, 0, 1000000, 3),
 			},
-			expectedFees:          []lnwire.MilliSatoshi{101, 1000, 0},
+			expectedFees:          []lnwire.MilliAtom{101, 1000, 0},
 			expectedTotalAmount:   101101,
 			expectedTimeLocks:     []uint32{4, 1, 1},
 			expectedTotalTimeLock: 9,
@@ -1128,7 +1128,7 @@ func TestNewRoute(t *testing.T) {
 				createHop(0, 1000, 1000000, 144),
 			},
 			expectedTotalAmount:   100100,
-			expectedFees:          []lnwire.MilliSatoshi{100, 0},
+			expectedFees:          []lnwire.MilliAtom{100, 0},
 			expectedTimeLocks:     []uint32{1, 1},
 			expectedTotalTimeLock: 145,
 			feeLimit:              150,
@@ -1140,7 +1140,7 @@ func TestNewRoute(t *testing.T) {
 				createHop(0, 1000, 1000000, 144),
 			},
 			expectedTotalAmount:   100100,
-			expectedFees:          []lnwire.MilliSatoshi{100, 0},
+			expectedFees:          []lnwire.MilliAtom{100, 0},
 			expectedTimeLocks:     []uint32{1, 1},
 			expectedTotalTimeLock: 145,
 			feeLimit:              100,
@@ -1257,7 +1257,7 @@ func TestNewRoutePathTooLong(t *testing.T) {
 	ignoredEdges := make(map[edgeLocator]struct{})
 	ignoredVertexes := make(map[Vertex]struct{})
 
-	paymentAmt := lnwire.NewMSatFromSatoshis(100)
+	paymentAmt := lnwire.NewMAtFromAtoms(100)
 
 	// We start by confirming that routing a payment 20 hops away is
 	// possible. Alice should be able to find a valid route to ursula.
@@ -1371,7 +1371,7 @@ func TestPathInsufficientCapacity(t *testing.T) {
 	// though we have a 2-hop link.
 	target := graph.aliasMap["sophon"]
 
-	payAmt := lnwire.NewMSatFromSatoshis(dcrutil.AtomsPerCoin)
+	payAmt := lnwire.NewMAtFromAtoms(dcrutil.AtomsPerCoin)
 	_, err = findPath(
 		&graphParams{
 			graph: graph.graph,
@@ -1410,7 +1410,7 @@ func TestRouteFailMinHTLC(t *testing.T) {
 	// Goku. However, the min HTLC of Son Goku is 1k SAT, as a result, this
 	// attempt should fail.
 	target := graph.aliasMap["songoku"]
-	payAmt := lnwire.MilliSatoshi(10)
+	payAmt := lnwire.MilliAtom(10)
 	_, err = findPath(
 		&graphParams{
 			graph: graph.graph,
@@ -1451,7 +1451,7 @@ func TestRouteFailDisabledEdge(t *testing.T) {
 	// First, we'll try to route from roasbeef -> sophon. This should
 	// succeed without issue, and return a single path via phamnuwen
 	target := graph.aliasMap["sophon"]
-	payAmt := lnwire.NewMSatFromSatoshis(105000)
+	payAmt := lnwire.NewMAtFromAtoms(105000)
 	_, err = findPath(
 		&graphParams{
 			graph: graph.graph,
@@ -1552,7 +1552,7 @@ func TestPathSourceEdgesBandwidth(t *testing.T) {
 	// succeed without issue, and return a path via songoku, as that's the
 	// cheapest path.
 	target := graph.aliasMap["sophon"]
-	payAmt := lnwire.NewMSatFromSatoshis(50000)
+	payAmt := lnwire.NewMAtFromAtoms(50000)
 	path, err := findPath(
 		&graphParams{
 			graph: graph.graph,
@@ -1573,7 +1573,7 @@ func TestPathSourceEdgesBandwidth(t *testing.T) {
 	// roasbeef->phamnuwen to 0.
 	roasToSongoku := uint64(12345)
 	roasToPham := uint64(999991)
-	bandwidths := map[uint64]lnwire.MilliSatoshi{
+	bandwidths := map[uint64]lnwire.MilliAtom{
 		roasToSongoku: 0,
 		roasToPham:    0,
 	}
@@ -1699,7 +1699,7 @@ func TestPathFindSpecExample(t *testing.T) {
 
 	// Query for a route of 4,999,999 mSAT to carol.
 	carol := ctx.aliases["C"]
-	const amt lnwire.MilliSatoshi = 4999999
+	const amt lnwire.MilliAtom = 4999999
 	routes, err := ctx.router.FindRoutes(carol, amt, noFeeLimit, 100)
 	if err != nil {
 		t.Fatalf("unable to find route: %v", err)
@@ -1784,7 +1784,7 @@ func TestPathFindSpecExample(t *testing.T) {
 
 	// The total amount should factor in a fee of 10199 and also use a CLTV
 	// delta total of 29 (20 + 9),
-	expectedAmt := lnwire.MilliSatoshi(5010198)
+	expectedAmt := lnwire.MilliAtom(5010198)
 	if routes[0].TotalAmount != expectedAmt {
 		t.Fatalf("wrong amount: got %v, expected %v",
 			routes[0].TotalAmount, expectedAmt)

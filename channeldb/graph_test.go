@@ -792,9 +792,9 @@ func newEdgePolicy(chanID uint64, op wire.OutPoint, db *DB,
 		ChannelID:                 chanID,
 		LastUpdate:                time.Unix(updateTime, 0),
 		TimeLockDelta:             uint16(prand.Int63()),
-		MinHTLC:                   lnwire.MilliSatoshi(prand.Int63()),
-		FeeBaseMSat:               lnwire.MilliSatoshi(prand.Int63()),
-		FeeProportionalMillionths: lnwire.MilliSatoshi(prand.Int63()),
+		MinHTLC:                   lnwire.MilliAtom(prand.Int63()),
+		FeeBaseMSat:               lnwire.MilliAtom(prand.Int63()),
+		FeeProportionalMillionths: lnwire.MilliAtom(prand.Int63()),
 		db:                        db,
 	}
 }

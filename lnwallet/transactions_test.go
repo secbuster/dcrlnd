@@ -228,7 +228,7 @@ func newTestContext() (tc *testContext, err error) {
 
 	htlcData := []struct {
 		incoming    bool
-		amount      lnwire.MilliSatoshi
+		amount      lnwire.MilliAtom
 		expiry      uint32
 		preimage    string
 		paymentHash PaymentHash
@@ -385,7 +385,7 @@ func TestCommitmentAndHTLCTransactions(t *testing.T) {
 		LocalChanCfg: channeldb.ChannelConfig{
 			ChannelConstraints: channeldb.ChannelConstraints{
 				DustLimit:        tc.dustLimit,
-				MaxPendingAmount: lnwire.NewMSatFromSatoshis(tc.fundingAmount),
+				MaxPendingAmount: lnwire.NewMAtFromAtoms(tc.fundingAmount),
 				MaxAcceptedHtlcs: MaxHTLCNumber,
 			},
 			CsvDelay: tc.localCsvDelay,

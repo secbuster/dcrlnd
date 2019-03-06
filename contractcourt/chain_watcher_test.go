@@ -153,7 +153,7 @@ func TestChainWatcherRemoteUnilateralClosePendingCommit(t *testing.T) {
 	// Next, we'll create a fake HTLC just so we can advance Alice's
 	// channel state to a new pending commitment on her remote commit chain
 	// for Bob.
-	htlcAmount := lnwire.NewMSatFromSatoshis(20000)
+	htlcAmount := lnwire.NewMAtFromAtoms(20000)
 	preimage := bytes.Repeat([]byte{byte(1)}, 32)
 	paymentHash := chainhash.HashH(preimage)
 	var returnPreimage [32]byte

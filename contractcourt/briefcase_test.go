@@ -584,7 +584,7 @@ func TestChainActionStorage(t *testing.T) {
 		NoAction: []channeldb.HTLC{
 			{
 				RHash:         testPreimage,
-				Amt:           lnwire.MilliSatoshi(prand.Uint64()),
+				Amt:           lnwire.MilliAtom(prand.Uint64()),
 				RefundTimeout: prand.Uint32(),
 				OutputIndex:   int32(prand.Uint32()),
 				Incoming:      true,
@@ -597,7 +597,7 @@ func TestChainActionStorage(t *testing.T) {
 		HtlcTimeoutAction: []channeldb.HTLC{
 			{
 				RHash:         testPreimage,
-				Amt:           lnwire.MilliSatoshi(prand.Uint64()),
+				Amt:           lnwire.MilliAtom(prand.Uint64()),
 				RefundTimeout: prand.Uint32(),
 				OutputIndex:   int32(prand.Uint32()),
 				Incoming:      true,
@@ -610,7 +610,7 @@ func TestChainActionStorage(t *testing.T) {
 		HtlcClaimAction: []channeldb.HTLC{
 			{
 				RHash:         testPreimage,
-				Amt:           lnwire.MilliSatoshi(prand.Uint64()),
+				Amt:           lnwire.MilliAtom(prand.Uint64()),
 				RefundTimeout: prand.Uint32(),
 				OutputIndex:   int32(prand.Uint32()),
 				Incoming:      true,
@@ -623,7 +623,7 @@ func TestChainActionStorage(t *testing.T) {
 		HtlcFailNowAction: []channeldb.HTLC{
 			{
 				RHash:         testPreimage,
-				Amt:           lnwire.MilliSatoshi(prand.Uint64()),
+				Amt:           lnwire.MilliAtom(prand.Uint64()),
 				RefundTimeout: prand.Uint32(),
 				OutputIndex:   int32(prand.Uint32()),
 				Incoming:      true,
@@ -636,7 +636,7 @@ func TestChainActionStorage(t *testing.T) {
 		HtlcOutgoingWatchAction: []channeldb.HTLC{
 			{
 				RHash:         testPreimage,
-				Amt:           lnwire.MilliSatoshi(prand.Uint64()),
+				Amt:           lnwire.MilliAtom(prand.Uint64()),
 				RefundTimeout: prand.Uint32(),
 				OutputIndex:   int32(prand.Uint32()),
 				Incoming:      true,
@@ -649,7 +649,7 @@ func TestChainActionStorage(t *testing.T) {
 		HtlcIncomingWatchAction: []channeldb.HTLC{
 			{
 				RHash:         testPreimage,
-				Amt:           lnwire.MilliSatoshi(prand.Uint64()),
+				Amt:           lnwire.MilliAtom(prand.Uint64()),
 				RefundTimeout: prand.Uint32(),
 				OutputIndex:   int32(prand.Uint32()),
 				Incoming:      true,

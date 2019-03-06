@@ -47,7 +47,7 @@ import (
 const (
 	// maxDcrPaymentMSat is the maximum allowed Decred payment currently
 	// permitted as defined in BOLT-0002.
-	maxDcrPaymentMSat = lnwire.MilliSatoshi(math.MaxUint32)
+	maxDcrPaymentMSat = lnwire.MilliAtom(math.MaxUint32)
 )
 
 var (
@@ -1097,7 +1097,7 @@ func (r *rpcServer) OpenChannel(in *lnrpc.OpenChannelRequest,
 
 	localFundingAmt := dcrutil.Amount(in.LocalFundingAmount)
 	remoteInitialBalance := dcrutil.Amount(in.PushSat)
-	minHtlc := lnwire.MilliSatoshi(in.MinHtlcMsat)
+	minHtlc := lnwire.MilliAtom(in.MinHtlcMsat)
 	remoteCsvDelay := uint16(in.RemoteCsvDelay)
 
 	// Ensure that the initial balance of the remote party (if pushing
@@ -1180,7 +1180,7 @@ func (r *rpcServer) OpenChannel(in *lnrpc.OpenChannelRequest,
 		targetPubkey:    nodePubKey,
 		chainHash:       *activeNetParams.GenesisHash,
 		localFundingAmt: localFundingAmt,
-		pushAmt:         lnwire.NewMSatFromSatoshis(remoteInitialBalance),
+		pushAmt:         lnwire.NewMAtFromAtoms(remoteInitialBalance),
 		minHtlc:         minHtlc,
 		fundingFeePerKw: feeRate,
 		private:         in.Private,
@@ -1281,7 +1281,7 @@ func (r *rpcServer) OpenChannelSync(ctx context.Context,
 
 	localFundingAmt := dcrutil.Amount(in.LocalFundingAmount)
 	remoteInitialBalance := dcrutil.Amount(in.PushSat)
-	minHtlc := lnwire.MilliSatoshi(in.MinHtlcMsat)
+	minHtlc := lnwire.MilliAtom(in.MinHtlcMsat)
 	remoteCsvDelay := uint16(in.RemoteCsvDelay)
 
 	// Ensure that the initial balance of the remote party (if pushing
@@ -1324,7 +1324,7 @@ func (r *rpcServer) OpenChannelSync(ctx context.Context,
 		targetPubkey:    nodepubKey,
 		chainHash:       *activeNetParams.GenesisHash,
 		localFundingAmt: localFundingAmt,
-		pushAmt:         lnwire.NewMSatFromSatoshis(remoteInitialBalance),
+		pushAmt:         lnwire.NewMAtFromAtoms(remoteInitialBalance),
 		minHtlc:         minHtlc,
 		fundingFeePerKw: feeRate,
 		private:         in.Private,
@@ -1641,7 +1641,7 @@ func (r *rpcServer) AbandonChannel(ctx context.Context,
 		CloseHeight:             uint32(bestHeight),
 		RemotePub:               dbChan.IdentityPub,
 		Capacity:                dbChan.Capacity,
-		SettledBalance:          dbChan.LocalCommitment.LocalBalance.ToSatoshis(),
+		SettledBalance:          dbChan.LocalCommitment.LocalBalance.ToAtoms(),
 		ShortChanID:             dbChan.ShortChanID(),
 		RemoteCurrentRevocation: dbChan.RemoteCurrentRevocation,
 		RemoteNextRevocation:    dbChan.RemoteNextRevocation,
@@ -1811,8 +1811,8 @@ func (r *rpcServer) ListPeers(ctx context.Context,
 		// peer.
 		chans := serverPeer.ChannelSnapshots()
 		for _, c := range chans {
-			satSent += int64(c.TotalMSatSent.ToSatoshis())
-			satRecv += int64(c.TotalMSatReceived.ToSatoshis())
+			satSent += int64(c.TotalMSatSent.ToAtoms())
+			satRecv += int64(c.TotalMSatReceived.ToAtoms())
 		}
 
 		nodePub := serverPeer.addr.IdentityKey.SerializeCompressed()
@@ -1879,7 +1879,7 @@ func (r *rpcServer) ChannelBalance(ctx context.Context,
 
 	var balance dcrutil.Amount
 	for _, channel := range openChannels {
-		balance += channel.LocalCommitment.LocalBalance.ToSatoshis()
+		balance += channel.LocalCommitment.LocalBalance.ToAtoms()
 	}
 
 	pendingChannels, err := r.server.chanDB.FetchPendingChannels()
@@ -1889,7 +1889,7 @@ func (r *rpcServer) ChannelBalance(ctx context.Context,
 
 	var pendingOpenBalance dcrutil.Amount
 	for _, channel := range pendingChannels {
-		pendingOpenBalance += channel.LocalCommitment.LocalBalance.ToSatoshis()
+		pendingOpenBalance += channel.LocalCommitment.LocalBalance.ToAtoms()
 	}
 
 	return &lnrpc.ChannelBalanceResponse{
@@ -1940,8 +1940,8 @@ func (r *rpcServer) PendingChannels(ctx context.Context,
 				RemoteNodePub: hex.EncodeToString(pub),
 				ChannelPoint:  pendingChan.FundingOutpoint.String(),
 				Capacity:      int64(pendingChan.Capacity),
-				LocalBalance:  int64(localCommitment.LocalBalance.ToSatoshis()),
-				RemoteBalance: int64(localCommitment.RemoteBalance.ToSatoshis()),
+				LocalBalance:  int64(localCommitment.LocalBalance.ToAtoms()),
+				RemoteBalance: int64(localCommitment.RemoteBalance.ToAtoms()),
 			},
 			CommitWeight: commitSize,
 			CommitFee:    int64(localCommitment.CommitFee),
@@ -2080,7 +2080,7 @@ func (r *rpcServer) PendingChannels(ctx context.Context,
 			RemoteNodePub: hex.EncodeToString(pub),
 			ChannelPoint:  chanPoint.String(),
 			Capacity:      int64(waitingClose.Capacity),
-			LocalBalance:  int64(waitingClose.LocalCommitment.LocalBalance.ToSatoshis()),
+			LocalBalance:  int64(waitingClose.LocalCommitment.LocalBalance.ToAtoms()),
 		}
 
 		// A close tx has been broadcasted, all our balance will be in
@@ -2287,13 +2287,13 @@ func (r *rpcServer) ListChannels(ctx context.Context,
 			ChannelPoint:          chanPoint.String(),
 			ChanId:                chanID,
 			Capacity:              int64(dbChannel.Capacity),
-			LocalBalance:          int64(localBalance.ToSatoshis()),
-			RemoteBalance:         int64(remoteBalance.ToSatoshis()),
+			LocalBalance:          int64(localBalance.ToAtoms()),
+			RemoteBalance:         int64(remoteBalance.ToAtoms()),
 			CommitFee:             int64(externalCommitFee),
 			CommitWeight:          commitSize,
 			FeePerKw:              int64(localCommit.FeePerKw),
-			TotalSatoshisSent:     int64(dbChannel.TotalMSatSent.ToSatoshis()),
-			TotalSatoshisReceived: int64(dbChannel.TotalMSatReceived.ToSatoshis()),
+			TotalSatoshisSent:     int64(dbChannel.TotalMSatSent.ToAtoms()),
+			TotalSatoshisReceived: int64(dbChannel.TotalMSatReceived.ToAtoms()),
 			NumUpdates:            localCommit.CommitHeight,
 			PendingHtlcs:          make([]*lnrpc.HTLC, len(localCommit.Htlcs)),
 			CsvDelay:              uint32(dbChannel.LocalChanCfg.CsvDelay),
@@ -2304,7 +2304,7 @@ func (r *rpcServer) ListChannels(ctx context.Context,
 			copy(rHash[:], htlc.RHash[:])
 			channel.PendingHtlcs[i] = &lnrpc.HTLC{
 				Incoming:         htlc.Incoming,
-				Amount:           int64(htlc.Amt.ToSatoshis()),
+				Amount:           int64(htlc.Amt.ToAtoms()),
 				HashLock:         rHash[:],
 				ExpirationHeight: htlc.RefundTimeout,
 			}
@@ -2319,7 +2319,7 @@ func (r *rpcServer) ListChannels(ctx context.Context,
 // savePayment saves a successfully completed payment to the database for
 // historical record keeping.
 func (r *rpcServer) savePayment(route *routing.Route,
-	amount lnwire.MilliSatoshi, preImage []byte) error {
+	amount lnwire.MilliAtom, preImage []byte) error {
 
 	paymentPath := make([][33]byte, len(route.Hops))
 	for i, hop := range route.Hops {
@@ -2371,19 +2371,19 @@ type rpcPaymentRequest struct {
 	routes []*routing.Route
 }
 
-// calculateFeeLimit returns the fee limit in millisatoshis. If a percentage
+// calculateFeeLimit returns the fee limit in MilliAtoms. If a percentage
 // based fee limit has been requested, we'll factor in the ratio provided with
 // the amount of the payment.
 func calculateFeeLimit(feeLimit *lnrpc.FeeLimit,
-	amount lnwire.MilliSatoshi) lnwire.MilliSatoshi {
+	amount lnwire.MilliAtom) lnwire.MilliAtom {
 
 	switch feeLimit.GetLimit().(type) {
 	case *lnrpc.FeeLimit_Fixed:
-		return lnwire.NewMSatFromSatoshis(
+		return lnwire.NewMAtFromAtoms(
 			dcrutil.Amount(feeLimit.GetFixed()),
 		)
 	case *lnrpc.FeeLimit_Percent:
-		return amount * lnwire.MilliSatoshi(feeLimit.GetPercent()) / 100
+		return amount * lnwire.MilliAtom(feeLimit.GetPercent()) / 100
 	default:
 		// If a fee limit was not specified, we'll use the payment's
 		// amount as an upper bound in order to avoid payment attempts
@@ -2471,8 +2471,8 @@ func (r *rpcServer) SendToRoute(stream lnrpc.Lightning_SendToRouteServer) error 
 // hints), or we'll get a fully populated route from the user that we'll pass
 // directly to the channel router for dispatching.
 type rpcPaymentIntent struct {
-	msat       lnwire.MilliSatoshi
-	feeLimit   lnwire.MilliSatoshi
+	msat       lnwire.MilliAtom
+	feeLimit   lnwire.MilliAtom
 	dest       *secp256k1.PublicKey
 	rHash      [32]byte
 	cltvDelta  uint16
@@ -2538,7 +2538,7 @@ func extractPaymentIntent(rpcPayReq *rpcPaymentRequest) (rpcPaymentIntent, error
 					"invoice")
 			}
 
-			payIntent.msat = lnwire.NewMSatFromSatoshis(
+			payIntent.msat = lnwire.NewMAtFromAtoms(
 				dcrutil.Amount(rpcPayReq.Amt),
 			)
 		} else {
@@ -2581,7 +2581,7 @@ func extractPaymentIntent(rpcPayReq *rpcPaymentRequest) (rpcPaymentIntent, error
 	// Otherwise, If the payment request field was not specified
 	// (and a custom route wasn't specified), construct the payment
 	// from the other fields.
-	payIntent.msat = lnwire.NewMSatFromSatoshis(
+	payIntent.msat = lnwire.NewMAtFromAtoms(
 		dcrutil.Amount(rpcPayReq.Amt),
 	)
 
@@ -2693,7 +2693,7 @@ func (r *rpcServer) dispatchPaymentIntent(
 
 	// If a route was used to complete this payment, then we'll need to
 	// compute the final amount sent
-	var amt lnwire.MilliSatoshi
+	var amt lnwire.MilliAtom
 	if len(payIntent.routes) > 0 {
 		amt = route.TotalAmount - route.TotalFees
 	} else {
@@ -3004,13 +3004,13 @@ func (r *rpcServer) AddInvoice(ctx context.Context,
 	}
 
 	amt := dcrutil.Amount(invoice.Value)
-	amtMSat := lnwire.NewMSatFromSatoshis(amt)
+	amtMSat := lnwire.NewMAtFromAtoms(amt)
 
 	// The value of the invoice must also not exceed the current soft-limit
 	// on the largest payment within the network.
 	if amtMSat > maxPaymentMSat {
 		return nil, fmt.Errorf("payment of %v is too large, max "+
-			"payment allowed is %v", amt, maxPaymentMSat.ToSatoshis())
+			"payment allowed is %v", amt, maxPaymentMSat.ToAtoms())
 	}
 
 	// Next, generate the payment hash itself from the preimage. This will
@@ -3297,8 +3297,8 @@ func createRPCInvoice(invoice *channeldb.Invoice) (*lnrpc.Invoice, error) {
 	routeHints := createRPCRouteHints(decoded.RouteHints)
 
 	preimage := invoice.Terms.PaymentPreimage
-	satAmt := invoice.Terms.Value.ToSatoshis()
-	satAmtPaid := invoice.AmtPaid.ToSatoshis()
+	satAmt := invoice.Terms.Value.ToAtoms()
+	satAmtPaid := invoice.AmtPaid.ToAtoms()
 
 	isSettled := invoice.Terms.State == channeldb.ContractSettled
 
@@ -3815,10 +3815,10 @@ func (r *rpcServer) QueryRoutes(ctx context.Context,
 	// largest payment size allotted to (2^32) - 1 mSAT or 4.29 million
 	// satoshis.
 	amt := dcrutil.Amount(in.Amt)
-	amtMSat := lnwire.NewMSatFromSatoshis(amt)
+	amtMSat := lnwire.NewMAtFromAtoms(amt)
 	if amtMSat > maxPaymentMSat {
 		return nil, fmt.Errorf("payment of %v is too large, max payment "+
-			"allowed is %v", amt, maxPaymentMSat.ToSatoshis())
+			"allowed is %v", amt, maxPaymentMSat.ToAtoms())
 	}
 
 	feeLimit := calculateFeeLimit(in.FeeLimit, amtMSat)
@@ -3875,9 +3875,9 @@ func (r *rpcServer) QueryRoutes(ctx context.Context,
 func (r *rpcServer) marshallRoute(route *routing.Route) *lnrpc.Route {
 	resp := &lnrpc.Route{
 		TotalTimeLock: route.TotalTimeLock,
-		TotalFees:     int64(route.TotalFees.ToSatoshis()),
+		TotalFees:     int64(route.TotalFees.ToAtoms()),
 		TotalFeesMsat: int64(route.TotalFees),
-		TotalAmt:      int64(route.TotalAmount.ToSatoshis()),
+		TotalAmt:      int64(route.TotalAmount.ToAtoms()),
 		TotalAmtMsat:  int64(route.TotalAmount),
 		Hops:          make([]*lnrpc.Hop, len(route.Hops)),
 	}
@@ -3897,15 +3897,15 @@ func (r *rpcServer) marshallRoute(route *routing.Route) *lnrpc.Route {
 			// If capacity cannot be retrieved, this may be a
 			// not-yet-received or private channel. Then report
 			// amount that is sent through the channel as capacity.
-			chanCapacity = incomingAmt.ToSatoshis()
+			chanCapacity = incomingAmt.ToAtoms()
 		}
 
 		resp.Hops[i] = &lnrpc.Hop{
 			ChanId:           hop.ChannelID,
 			ChanCapacity:     int64(chanCapacity),
-			AmtToForward:     int64(hop.AmtToForward.ToSatoshis()),
+			AmtToForward:     int64(hop.AmtToForward.ToAtoms()),
 			AmtToForwardMsat: int64(hop.AmtToForward),
-			Fee:              int64(fee.ToSatoshis()),
+			Fee:              int64(fee.ToAtoms()),
 			FeeMsat:          int64(fee),
 			Expiry:           uint32(hop.OutgoingTimeLock),
 			PubKey: hex.EncodeToString(
@@ -3943,7 +3943,7 @@ func unmarshallHopByChannelLookup(graph *channeldb.ChannelGraph, hop *lnrpc.Hop,
 
 	return &routing.Hop{
 		OutgoingTimeLock: hop.Expiry,
-		AmtToForward:     lnwire.MilliSatoshi(hop.AmtToForwardMsat),
+		AmtToForward:     lnwire.MilliAtom(hop.AmtToForwardMsat),
 		PubKeyBytes:      pubKeyBytes,
 		ChannelID:        edgeInfo.ChannelID,
 	}, nil
@@ -3963,7 +3963,7 @@ func unmarshallKnownPubkeyHop(hop *lnrpc.Hop) (*routing.Hop, error) {
 
 	return &routing.Hop{
 		OutgoingTimeLock: hop.Expiry,
-		AmtToForward:     lnwire.MilliSatoshi(hop.AmtToForwardMsat),
+		AmtToForward:     lnwire.MilliAtom(hop.AmtToForwardMsat),
 		PubKeyBytes:      pubKeyBytes,
 		ChannelID:        hop.ChanId,
 	}, nil
@@ -4011,7 +4011,7 @@ func (r *rpcServer) unmarshallRoute(rpcroute *lnrpc.Route,
 	}
 
 	route, err := routing.NewRouteFromHops(
-		lnwire.MilliSatoshi(rpcroute.TotalAmtMsat),
+		lnwire.MilliAtom(rpcroute.TotalAmtMsat),
 		rpcroute.TotalTimeLock,
 		sourceNode.PubKeyBytes,
 		hops,
@@ -4291,7 +4291,7 @@ func (r *rpcServer) ListPayments(ctx context.Context,
 		}
 
 		msatValue := int64(payment.Terms.Value)
-		satValue := int64(payment.Terms.Value.ToSatoshis())
+		satValue := int64(payment.Terms.Value.ToAtoms())
 
 		paymentHash := chainhash.HashH(payment.PaymentPreimage[:])
 		paymentsResp.Payments[i] = &lnrpc.Payment{
@@ -4301,7 +4301,7 @@ func (r *rpcServer) ListPayments(ctx context.Context,
 			ValueSat:        satValue,
 			CreationDate:    payment.CreationDate.Unix(),
 			Path:            path,
-			Fee:             int64(payment.Fee.ToSatoshis()),
+			Fee:             int64(payment.Fee.ToAtoms()),
 			PaymentPreimage: hex.EncodeToString(payment.PaymentPreimage[:]),
 		}
 	}
@@ -4389,7 +4389,7 @@ func (r *rpcServer) DecodePayReq(ctx context.Context,
 
 	amt := int64(0)
 	if payReq.MilliSat != nil {
-		amt = int64(payReq.MilliSat.ToSatoshis())
+		amt = int64(payReq.MilliSat.ToAtoms())
 	}
 
 	dest := payReq.Destination.SerializeCompressed()
@@ -4464,9 +4464,9 @@ func (r *rpcServer) FeeReport(ctx context.Context,
 
 	// computeFeeSum is a helper function that computes the total fees for
 	// a particular time slice described by a forwarding event query.
-	computeFeeSum := func(query channeldb.ForwardingEventQuery) (lnwire.MilliSatoshi, error) {
+	computeFeeSum := func(query channeldb.ForwardingEventQuery) (lnwire.MilliAtom, error) {
 
-		var totalFees lnwire.MilliSatoshi
+		var totalFees lnwire.MilliAtom
 
 		// We'll continue to fetch the next query and accumulate the
 		// fees until the next query returns no events.
@@ -4545,9 +4545,9 @@ func (r *rpcServer) FeeReport(ctx context.Context,
 
 	return &lnrpc.FeeReportResponse{
 		ChannelFees: feeReports,
-		DayFeeSum:   uint64(dayFees.ToSatoshis()),
-		WeekFeeSum:  uint64(weekFees.ToSatoshis()),
-		MonthFeeSum: uint64(monthFees.ToSatoshis()),
+		DayFeeSum:   uint64(dayFees.ToAtoms()),
+		WeekFeeSum:  uint64(weekFees.ToAtoms()),
+		MonthFeeSum: uint64(monthFees.ToAtoms()),
 	}, nil
 }
 
@@ -4607,7 +4607,7 @@ func (r *rpcServer) UpdateChannelPolicy(ctx context.Context,
 	// gives us the fixed point, scaled by 1 million that's used within the
 	// protocol.
 	feeRateFixed := uint32(req.FeeRate * feeBase)
-	baseFeeMsat := lnwire.MilliSatoshi(req.BaseFeeMsat)
+	baseFeeMsat := lnwire.MilliAtom(req.BaseFeeMsat)
 	feeSchema := routing.FeeSchema{
 		BaseFee: baseFeeMsat,
 		FeeRate: feeRateFixed,
@@ -4640,7 +4640,7 @@ func (r *rpcServer) UpdateChannelPolicy(ctx context.Context,
 	// sub-policy with a "nil" one.
 	p := htlcswitch.ForwardingPolicy{
 		BaseFee:       baseFeeMsat,
-		FeeRate:       lnwire.MilliSatoshi(feeRateFixed),
+		FeeRate:       lnwire.MilliAtom(feeRateFixed),
 		TimeLockDelta: req.TimeLockDelta,
 	}
 	err = r.server.htlcSwitch.UpdateForwardingPolicies(p, targetChans...)
@@ -4727,8 +4727,8 @@ func (r *rpcServer) ForwardingHistory(ctx context.Context,
 		LastOffsetIndex:  timeSlice.LastIndexOffset,
 	}
 	for i, event := range timeSlice.ForwardingEvents {
-		amtInSat := event.AmtIn.ToSatoshis()
-		amtOutSat := event.AmtOut.ToSatoshis()
+		amtInSat := event.AmtIn.ToAtoms()
+		amtOutSat := event.AmtOut.ToAtoms()
 		feeMsat := event.AmtIn - event.AmtOut
 
 		resp.ForwardingEvents[i] = &lnrpc.ForwardingEvent{
@@ -4737,7 +4737,7 @@ func (r *rpcServer) ForwardingHistory(ctx context.Context,
 			ChanIdOut: event.OutgoingChanID.ToUint64(),
 			AmtIn:     uint64(amtInSat),
 			AmtOut:    uint64(amtOutSat),
-			Fee:       uint64(feeMsat.ToSatoshis()),
+			Fee:       uint64(feeMsat.ToAtoms()),
 			FeeMsat:   uint64(feeMsat),
 		}
 	}

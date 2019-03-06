@@ -73,7 +73,7 @@ type ForwardingInfo struct {
 
 	// AmountToForward is the amount of milli-satoshis that the receiving
 	// node should forward to the next hop.
-	AmountToForward lnwire.MilliSatoshi
+	AmountToForward lnwire.MilliAtom
 
 	// OutgoingCTLV is the specified value of the CTLV timelock to be used
 	// in the outgoing HTLC.
@@ -163,7 +163,7 @@ func (r *sphinxHopIterator) ForwardingInstructions() ForwardingInfo {
 	return ForwardingInfo{
 		Network:         BitcoinHop,
 		NextHop:         nextHop,
-		AmountToForward: lnwire.MilliSatoshi(fwdInst.ForwardAmount),
+		AmountToForward: lnwire.MilliAtom(fwdInst.ForwardAmount),
 		OutgoingCTLV:    fwdInst.OutgoingCltv,
 	}
 }

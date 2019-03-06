@@ -264,11 +264,11 @@ func TestLightningWireProtocol(t *testing.T) {
 		MsgOpenChannel: func(v []reflect.Value, r *rand.Rand) {
 			req := OpenChannel{
 				FundingAmount:    dcrutil.Amount(r.Int63()),
-				PushAmount:       MilliSatoshi(r.Int63()),
+				PushAmount:       MilliAtom(r.Int63()),
 				DustLimit:        dcrutil.Amount(r.Int63()),
-				MaxValueInFlight: MilliSatoshi(r.Int63()),
+				MaxValueInFlight: MilliAtom(r.Int63()),
 				ChannelReserve:   dcrutil.Amount(r.Int63()),
-				HtlcMinimum:      MilliSatoshi(r.Int31()),
+				HtlcMinimum:      MilliAtom(r.Int31()),
 				FeePerKiloWeight: uint32(r.Int63()),
 				CsvDelay:         uint16(r.Int31()),
 				MaxAcceptedHTLCs: uint16(r.Int31()),
@@ -322,10 +322,10 @@ func TestLightningWireProtocol(t *testing.T) {
 		MsgAcceptChannel: func(v []reflect.Value, r *rand.Rand) {
 			req := AcceptChannel{
 				DustLimit:        dcrutil.Amount(r.Int63()),
-				MaxValueInFlight: MilliSatoshi(r.Int63()),
+				MaxValueInFlight: MilliAtom(r.Int63()),
 				ChannelReserve:   dcrutil.Amount(r.Int63()),
 				MinAcceptDepth:   uint32(r.Int31()),
-				HtlcMinimum:      MilliSatoshi(r.Int31()),
+				HtlcMinimum:      MilliAtom(r.Int31()),
 				CsvDelay:         uint16(r.Int31()),
 				MaxAcceptedHTLCs: uint16(r.Int31()),
 			}
@@ -611,7 +611,7 @@ func TestLightningWireProtocol(t *testing.T) {
 				Timestamp:       uint32(r.Int31()),
 				Flags:           ChanUpdateFlag(r.Int31()),
 				TimeLockDelta:   uint16(r.Int31()),
-				HtlcMinimumMsat: MilliSatoshi(r.Int63()),
+				HtlcMinimumMsat: MilliAtom(r.Int63()),
 				BaseFee:         uint32(r.Int31()),
 				FeeRate:         uint32(r.Int31()),
 			}

@@ -42,7 +42,7 @@ type OpenChannel struct {
 	// PushAmount is the value that the initiating party wishes to "push"
 	// to the responding as part of the first commitment state. If the
 	// responder accepts, then this will be their initial balance.
-	PushAmount MilliSatoshi
+	PushAmount MilliAtom
 
 	// DustLimit is the specific dust limit the sender of this message
 	// would like enforced on their version of the commitment transaction.
@@ -53,7 +53,7 @@ type OpenChannel struct {
 	// MaxValueInFlight represents the maximum amount of coins that can be
 	// pending within the channel at any given time. If the amount of funds
 	// in limbo exceeds this amount, then the channel will be failed.
-	MaxValueInFlight MilliSatoshi
+	MaxValueInFlight MilliAtom
 
 	// ChannelReserve is the amount that the receiving party MUST
 	// maintain a balance above at all times. This is a safety mechanism to
@@ -63,7 +63,7 @@ type OpenChannel struct {
 
 	// HtlcMinimum is the smallest HTLC that the sender of this message
 	// will accept.
-	HtlcMinimum MilliSatoshi
+	HtlcMinimum MilliAtom
 
 	// FeePerKiloWeight is the initial fee rate that the initiator suggests
 	// for both commitment transaction. This value is expressed in sat per

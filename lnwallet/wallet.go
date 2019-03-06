@@ -88,7 +88,7 @@ type InitFundingReserveMsg struct {
 
 	// PushMSat is the number of milli-satoshis that should be pushed over
 	// the responder as part of the initial channel creation.
-	PushMSat lnwire.MilliSatoshi
+	PushMSat lnwire.MilliAtom
 
 	// Flags are the channel flags specified by the initiator in the
 	// open_channel message.
@@ -793,8 +793,8 @@ func (l *LightningWallet) handleContributionMsg(req *addContributionMsg) {
 	}
 
 	// With the funding tx complete, create both commitment transactions.
-	localBalance := pendingReservation.partialState.LocalCommitment.LocalBalance.ToSatoshis()
-	remoteBalance := pendingReservation.partialState.LocalCommitment.RemoteBalance.ToSatoshis()
+	localBalance := pendingReservation.partialState.LocalCommitment.LocalBalance.ToAtoms()
+	remoteBalance := pendingReservation.partialState.LocalCommitment.RemoteBalance.ToAtoms()
 	ourCommitTx, theirCommitTx, err := CreateCommitmentTxns(
 		localBalance, remoteBalance, ourContribution.ChannelConfig,
 		theirContribution.ChannelConfig,
@@ -1111,8 +1111,8 @@ func (l *LightningWallet) handleSingleFunderSigs(req *addSingleFunderSigsMsg) {
 	// Now that we have the funding outpoint, we can generate both versions
 	// of the commitment transaction, and generate a signature for the
 	// remote node's commitment transactions.
-	localBalance := pendingReservation.partialState.LocalCommitment.LocalBalance.ToSatoshis()
-	remoteBalance := pendingReservation.partialState.LocalCommitment.RemoteBalance.ToSatoshis()
+	localBalance := pendingReservation.partialState.LocalCommitment.LocalBalance.ToAtoms()
+	remoteBalance := pendingReservation.partialState.LocalCommitment.RemoteBalance.ToAtoms()
 	ourCommitTx, theirCommitTx, err := CreateCommitmentTxns(
 		localBalance, remoteBalance,
 		pendingReservation.ourContribution.ChannelConfig,

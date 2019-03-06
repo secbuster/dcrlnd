@@ -23,7 +23,7 @@ func makeFakePayment() *OutgoingPayment {
 	}
 
 	copy(fakeInvoice.Terms.PaymentPreimage[:], rev[:])
-	fakeInvoice.Terms.Value = lnwire.NewMSatFromSatoshis(10000)
+	fakeInvoice.Terms.Value = lnwire.NewMAtFromAtoms(10000)
 
 	fakePath := make([][33]byte, 3)
 	for i := 0; i < 3; i++ {
@@ -86,7 +86,7 @@ func makeRandomFakePayment() (*OutgoingPayment, error) {
 	}
 	copy(fakeInvoice.Terms.PaymentPreimage[:], preImg)
 
-	fakeInvoice.Terms.Value = lnwire.MilliSatoshi(rand.Intn(10000))
+	fakeInvoice.Terms.Value = lnwire.MilliAtom(rand.Intn(10000))
 
 	fakePathLen := 1 + rand.Intn(5)
 	fakePath := make([][33]byte, fakePathLen)
@@ -100,7 +100,7 @@ func makeRandomFakePayment() (*OutgoingPayment, error) {
 
 	fakePayment := &OutgoingPayment{
 		Invoice:        *fakeInvoice,
-		Fee:            lnwire.MilliSatoshi(rand.Intn(1001)),
+		Fee:            lnwire.MilliAtom(rand.Intn(1001)),
 		Path:           fakePath,
 		TimeLockLength: uint32(rand.Intn(10000)),
 	}

@@ -118,7 +118,7 @@ type ChannelReservation struct {
 	// pushMSat the amount of milli-satoshis that should be pushed to the
 	// responder of a single funding channel as part of the initial
 	// commitment state.
-	pushMSat lnwire.MilliSatoshi
+	pushMSat lnwire.MilliAtom
 
 	// chanOpen houses a struct containing the channel and additional
 	// confirmation details will be sent on once the channel is considered
@@ -136,20 +136,20 @@ type ChannelReservation struct {
 // lnwallet.InitChannelReservation interface.
 func NewChannelReservation(capacity, fundingAmt dcrutil.Amount,
 	commitFeePerKw AtomPerKByte, wallet *LightningWallet,
-	id uint64, pushMSat lnwire.MilliSatoshi, chainHash *chainhash.Hash,
+	id uint64, pushMSat lnwire.MilliAtom, chainHash *chainhash.Hash,
 	flags lnwire.FundingFlag) (*ChannelReservation, error) {
 
 	var (
-		ourBalance   lnwire.MilliSatoshi
-		theirBalance lnwire.MilliSatoshi
+		ourBalance   lnwire.MilliAtom
+		theirBalance lnwire.MilliAtom
 		initiator    bool
 	)
 
 	commitFee := commitFeePerKw.FeeForSize(CommitmentTxSize)
 
-	fundingMSat := lnwire.NewMSatFromSatoshis(fundingAmt)
-	capacityMSat := lnwire.NewMSatFromSatoshis(capacity)
-	feeMSat := lnwire.NewMSatFromSatoshis(commitFee)
+	fundingMSat := lnwire.NewMAtFromAtoms(fundingAmt)
+	capacityMSat := lnwire.NewMAtFromAtoms(capacity)
+	feeMSat := lnwire.NewMAtFromAtoms(commitFee)
 
 	// If we're the responder to a single-funder reservation, then we have
 	// no initial balance in the channel unless the remote party is pushing
@@ -163,7 +163,7 @@ func NewChannelReservation(capacity, fundingAmt dcrutil.Amount,
 		// the fees, then we'll bail our early.
 		if int64(theirBalance) < 0 {
 			return nil, ErrFunderBalanceDust(
-				int64(commitFee), int64(theirBalance.ToSatoshis()),
+				int64(commitFee), int64(theirBalance.ToAtoms()),
 				int64(2*DefaultDustLimit()),
 			)
 		}
@@ -203,10 +203,10 @@ func NewChannelReservation(capacity, fundingAmt dcrutil.Amount,
 	// reject this channel creation request.
 	//
 	// TODO(roasbeef): reject if 30% goes to fees? dust channel
-	if initiator && ourBalance.ToSatoshis() <= 2*DefaultDustLimit() {
+	if initiator && ourBalance.ToAtoms() <= 2*DefaultDustLimit() {
 		return nil, ErrFunderBalanceDust(
 			int64(commitFee),
-			int64(ourBalance.ToSatoshis()),
+			int64(ourBalance.ToAtoms()),
 			int64(2*DefaultDustLimit()),
 		)
 	}
@@ -229,11 +229,11 @@ func NewChannelReservation(capacity, fundingAmt dcrutil.Amount,
 
 	return &ChannelReservation{
 		ourContribution: &ChannelContribution{
-			FundingAmount: ourBalance.ToSatoshis(),
+			FundingAmount: ourBalance.ToAtoms(),
 			ChannelConfig: &channeldb.ChannelConfig{},
 		},
 		theirContribution: &ChannelContribution{
-			FundingAmount: theirBalance.ToSatoshis(),
+			FundingAmount: theirBalance.ToAtoms(),
 			ChannelConfig: &channeldb.ChannelConfig{},
 		},
 		partialState: &channeldb.OpenChannel{
@@ -284,7 +284,7 @@ func (r *ChannelReservation) SetNumConfsRequired(numConfs uint16) {
 // will also attempt to verify the constraints for sanity, returning an error
 // if the parameters are seemed unsound.
 func (r *ChannelReservation) CommitConstraints(csvDelay, maxHtlcs uint16,
-	maxValueInFlight, minHtlc lnwire.MilliSatoshi,
+	maxValueInFlight, minHtlc lnwire.MilliAtom,
 	chanReserve, dustLimit dcrutil.Amount) error {
 
 	r.Lock()

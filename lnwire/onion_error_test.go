@@ -12,7 +12,7 @@ import (
 
 var (
 	testOnionHash     = []byte{}
-	testAmount        = MilliSatoshi(1)
+	testAmount        = MilliAtom(1)
 	testCtlvExpiry    = uint32(2)
 	testFlags         = uint16(2)
 	sig, _            = NewSigFromSignature(testSig)

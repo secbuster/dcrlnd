@@ -165,7 +165,7 @@ func createTestChannel(alicePrivKey, bobPrivKey []byte,
 
 	aliceConstraints := &channeldb.ChannelConstraints{
 		DustLimit: dcrutil.Amount(200),
-		MaxPendingAmount: lnwire.NewMSatFromSatoshis(
+		MaxPendingAmount: lnwire.NewMAtFromAtoms(
 			channelCapacity),
 		ChanReserve:      aliceReserve,
 		MinHTLC:          0,
@@ -174,7 +174,7 @@ func createTestChannel(alicePrivKey, bobPrivKey []byte,
 
 	bobConstraints := &channeldb.ChannelConstraints{
 		DustLimit: dcrutil.Amount(800),
-		MaxPendingAmount: lnwire.NewMSatFromSatoshis(
+		MaxPendingAmount: lnwire.NewMAtFromAtoms(
 			channelCapacity),
 		ChanReserve:      bobReserve,
 		MinHTLC:          0,
@@ -294,8 +294,8 @@ func createTestChannel(alicePrivKey, bobPrivKey []byte,
 
 	aliceCommit := channeldb.ChannelCommitment{
 		CommitHeight:  0,
-		LocalBalance:  lnwire.NewMSatFromSatoshis(aliceAmount - commitFee),
-		RemoteBalance: lnwire.NewMSatFromSatoshis(bobAmount),
+		LocalBalance:  lnwire.NewMAtFromAtoms(aliceAmount - commitFee),
+		RemoteBalance: lnwire.NewMAtFromAtoms(bobAmount),
 		CommitFee:     commitFee,
 		FeePerKw:      dcrutil.Amount(feePerKw),
 		CommitTx:      aliceCommitTx,
@@ -303,8 +303,8 @@ func createTestChannel(alicePrivKey, bobPrivKey []byte,
 	}
 	bobCommit := channeldb.ChannelCommitment{
 		CommitHeight:  0,
-		LocalBalance:  lnwire.NewMSatFromSatoshis(bobAmount),
-		RemoteBalance: lnwire.NewMSatFromSatoshis(aliceAmount - commitFee),
+		LocalBalance:  lnwire.NewMAtFromAtoms(bobAmount),
+		RemoteBalance: lnwire.NewMAtFromAtoms(aliceAmount - commitFee),
 		CommitFee:     commitFee,
 		FeePerKw:      dcrutil.Amount(feePerKw),
 		CommitTx:      bobCommitTx,
@@ -524,7 +524,7 @@ func getChanID(msg lnwire.Message) (lnwire.ChannelID, error) {
 
 // generatePayment generates the htlc add request by given path blob and
 // invoice which should be added by destination peer.
-func generatePayment(invoiceAmt, htlcAmt lnwire.MilliSatoshi, timelock uint32,
+func generatePayment(invoiceAmt, htlcAmt lnwire.MilliAtom, timelock uint32,
 	blob [lnwire.OnionPacketSize]byte) (*channeldb.Invoice, *lnwire.UpdateAddHTLC, error) {
 
 	var preimage [chainhash.HashSize]byte
@@ -592,8 +592,8 @@ type threeHopNetwork struct {
 // generateHops creates the per hop payload, the total amount to be sent, and
 // also the time lock value needed to route an HTLC with the target amount over
 // the specified path.
-func generateHops(payAmt lnwire.MilliSatoshi, startingHeight uint32,
-	path ...*channelLink) (lnwire.MilliSatoshi, uint32, []ForwardingInfo) {
+func generateHops(payAmt lnwire.MilliAtom, startingHeight uint32,
+	path ...*channelLink) (lnwire.MilliAtom, uint32, []ForwardingInfo) {
 
 	lastHop := path[len(path)-1]
 
@@ -675,7 +675,7 @@ func (r *paymentResponse) Wait(d time.Duration) (chainhash.Hash, error) {
 // * from Alice to some another peer through the Bob
 func (n *threeHopNetwork) makePayment(sendingPeer, receivingPeer lnpeer.Peer,
 	firstHop lnwire.ShortChannelID, hops []ForwardingInfo,
-	invoiceAmt, htlcAmt lnwire.MilliSatoshi,
+	invoiceAmt, htlcAmt lnwire.MilliAtom,
 	timelock uint32) *paymentResponse {
 
 	paymentErr := make(chan error, 1)
@@ -899,8 +899,8 @@ func newThreeHopNetwork(t testing.TB, aliceChannel, firstBobChannel,
 	}
 
 	globalPolicy := ForwardingPolicy{
-		MinHTLC:       lnwire.NewMSatFromSatoshis(5),
-		BaseFee:       lnwire.NewMSatFromSatoshis(1),
+		MinHTLC:       lnwire.NewMAtFromAtoms(5),
+		BaseFee:       lnwire.NewMAtFromAtoms(1),
 		TimeLockDelta: defaultDelta,
 	}
 	obfuscator := NewMockObfuscator()

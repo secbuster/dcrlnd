@@ -316,7 +316,7 @@ func createTestFundingManager(t *testing.T, privKey *secp256k1.PrivateKey,
 			TimeLockDelta: 10,
 		},
 		NumRequiredConfs: func(chanAmt dcrutil.Amount,
-			pushAmt lnwire.MilliSatoshi) uint16 {
+			pushAmt lnwire.MilliAtom) uint16 {
 			return 3
 		},
 		RequiredRemoteDelay: func(amt dcrutil.Amount) uint16 {
@@ -332,9 +332,9 @@ func createTestFundingManager(t *testing.T, privKey *secp256k1.PrivateKey,
 
 			return reserve
 		},
-		RequiredRemoteMaxValue: func(chanAmt dcrutil.Amount) lnwire.MilliSatoshi {
-			reserve := lnwire.NewMSatFromSatoshis(chanAmt / 100)
-			return lnwire.NewMSatFromSatoshis(chanAmt) - reserve
+		RequiredRemoteMaxValue: func(chanAmt dcrutil.Amount) lnwire.MilliAtom {
+			reserve := lnwire.NewMAtFromAtoms(chanAmt / 100)
+			return lnwire.NewMAtFromAtoms(chanAmt) - reserve
 		},
 		RequiredRemoteMaxHTLCs: func(chanAmt dcrutil.Amount) uint16 {
 			return uint16(lnwallet.MaxHTLCNumber / 2)
@@ -535,7 +535,7 @@ func openChannel(t *testing.T, alice, bob *testNode, localFundingAmt,
 		targetPubkey:    bob.privKey.PubKey(),
 		chainHash:       *activeNetParams.GenesisHash,
 		localFundingAmt: localFundingAmt,
-		pushAmt:         lnwire.NewMSatFromSatoshis(pushAmt),
+		pushAmt:         lnwire.NewMAtFromAtoms(pushAmt),
 		private:         !announceChan,
 		updates:         updateChan,
 		err:             errChan,
@@ -816,7 +816,7 @@ func assertAddedToRouterGraph(t *testing.T, alice, bob *testNode,
 // advertised value will be checked against the other node's default min_htlc
 // value.
 func assertChannelAnnouncements(t *testing.T, alice, bob *testNode,
-	customMinHtlc ...lnwire.MilliSatoshi) {
+	customMinHtlc ...lnwire.MilliAtom) {
 
 	// After the FundingLocked message is sent, Alice and Bob will each
 	// send the following messages to their gossiper:
@@ -1342,7 +1342,7 @@ func TestFundingManagerPeerTimeoutAfterInitFunding(t *testing.T) {
 		targetPubkey:    bob.privKey.PubKey(),
 		chainHash:       *activeNetParams.GenesisHash,
 		localFundingAmt: 500000,
-		pushAmt:         lnwire.NewMSatFromSatoshis(0),
+		pushAmt:         lnwire.NewMAtFromAtoms(0),
 		private:         false,
 		updates:         updateChan,
 		err:             errChan,
@@ -1402,7 +1402,7 @@ func TestFundingManagerPeerTimeoutAfterFundingOpen(t *testing.T) {
 		targetPubkey:    bob.privKey.PubKey(),
 		chainHash:       *activeNetParams.GenesisHash,
 		localFundingAmt: 500000,
-		pushAmt:         lnwire.NewMSatFromSatoshis(0),
+		pushAmt:         lnwire.NewMAtFromAtoms(0),
 		private:         false,
 		updates:         updateChan,
 		err:             errChan,
@@ -1471,7 +1471,7 @@ func TestFundingManagerPeerTimeoutAfterFundingAccept(t *testing.T) {
 		targetPubkey:    bob.privKey.PubKey(),
 		chainHash:       *activeNetParams.GenesisHash,
 		localFundingAmt: 500000,
-		pushAmt:         lnwire.NewMSatFromSatoshis(0),
+		pushAmt:         lnwire.NewMAtFromAtoms(0),
 		private:         false,
 		updates:         updateChan,
 		err:             errChan,
@@ -2114,7 +2114,7 @@ func TestFundingManagerCustomChannelParameters(t *testing.T) {
 		targetPubkey:    bob.privKey.PubKey(),
 		chainHash:       *activeNetParams.GenesisHash,
 		localFundingAmt: 5000000,
-		pushAmt:         lnwire.NewMSatFromSatoshis(0),
+		pushAmt:         lnwire.NewMAtFromAtoms(0),
 		private:         false,
 		minHtlc:         minHtlc,
 		remoteCsvDelay:  csvDelay,
@@ -2209,7 +2209,7 @@ func TestFundingManagerCustomChannelParameters(t *testing.T) {
 	// Helper method for checking the MinHtlc value stored for a
 	// reservation.
 	assertMinHtlc := func(resCtx *reservationWithCtx,
-		expOurMinHtlc, expTheirMinHtlc lnwire.MilliSatoshi) error {
+		expOurMinHtlc, expTheirMinHtlc lnwire.MilliAtom) error {
 
 		ourMinHtlc := resCtx.reservation.OurContribution().MinHTLC
 		if ourMinHtlc != expOurMinHtlc {
@@ -2334,7 +2334,7 @@ func TestFundingManagerMaxPendingChannels(t *testing.T) {
 			targetPubkey:    bob.privKey.PubKey(),
 			chainHash:       *activeNetParams.GenesisHash,
 			localFundingAmt: 5000000,
-			pushAmt:         lnwire.NewMSatFromSatoshis(0),
+			pushAmt:         lnwire.NewMAtFromAtoms(0),
 			private:         false,
 			updates:         updateChan,
 			err:             errChan,
@@ -2497,7 +2497,7 @@ func TestFundingManagerRejectPush(t *testing.T) {
 		targetPubkey:    bob.privKey.PubKey(),
 		chainHash:       *activeNetParams.GenesisHash,
 		localFundingAmt: 500000,
-		pushAmt:         lnwire.NewMSatFromSatoshis(10),
+		pushAmt:         lnwire.NewMAtFromAtoms(10),
 		private:         true,
 		updates:         updateChan,
 		err:             errChan,

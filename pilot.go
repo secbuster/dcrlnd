@@ -36,7 +36,7 @@ func (c *chanController) OpenChannel(target *secp256k1.PublicKey,
 	}
 
 	// TODO(halseth): make configurable?
-	minHtlc := lnwire.NewMSatFromSatoshis(1)
+	minHtlc := lnwire.NewMAtFromAtoms(1)
 
 	// Construct the open channel request and send it to the server to begin
 	// the funding workflow.

@@ -536,14 +536,14 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB, cc *chainControl,
 		},
 		ChannelPruneExpiry: time.Duration(time.Hour * 24 * 14),
 		GraphPruneInterval: time.Duration(time.Hour),
-		QueryBandwidth: func(edge *channeldb.ChannelEdgeInfo) lnwire.MilliSatoshi {
+		QueryBandwidth: func(edge *channeldb.ChannelEdgeInfo) lnwire.MilliAtom {
 			// If we aren't on either side of this edge, then we'll
 			// just thread through the capacity of the edge as we
 			// know it.
 			if !bytes.Equal(edge.NodeKey1Bytes[:], selfNode.PubKeyBytes[:]) &&
 				!bytes.Equal(edge.NodeKey2Bytes[:], selfNode.PubKeyBytes[:]) {
 
-				return lnwire.NewMSatFromSatoshis(edge.Capacity)
+				return lnwire.NewMAtFromAtoms(edge.Capacity)
 			}
 
 			cid := lnwire.NewChanIDFromOutPoint(&edge.ChannelPoint)
@@ -806,7 +806,7 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB, cc *chainControl,
 		},
 		DefaultRoutingPolicy: cc.routingPolicy,
 		NumRequiredConfs: func(chanAmt dcrutil.Amount,
-			pushAmt lnwire.MilliSatoshi) uint16 {
+			pushAmt lnwire.MilliAtom) uint16 {
 			// For large channels we increase the number
 			// of confirmations we require for the
 			// channel to be considered open. As it is
@@ -833,8 +833,8 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB, cc *chainControl,
 			minConf := uint64(3)
 			maxConf := uint64(6)
 			maxChannelSize := uint64(
-				lnwire.NewMSatFromSatoshis(maxFundingAmount))
-			stake := lnwire.NewMSatFromSatoshis(chanAmt) + pushAmt
+				lnwire.NewMAtFromAtoms(maxFundingAmount))
+			stake := lnwire.NewMAtFromAtoms(chanAmt) + pushAmt
 			conf := maxConf * uint64(stake) / maxChannelSize
 			if conf < minConf {
 				conf = minConf
@@ -904,12 +904,12 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB, cc *chainControl,
 
 			return reserve
 		},
-		RequiredRemoteMaxValue: func(chanAmt dcrutil.Amount) lnwire.MilliSatoshi {
+		RequiredRemoteMaxValue: func(chanAmt dcrutil.Amount) lnwire.MilliAtom {
 			// By default, we'll allow the remote peer to fully
 			// utilize the full bandwidth of the channel, minus our
 			// required reserve.
-			reserve := lnwire.NewMSatFromSatoshis(chanAmt / 100)
-			return lnwire.NewMSatFromSatoshis(chanAmt) - reserve
+			reserve := lnwire.NewMAtFromAtoms(chanAmt / 100)
+			return lnwire.NewMAtFromAtoms(chanAmt) - reserve
 		},
 		RequiredRemoteMaxHTLCs: func(chanAmt dcrutil.Amount) uint16 {
 			// By default, we'll permit them to utilize the full
@@ -2646,13 +2646,13 @@ type openChanReq struct {
 	localFundingAmt  dcrutil.Amount
 	remoteFundingAmt dcrutil.Amount
 
-	pushAmt lnwire.MilliSatoshi
+	pushAmt lnwire.MilliAtom
 
 	fundingFeePerKw lnwallet.AtomPerKByte
 
 	private bool
 
-	minHtlc lnwire.MilliSatoshi
+	minHtlc lnwire.MilliAtom
 
 	remoteCsvDelay uint16
 

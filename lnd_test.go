@@ -1316,7 +1316,7 @@ func testUpdateChannelPolicy(net *lntest.NetworkHarness, t *harnessTest) {
 	// mSAT.
 	payAmt = dcrutil.Amount(4)
 	amtSat := int64(payAmt)
-	amtMSat := int64(lnwire.NewMSatFromSatoshis(payAmt))
+	amtMSat := int64(lnwire.NewMAtFromAtoms(payAmt))
 	routes.Routes[0].Hops[0].AmtToForward = amtSat
 	routes.Routes[0].Hops[0].AmtToForwardMsat = amtMSat
 	routes.Routes[0].Hops[1].AmtToForward = amtSat
@@ -1348,7 +1348,7 @@ func testUpdateChannelPolicy(net *lntest.NetworkHarness, t *harnessTest) {
 	// Expected as part of the error message.
 	substrs := []string{
 		"AmountBelowMinimum",
-		"HtlcMinimumMsat: (lnwire.MilliSatoshi) 5000 mSAT",
+		"HtlcMinimumMsat: (lnwire.MilliAtom) 5000 mSAT",
 	}
 	for _, s := range substrs {
 		if !strings.Contains(sendResp.PaymentError, s) {
@@ -1360,7 +1360,7 @@ func testUpdateChannelPolicy(net *lntest.NetworkHarness, t *harnessTest) {
 	// Make sure sending using the original value succeeds.
 	payAmt = dcrutil.Amount(5)
 	amtSat = int64(payAmt)
-	amtMSat = int64(lnwire.NewMSatFromSatoshis(payAmt))
+	amtMSat = int64(lnwire.NewMAtFromAtoms(payAmt))
 	routes.Routes[0].Hops[0].AmtToForward = amtSat
 	routes.Routes[0].Hops[0].AmtToForwardMsat = amtMSat
 	routes.Routes[0].Hops[1].AmtToForward = amtSat
@@ -7754,7 +7754,7 @@ out:
 		// We'll send in chunks of the max payment amount. If we're
 		// about to send too much, then we'll only send the amount
 		// remaining.
-		toSend := int64(maxPaymentMSat.ToSatoshis())
+		toSend := int64(maxPaymentMSat.ToAtoms())
 		if toSend+amtSent > amtToSend {
 			toSend = amtToSend - amtSent
 		}
@@ -11790,7 +11790,7 @@ func testSwitchOfflineDeliveryOutgoingOffline(
 }
 
 // computeFee calculates the payment fee as specified in BOLT07
-func computeFee(baseFee, feeRate, amt lnwire.MilliSatoshi) lnwire.MilliSatoshi {
+func computeFee(baseFee, feeRate, amt lnwire.MilliAtom) lnwire.MilliAtom {
 	return baseFee + amt*feeRate/1000000
 }
 
@@ -11910,7 +11910,7 @@ func testQueryRoutes(net *lntest.NetworkHarness, t *harnessTest) {
 
 	for i, route := range routesRes.Routes {
 		expectedTotalFeesMSat :=
-			lnwire.MilliSatoshi(len(route.Hops)-1) * feePerHopMSat
+			lnwire.MilliAtom(len(route.Hops)-1) * feePerHopMSat
 		expectedTotalAmtMSat := (paymentAmt * mSat) + expectedTotalFeesMSat
 
 		if route.TotalFees != route.TotalFeesMsat/mSat {
@@ -12196,7 +12196,7 @@ func testRouteFeeCutoff(net *lntest.NetworkHarness, t *harnessTest) {
 	// have a fee cutoff expressed as a percentage of the amount and the
 	// other will have it expressed as a fixed amount of satoshis.
 	const paymentAmt = 100
-	carolFee := computeFee(lnwire.MilliSatoshi(baseFee), 1, paymentAmt)
+	carolFee := computeFee(lnwire.MilliAtom(baseFee), 1, paymentAmt)
 
 	// testFeeCutoff is a helper closure that will ensure the different
 	// types of fee limits work as intended when querying routes and sending
@@ -12257,7 +12257,7 @@ func testRouteFeeCutoff(net *lntest.NetworkHarness, t *harnessTest) {
 	// fee for the route using Carol as an intermediate hop earlier, we can
 	// use a smaller value in order to invalidate that route.
 	feeLimitFixed := &lnrpc.FeeLimit{
-		Limit: &lnrpc.FeeLimit_Fixed{int64(carolFee.ToSatoshis()) - 1},
+		Limit: &lnrpc.FeeLimit_Fixed{int64(carolFee.ToAtoms()) - 1},
 	}
 	testFeeCutoff(feeLimitFixed)
 

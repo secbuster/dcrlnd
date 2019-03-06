@@ -133,7 +133,7 @@ func WriteElement(w io.Writer, element interface{}) error {
 			return err
 		}
 
-	case lnwire.MilliSatoshi:
+	case lnwire.MilliAtom:
 		if err := binary.Write(w, byteOrder, uint64(e)); err != nil {
 			return err
 		}
@@ -292,13 +292,13 @@ func ReadElement(r io.Reader, element interface{}) error {
 
 		*e = dcrutil.Amount(a)
 
-	case *lnwire.MilliSatoshi:
+	case *lnwire.MilliAtom:
 		var a uint64
 		if err := binary.Read(r, byteOrder, &a); err != nil {
 			return err
 		}
 
-		*e = lnwire.MilliSatoshi(a)
+		*e = lnwire.MilliAtom(a)
 
 	case **secp256k1.PublicKey:
 		var b [secp256k1.PubKeyBytesLenCompressed]byte

@@ -26,7 +26,7 @@ type htlcPacket struct {
 	// creates a full circuit add. This allows us to properly populate the
 	// forwarding event for this circuit/packet in the case the payment
 	// circuit is successful.
-	incomingHtlcAmt lnwire.MilliSatoshi
+	incomingHtlcAmt lnwire.MilliAtom
 
 	// outgoingHTLCID is the ID of the HTLC that we offered to the peer on the
 	// outgoing channel.
@@ -44,10 +44,10 @@ type htlcPacket struct {
 
 	// incomingAmount is the value in milli-satoshis that arrived on an
 	// incoming link.
-	incomingAmount lnwire.MilliSatoshi
+	incomingAmount lnwire.MilliAtom
 
 	// amount is the value of the HTLC that is being created or modified.
-	amount lnwire.MilliSatoshi
+	amount lnwire.MilliAtom
 
 	// htlc lnwire message type of which depends on switch request type.
 	htlc lnwire.Message

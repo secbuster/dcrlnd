@@ -92,7 +92,7 @@ type reservationWithCtx struct {
 
 	// Constraints we require for the remote.
 	remoteCsvDelay uint16
-	remoteMinHtlc  lnwire.MilliSatoshi
+	remoteMinHtlc  lnwire.MilliAtom
 
 	updateMtx   sync.RWMutex
 	lastUpdated time.Time
@@ -270,7 +270,7 @@ type fundingConfig struct {
 	// channel extended to it. The function is able to take into account
 	// the amount of the channel, and any funds we'll be pushed in the
 	// process to determine how many confirmations we'll require.
-	NumRequiredConfs func(dcrutil.Amount, lnwire.MilliSatoshi) uint16
+	NumRequiredConfs func(dcrutil.Amount, lnwire.MilliAtom) uint16
 
 	// RequiredRemoteDelay is a function that maps the total amount in a
 	// proposed channel to the CSV delay that we'll require for the remote
@@ -286,9 +286,9 @@ type fundingConfig struct {
 	RequiredRemoteChanReserve func(capacity, dustLimit dcrutil.Amount) dcrutil.Amount
 
 	// RequiredRemoteMaxValue is a function closure that, given the channel
-	// capacity, returns the amount of MilliSatoshis that our remote peer
+	// capacity, returns the amount of MilliAtoms that our remote peer
 	// can have in total outstanding HTLCs with us.
-	RequiredRemoteMaxValue func(dcrutil.Amount) lnwire.MilliSatoshi
+	RequiredRemoteMaxValue func(dcrutil.Amount) lnwire.MilliAtom
 
 	// RequiredRemoteMaxHTLCs is a function closure that, given the channel
 	// capacity, returns the number of maximum HTLCs the remote peer can
@@ -510,7 +510,7 @@ func (f *fundingManager) Start() error {
 				// mined since the channel was initiated reaches
 				// maxWaitNumBlocksFundingConf and we are not the channel
 				// initiator.
-				localBalance := ch.LocalCommitment.LocalBalance.ToSatoshis()
+				localBalance := ch.LocalCommitment.LocalBalance.ToAtoms()
 				closeInfo := &channeldb.ChannelCloseSummary{
 					ChainHash:               ch.ChainHash,
 					ChanPoint:               ch.FundingOutpoint,
@@ -916,8 +916,8 @@ func (f *fundingManager) handlePendingChannels(msg *pendingChansReq) {
 			identityPub:   dbPendingChan.IdentityPub,
 			channelPoint:  &dbPendingChan.FundingOutpoint,
 			capacity:      dbPendingChan.Capacity,
-			localBalance:  dbPendingChan.LocalCommitment.LocalBalance.ToSatoshis(),
-			remoteBalance: dbPendingChan.LocalCommitment.RemoteBalance.ToSatoshis(),
+			localBalance:  dbPendingChan.LocalCommitment.LocalBalance.ToAtoms(),
+			remoteBalance: dbPendingChan.LocalCommitment.RemoteBalance.ToAtoms(),
 		}
 
 		pendingChannels = append(pendingChannels, pendingChan)
@@ -1382,7 +1382,7 @@ func (f *fundingManager) handleFundingCreated(fmsg *fundingCreatedMsg) {
 	// we use this convenience method to delete the pending OpenChannel
 	// from the database.
 	deleteFromDatabase := func() {
-		localBalance := completeChan.LocalCommitment.LocalBalance.ToSatoshis()
+		localBalance := completeChan.LocalCommitment.LocalBalance.ToAtoms()
 		closeInfo := &channeldb.ChannelCloseSummary{
 			ChanPoint:               completeChan.FundingOutpoint,
 			ChainHash:               completeChan.ChainHash,
@@ -2417,7 +2417,7 @@ type chanAnnouncement struct {
 func (f *fundingManager) newChanAnnouncement(localPubKey, remotePubKey,
 	localFundingKey, remoteFundingKey *secp256k1.PublicKey,
 	shortChanID lnwire.ShortChannelID, chanID lnwire.ChannelID,
-	fwdMinHTLC lnwire.MilliSatoshi) (*chanAnnouncement, error) {
+	fwdMinHTLC lnwire.MilliAtom) (*chanAnnouncement, error) {
 
 	chainHash := *f.cfg.Wallet.Cfg.NetParams.GenesisHash
 
@@ -2553,7 +2553,7 @@ func (f *fundingManager) newChanAnnouncement(localPubKey, remotePubKey,
 // finish, either successfully or with an error.
 func (f *fundingManager) announceChannel(localIDKey, remoteIDKey, localFundingKey,
 	remoteFundingKey *secp256k1.PublicKey, shortChanID lnwire.ShortChannelID,
-	chanID lnwire.ChannelID, fwdMinHTLC lnwire.MilliSatoshi) error {
+	chanID lnwire.ChannelID, fwdMinHTLC lnwire.MilliAtom) error {
 
 	// First, we'll create the batch of announcements to be sent upon
 	// initial channel creation. This includes the channel announcement

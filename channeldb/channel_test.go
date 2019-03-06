@@ -133,9 +133,9 @@ func createTestChannelState(cdb *DB) (*OpenChannel, error) {
 	localCfg := ChannelConfig{
 		ChannelConstraints: ChannelConstraints{
 			DustLimit:        dcrutil.Amount(rand.Int63()),
-			MaxPendingAmount: lnwire.MilliSatoshi(rand.Int63()),
+			MaxPendingAmount: lnwire.MilliAtom(rand.Int63()),
 			ChanReserve:      dcrutil.Amount(rand.Int63()),
-			MinHTLC:          lnwire.MilliSatoshi(rand.Int63()),
+			MinHTLC:          lnwire.MilliAtom(rand.Int63()),
 			MaxAcceptedHtlcs: uint16(rand.Int31()),
 		},
 		CsvDelay: uint16(rand.Int31()),
@@ -158,9 +158,9 @@ func createTestChannelState(cdb *DB) (*OpenChannel, error) {
 	remoteCfg := ChannelConfig{
 		ChannelConstraints: ChannelConstraints{
 			DustLimit:        dcrutil.Amount(rand.Int63()),
-			MaxPendingAmount: lnwire.MilliSatoshi(rand.Int63()),
+			MaxPendingAmount: lnwire.MilliAtom(rand.Int63()),
 			ChanReserve:      dcrutil.Amount(rand.Int63()),
-			MinHTLC:          lnwire.MilliSatoshi(rand.Int63()),
+			MinHTLC:          lnwire.MilliAtom(rand.Int63()),
 			MaxAcceptedHtlcs: uint16(rand.Int31()),
 		},
 		CsvDelay: uint16(rand.Int31()),
@@ -218,8 +218,8 @@ func createTestChannelState(cdb *DB) (*OpenChannel, error) {
 		TotalMSatReceived: 2,
 		LocalCommitment: ChannelCommitment{
 			CommitHeight:  0,
-			LocalBalance:  lnwire.MilliSatoshi(9000),
-			RemoteBalance: lnwire.MilliSatoshi(3000),
+			LocalBalance:  lnwire.MilliAtom(9000),
+			RemoteBalance: lnwire.MilliAtom(3000),
 			CommitFee:     dcrutil.Amount(rand.Int63()),
 			FeePerKw:      dcrutil.Amount(5000),
 			CommitTx:      testTx,
@@ -227,8 +227,8 @@ func createTestChannelState(cdb *DB) (*OpenChannel, error) {
 		},
 		RemoteCommitment: ChannelCommitment{
 			CommitHeight:  0,
-			LocalBalance:  lnwire.MilliSatoshi(3000),
-			RemoteBalance: lnwire.MilliSatoshi(9000),
+			LocalBalance:  lnwire.MilliAtom(3000),
+			RemoteBalance: lnwire.MilliAtom(9000),
 			CommitFee:     dcrutil.Amount(rand.Int63()),
 			FeePerKw:      dcrutil.Amount(5000),
 			CommitTx:      testTx,
@@ -389,7 +389,7 @@ func TestChannelStateTransition(t *testing.T) {
 	// Half of the HTLCs are incoming, while the other half are outgoing.
 	var (
 		htlcs   []HTLC
-		htlcAmt lnwire.MilliSatoshi
+		htlcAmt lnwire.MilliAtom
 	)
 	for i := uint32(0); i < 10; i++ {
 		var incoming bool
@@ -425,8 +425,8 @@ func TestChannelStateTransition(t *testing.T) {
 		LocalHtlcIndex:  1,
 		RemoteLogIndex:  2,
 		RemoteHtlcIndex: 1,
-		LocalBalance:    lnwire.MilliSatoshi(1e8),
-		RemoteBalance:   lnwire.MilliSatoshi(1e8),
+		LocalBalance:    lnwire.MilliAtom(1e8),
+		RemoteBalance:   lnwire.MilliAtom(1e8),
 		CommitFee:       55,
 		FeePerKw:        99,
 		CommitTx:        newTx,
@@ -468,8 +468,8 @@ func TestChannelStateTransition(t *testing.T) {
 	// To simulate us extending a new state to the remote party, we'll also
 	// create a new commit diff for them.
 	remoteCommit := commitment
-	remoteCommit.LocalBalance = lnwire.MilliSatoshi(2e8)
-	remoteCommit.RemoteBalance = lnwire.MilliSatoshi(3e8)
+	remoteCommit.LocalBalance = lnwire.MilliAtom(2e8)
+	remoteCommit.RemoteBalance = lnwire.MilliAtom(3e8)
 	remoteCommit.CommitHeight = 1
 	commitDiff := &CommitDiff{
 		Commitment: remoteCommit,
@@ -486,7 +486,7 @@ func TestChannelStateTransition(t *testing.T) {
 				LogIndex: 1,
 				UpdateMsg: &lnwire.UpdateAddHTLC{
 					ID:     1,
-					Amount: lnwire.NewMSatFromSatoshis(100),
+					Amount: lnwire.NewMAtFromAtoms(100),
 					Expiry: 25,
 				},
 			},
@@ -494,7 +494,7 @@ func TestChannelStateTransition(t *testing.T) {
 				LogIndex: 2,
 				UpdateMsg: &lnwire.UpdateAddHTLC{
 					ID:     2,
-					Amount: lnwire.NewMSatFromSatoshis(200),
+					Amount: lnwire.NewMAtFromAtoms(200),
 					Expiry: 50,
 				},
 			},
@@ -790,8 +790,8 @@ func TestFetchClosedChannels(t *testing.T) {
 		ClosingTXID:       rev,
 		RemotePub:         state.IdentityPub,
 		Capacity:          state.Capacity,
-		SettledBalance:    state.LocalCommitment.LocalBalance.ToSatoshis(),
-		TimeLockedBalance: state.RemoteCommitment.LocalBalance.ToSatoshis() + 10000,
+		SettledBalance:    state.LocalCommitment.LocalBalance.ToAtoms(),
+		TimeLockedBalance: state.RemoteCommitment.LocalBalance.ToAtoms() + 10000,
 		CloseType:         RemoteForceClose,
 		IsPending:         true,
 		LocalChanConfig:   state.LocalChanCfg,

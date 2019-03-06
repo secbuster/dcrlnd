@@ -117,7 +117,7 @@ func WriteElement(w io.Writer, element interface{}) error {
 		if _, err := w.Write(b[:]); err != nil {
 			return err
 		}
-	case MilliSatoshi:
+	case MilliAtom:
 		var b [8]byte
 		binary.BigEndian.PutUint64(b[:], uint64(e))
 		if _, err := w.Write(b[:]); err != nil {
@@ -494,12 +494,12 @@ func ReadElement(r io.Reader, element interface{}) error {
 			return err
 		}
 		*e = binary.BigEndian.Uint64(b[:])
-	case *MilliSatoshi:
+	case *MilliAtom:
 		var b [8]byte
 		if _, err := io.ReadFull(r, b[:]); err != nil {
 			return err
 		}
-		*e = MilliSatoshi(int64(binary.BigEndian.Uint64(b[:])))
+		*e = MilliAtom(int64(binary.BigEndian.Uint64(b[:])))
 	case *dcrutil.Amount:
 		var b [8]byte
 		if _, err := io.ReadFull(r, b[:]); err != nil {

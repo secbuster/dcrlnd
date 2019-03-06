@@ -18,8 +18,8 @@ import (
 )
 
 const (
-	// mSatPerBtc is the number of millisatoshis in 1 BTC.
-	mSatPerBtc = 100000000000
+	// mAtPerDcr is the number of MilliAtoms in 1 DCR.
+	mAtPerDcr = 100000000000
 
 	// signatureBase32Len is the number of 5-bit groups needed to encode
 	// the 512 bit signature + 8 bit recovery ID.
@@ -98,9 +98,9 @@ type Invoice struct {
 	// Net specifies what network this Lightning invoice is meant for.
 	Net *chaincfg.Params
 
-	// MilliSat specifies the amount of this invoice in millisatoshi.
+	// MilliSat specifies the amount of this invoice in MilliAtom.
 	// Optional.
-	MilliSat *lnwire.MilliSatoshi
+	MilliSat *lnwire.MilliAtom
 
 	// Timestamp specifies the time this invoice was created.
 	// Mandatory
@@ -160,8 +160,8 @@ type Invoice struct {
 }
 
 // Amount is a functional option that allows callers of NewInvoice to set the
-// amount in millisatoshis that the Invoice should encode.
-func Amount(milliSat lnwire.MilliSatoshi) func(*Invoice) {
+// amount in MilliAtoms that the Invoice should encode.
+func Amount(milliSat lnwire.MilliAtom) func(*Invoice) {
 	return func(i *Invoice) {
 		i.MilliSat = &milliSat
 	}

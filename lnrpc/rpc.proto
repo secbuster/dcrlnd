@@ -1239,7 +1239,7 @@ message OpenChannelRequest {
     /// Whether this channel should be private, not announced to the greater network.
     bool private = 8 [json_name = "private"];
 
-    /// The minimum value in millisatoshi we will require for incoming HTLCs on the channel.
+    /// The minimum value in MilliAtom we will require for incoming HTLCs on the channel.
     int64 min_htlc_msat = 9 [json_name = "min_htlc_msat"];
 
     /// The delay we require on the remote's commitment transaction. If this is not set, it will be scaled automatically with the channel size.
@@ -1488,12 +1488,12 @@ message Route {
     repeated Hop hops = 4 [json_name = "hops"];
     
     /**
-    The total fees in millisatoshis.
+    The total fees in MilliAtoms.
     */
     int64 total_fees_msat = 5 [json_name = "total_fees_msat"];
     
     /**
-    The total amount in millisatoshis.
+    The total amount in MilliAtoms.
     */
     int64 total_amt_msat = 6 [json_name = "total_amt_msat"];
 }
@@ -1670,7 +1670,7 @@ message HopHint {
     /// The unique identifier of the channel.
     uint64 chan_id = 2 [json_name = "chan_id"];
 
-    /// The base fee of the channel denominated in millisatoshis.
+    /// The base fee of the channel denominated in MilliAtoms.
     uint32 fee_base_msat = 3 [json_name = "fee_base_msat"];
 
     /**
@@ -1788,7 +1788,7 @@ message Invoice {
     int64 amt_paid_sat = 19 [json_name = "amt_paid_sat"];
 
     /**
-    The amount that was accepted for this invoice, in millisatoshis. This will
+    The amount that was accepted for this invoice, in MilliAtoms. This will
     ONLY be set if this invoice has been settled. We provide this field as if
     the invoice was created with a zero value, then we need to record what
     amount was ultimately accepted. Additionally, it's possible that the sender

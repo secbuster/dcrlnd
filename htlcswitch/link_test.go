@@ -207,7 +207,7 @@ func TestChannelLinkSingleHopPayment(t *testing.T) {
 			n.firstBobChannelLink.ChanID()))
 	}
 
-	amount := lnwire.NewMSatFromSatoshis(dcrutil.AtomsPerCoin)
+	amount := lnwire.NewMAtFromAtoms(dcrutil.AtomsPerCoin)
 	htlcAmt, totalTimelock, hops := generateHops(amount, testStartingHeight,
 		n.firstBobChannelLink)
 
@@ -288,7 +288,7 @@ func TestChannelLinkBidirectionalOneHopPayments(t *testing.T) {
 			n.firstBobChannelLink.ChanID()))
 	}
 
-	amt := lnwire.NewMSatFromSatoshis(20000)
+	amt := lnwire.NewMAtFromAtoms(20000)
 
 	htlcAmt, totalTimelock, hopsForwards := generateHops(amt,
 		testStartingHeight, n.firstBobChannelLink)
@@ -435,7 +435,7 @@ func TestChannelLinkMultiHopPayment(t *testing.T) {
 			n.carolChannelLink.ChanID()))
 	}
 
-	amount := lnwire.NewMSatFromSatoshis(dcrutil.AtomsPerCoin)
+	amount := lnwire.NewMAtFromAtoms(dcrutil.AtomsPerCoin)
 	htlcAmt, totalTimelock, hops := generateHops(amount,
 		testStartingHeight,
 		n.firstBobChannelLink, n.carolChannelLink)
@@ -619,7 +619,7 @@ func TestLinkForwardTimelockPolicyMismatch(t *testing.T) {
 	defer n.stop()
 
 	// We'll be sending 1 DCR over a 2-hop (3 vertex) route.
-	amount := lnwire.NewMSatFromSatoshis(dcrutil.AtomsPerCoin)
+	amount := lnwire.NewMAtFromAtoms(dcrutil.AtomsPerCoin)
 
 	// Generate the route over two hops, ignoring the total time lock that
 	// we'll need to use for the first HTLC in order to have a sufficient
@@ -679,7 +679,7 @@ func TestLinkForwardFeePolicyMismatch(t *testing.T) {
 	// We'll be sending 1 DCR over a 2-hop (3 vertex) route. Given the
 	// current default fee of 1 SAT, if we just send a single DCR over in
 	// an HTLC, it should be rejected.
-	amountNoFee := lnwire.NewMSatFromSatoshis(dcrutil.AtomsPerCoin)
+	amountNoFee := lnwire.NewMAtFromAtoms(dcrutil.AtomsPerCoin)
 
 	// Generate the route over two hops, ignoring the amount we _should_
 	// actually send in order to be able to cover fees.
@@ -737,7 +737,7 @@ func TestLinkForwardMinHTLCPolicyMismatch(t *testing.T) {
 	// The current default global min HTLC policy set in the default config
 	// for the three-hop-network is 5 SAT. So in order to trigger this
 	// failure mode, we'll create an HTLC with 1 satoshi.
-	amountNoFee := lnwire.NewMSatFromSatoshis(1)
+	amountNoFee := lnwire.NewMAtFromAtoms(1)
 
 	// With the amount set, we'll generate a route over 2 hops within the
 	// network that attempts to pay out our specified amount.
@@ -798,7 +798,7 @@ func TestUpdateForwardingPolicy(t *testing.T) {
 	secondBobBandwidthBefore := n.secondBobChannelLink.Bandwidth()
 	aliceBandwidthBefore := n.aliceChannelLink.Bandwidth()
 
-	amountNoFee := lnwire.NewMSatFromSatoshis(10)
+	amountNoFee := lnwire.NewMAtFromAtoms(10)
 	htlcAmt, htlcExpiry, hops := generateHops(amountNoFee,
 		testStartingHeight,
 		n.firstBobChannelLink, n.carolChannelLink)
@@ -851,7 +851,7 @@ func TestUpdateForwardingPolicy(t *testing.T) {
 	// TODO(roasbeef): should implement grace period within link policy
 	// update logic
 	newPolicy := n.globalPolicy
-	newPolicy.BaseFee = lnwire.NewMSatFromSatoshis(1000)
+	newPolicy.BaseFee = lnwire.NewMAtFromAtoms(1000)
 	n.secondBobChannelLink.UpdateForwardingPolicy(newPolicy)
 
 	// Next, we'll send the payment again, using the exact same per-hop
@@ -905,7 +905,7 @@ func TestChannelLinkMultiHopInsufficientPayment(t *testing.T) {
 	// We'll attempt to send 4 DCR although the alice-to-bob channel only
 	// has 3 DCR total capacity. As a result, this payment should be
 	// rejected.
-	amount := lnwire.NewMSatFromSatoshis(4 * dcrutil.AtomsPerCoin)
+	amount := lnwire.NewMAtFromAtoms(4 * dcrutil.AtomsPerCoin)
 	htlcAmt, totalTimelock, hops := generateHops(amount, testStartingHeight,
 		n.firstBobChannelLink, n.carolChannelLink)
 
@@ -989,7 +989,7 @@ func TestChannelLinkMultiHopUnknownPaymentHash(t *testing.T) {
 	secondBobBandwidthBefore := n.secondBobChannelLink.Bandwidth()
 	aliceBandwidthBefore := n.aliceChannelLink.Bandwidth()
 
-	amount := lnwire.NewMSatFromSatoshis(dcrutil.AtomsPerCoin)
+	amount := lnwire.NewMAtFromAtoms(dcrutil.AtomsPerCoin)
 
 	htlcAmt, totalTimelock, hops := generateHops(amount, testStartingHeight,
 		n.firstBobChannelLink, n.carolChannelLink)
@@ -1080,7 +1080,7 @@ func TestChannelLinkMultiHopUnknownNextHop(t *testing.T) {
 	secondBobBandwidthBefore := n.secondBobChannelLink.Bandwidth()
 	aliceBandwidthBefore := n.aliceChannelLink.Bandwidth()
 
-	amount := lnwire.NewMSatFromSatoshis(dcrutil.AtomsPerCoin)
+	amount := lnwire.NewMAtFromAtoms(dcrutil.AtomsPerCoin)
 	htlcAmt, totalTimelock, hops := generateHops(amount, testStartingHeight,
 		n.firstBobChannelLink, n.carolChannelLink)
 
@@ -1195,7 +1195,7 @@ func TestChannelLinkMultiHopDecodeError(t *testing.T) {
 	secondBobBandwidthBefore := n.secondBobChannelLink.Bandwidth()
 	aliceBandwidthBefore := n.aliceChannelLink.Bandwidth()
 
-	amount := lnwire.NewMSatFromSatoshis(dcrutil.AtomsPerCoin)
+	amount := lnwire.NewMAtFromAtoms(dcrutil.AtomsPerCoin)
 	htlcAmt, totalTimelock, hops := generateHops(amount, testStartingHeight,
 		n.firstBobChannelLink, n.carolChannelLink)
 
@@ -1278,7 +1278,7 @@ func TestChannelLinkExpiryTooSoonExitNode(t *testing.T) {
 	}
 	defer n.stop()
 
-	amount := lnwire.NewMSatFromSatoshis(dcrutil.AtomsPerCoin)
+	amount := lnwire.NewMAtFromAtoms(dcrutil.AtomsPerCoin)
 
 	// We'll craft an HTLC packet, but set the starting height to 10 blocks
 	// before the current true height.
@@ -1337,7 +1337,7 @@ func TestChannelLinkExpiryTooSoonMidNode(t *testing.T) {
 	}
 	defer n.stop()
 
-	amount := lnwire.NewMSatFromSatoshis(dcrutil.AtomsPerCoin)
+	amount := lnwire.NewMAtFromAtoms(dcrutil.AtomsPerCoin)
 
 	// We'll craft an HTLC packet, but set the starting height to 10 blocks
 	// before the current true height. The final route will be three hops,
@@ -1435,7 +1435,7 @@ func TestChannelLinkSingleHopMessageOrdering(t *testing.T) {
 	}
 	defer n.stop()
 
-	amount := lnwire.NewMSatFromSatoshis(dcrutil.AtomsPerCoin)
+	amount := lnwire.NewMAtFromAtoms(dcrutil.AtomsPerCoin)
 	htlcAmt, totalTimelock, hops := generateHops(amount, testStartingHeight,
 		n.firstBobChannelLink)
 
@@ -1525,8 +1525,8 @@ func newSingleLinkTestHarness(chanAmt, chanReserve dcrutil.Amount) (
 			quit:     make(chan struct{}),
 		}
 		globalPolicy = ForwardingPolicy{
-			MinHTLC:       lnwire.NewMSatFromSatoshis(5),
-			BaseFee:       lnwire.NewMSatFromSatoshis(1),
+			MinHTLC:       lnwire.NewMAtFromAtoms(5),
+			BaseFee:       lnwire.NewMAtFromAtoms(1),
 			TimeLockDelta: 6,
 		}
 		invoiceRegistry = newMockRegistry(globalPolicy.TimeLockDelta)
@@ -1600,7 +1600,7 @@ func newSingleLinkTestHarness(chanAmt, chanReserve dcrutil.Amount) (
 }
 
 func assertLinkBandwidth(t *testing.T, link ChannelLink,
-	expected lnwire.MilliSatoshi) {
+	expected lnwire.MilliAtom) {
 
 	currentBandwidth := link.Bandwidth()
 	_, _, line, _ := runtime.Caller(1)
@@ -1802,19 +1802,19 @@ func TestChannelLinkBandwidthConsistency(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to query fee estimator: %v", err)
 	}
-	htlcFee := lnwire.NewMSatFromSatoshis(
+	htlcFee := lnwire.NewMAtFromAtoms(
 		feePerKw.FeeForSize(lnwallet.HTLCOutputSize),
 	)
 
 	// The starting bandwidth of the channel should be exactly the amount
 	// that we created the channel between her and Bob.
-	expectedBandwidth := lnwire.NewMSatFromSatoshis(chanAmt - defaultCommitFee)
+	expectedBandwidth := lnwire.NewMAtFromAtoms(chanAmt - defaultCommitFee)
 	assertLinkBandwidth(t, aliceLink, expectedBandwidth)
 
 	// Next, we'll create an HTLC worth 1 DCR, and send it into the link as
 	// a switch initiated payment.  The resulting bandwidth should
 	// now be decremented to reflect the new HTLC.
-	htlcAmt := lnwire.NewMSatFromSatoshis(dcrutil.AtomsPerCoin)
+	htlcAmt := lnwire.NewMAtFromAtoms(dcrutil.AtomsPerCoin)
 	invoice, htlc, err := generatePayment(htlcAmt, htlcAmt, 5, mockBlob)
 	if err != nil {
 		t.Fatalf("unable to create payment: %v", err)
@@ -2215,7 +2215,7 @@ func TestChannelLinkBandwidthConsistencyOverflow(t *testing.T) {
 	}
 
 	var htlcID uint64
-	addLinkHTLC := func(id uint64, amt lnwire.MilliSatoshi) [32]byte {
+	addLinkHTLC := func(id uint64, amt lnwire.MilliAtom) [32]byte {
 		invoice, htlc, err := generatePayment(amt, amt, 5, mockBlob)
 		if err != nil {
 			t.Fatalf("unable to create payment: %v", err)
@@ -2241,8 +2241,8 @@ func TestChannelLinkBandwidthConsistencyOverflow(t *testing.T) {
 	// We'll first start by adding enough HTLC's to overflow the commitment
 	// transaction, checking the reported link bandwidth for proper
 	// consistency along the way
-	htlcAmt := lnwire.NewMSatFromSatoshis(100000)
-	totalHtlcAmt := lnwire.MilliSatoshi(0)
+	htlcAmt := lnwire.NewMAtFromAtoms(100000)
+	totalHtlcAmt := lnwire.MilliAtom(0)
 	const numHTLCs = lnwallet.MaxHTLCNumber / 2
 	var preImages [][32]byte
 	for i := 0; i < numHTLCs; i++ {
@@ -2282,11 +2282,11 @@ func TestChannelLinkBandwidthConsistencyOverflow(t *testing.T) {
 	// TODO(roasbeef): increase sleep
 	time.Sleep(time.Second * 1)
 	commitSize := lnwallet.CommitmentTxSize + lnwallet.HTLCOutputSize*numHTLCs
-	htlcFee := lnwire.NewMSatFromSatoshis(
+	htlcFee := lnwire.NewMAtFromAtoms(
 		feePerKw.FeeForSize(commitSize),
 	)
 	expectedBandwidth := aliceStartingBandwidth - totalHtlcAmt - htlcFee
-	expectedBandwidth += lnwire.NewMSatFromSatoshis(defaultCommitFee)
+	expectedBandwidth += lnwire.NewMAtFromAtoms(defaultCommitFee)
 	assertLinkBandwidth(t, aliceLink, expectedBandwidth)
 
 	// The overflow queue should be empty at this point, as the commitment
@@ -2462,14 +2462,14 @@ func TestChannelLinkTrimCircuitsPending(t *testing.T) {
 	}
 
 	defaultCommitFee := alice.channel.StateSnapshot().CommitFee
-	htlcFee := lnwire.NewMSatFromSatoshis(
+	htlcFee := lnwire.NewMAtFromAtoms(
 		feePerKw.FeeForSize(lnwallet.HTLCOutputSize),
 	)
 
 	// The starting bandwidth of the channel should be exactly the amount
 	// that we created the channel between her and Bob, minus the commitment
 	// fee.
-	expectedBandwidth := lnwire.NewMSatFromSatoshis(chanAmt - defaultCommitFee)
+	expectedBandwidth := lnwire.NewMAtFromAtoms(chanAmt - defaultCommitFee)
 	assertLinkBandwidth(t, alice.link, expectedBandwidth)
 
 	// Capture Alice's starting bandwidth to perform later, relative
@@ -2479,7 +2479,7 @@ func TestChannelLinkTrimCircuitsPending(t *testing.T) {
 	// Next, we'll create an HTLC worth 1 DCR that will be used as a dummy
 	// message for the test.
 	var mockBlob [lnwire.OnionPacketSize]byte
-	htlcAmt := lnwire.NewMSatFromSatoshis(dcrutil.AtomsPerCoin)
+	htlcAmt := lnwire.NewMAtFromAtoms(dcrutil.AtomsPerCoin)
 	_, htlc, err := generatePayment(htlcAmt, htlcAmt, 5, mockBlob)
 	if err != nil {
 		t.Fatalf("unable to create payment: %v", err)
@@ -2740,14 +2740,14 @@ func TestChannelLinkTrimCircuitsNoCommit(t *testing.T) {
 	}
 
 	defaultCommitFee := alice.channel.StateSnapshot().CommitFee
-	htlcFee := lnwire.NewMSatFromSatoshis(
+	htlcFee := lnwire.NewMAtFromAtoms(
 		feePerKw.FeeForSize(lnwallet.HTLCOutputSize),
 	)
 
 	// The starting bandwidth of the channel should be exactly the amount
 	// that we created the channel between her and Bob, minus the commitment
 	// fee.
-	expectedBandwidth := lnwire.NewMSatFromSatoshis(chanAmt - defaultCommitFee)
+	expectedBandwidth := lnwire.NewMAtFromAtoms(chanAmt - defaultCommitFee)
 	assertLinkBandwidth(t, alice.link, expectedBandwidth)
 
 	// Capture Alice's starting bandwidth to perform later, relative
@@ -2757,7 +2757,7 @@ func TestChannelLinkTrimCircuitsNoCommit(t *testing.T) {
 	// Next, we'll create an HTLC worth 1 DCR that will be used as a dummy
 	// message for the test.
 	var mockBlob [lnwire.OnionPacketSize]byte
-	htlcAmt := lnwire.NewMSatFromSatoshis(dcrutil.AtomsPerCoin)
+	htlcAmt := lnwire.NewMAtFromAtoms(dcrutil.AtomsPerCoin)
 	_, htlc, err := generatePayment(htlcAmt, htlcAmt, 5, mockBlob)
 	if err != nil {
 		t.Fatalf("unable to create payment: %v", err)
@@ -2996,21 +2996,21 @@ func TestChannelLinkBandwidthChanReserve(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to query fee estimator: %v", err)
 	}
-	htlcFee := lnwire.NewMSatFromSatoshis(
+	htlcFee := lnwire.NewMAtFromAtoms(
 		feePerKw.FeeForSize(lnwallet.HTLCOutputSize),
 	)
 
 	// The starting bandwidth of the channel should be exactly the amount
 	// that we created the channel between her and Bob, minus the channel
 	// reserve.
-	expectedBandwidth := lnwire.NewMSatFromSatoshis(
+	expectedBandwidth := lnwire.NewMAtFromAtoms(
 		chanAmt - defaultCommitFee - chanReserve)
 	assertLinkBandwidth(t, aliceLink, expectedBandwidth)
 
 	// Next, we'll create an HTLC worth 3 DCR, and send it into the link as
 	// a switch initiated payment.  The resulting bandwidth should
 	// now be decremented to reflect the new HTLC.
-	htlcAmt := lnwire.NewMSatFromSatoshis(3 * dcrutil.AtomsPerCoin)
+	htlcAmt := lnwire.NewMAtFromAtoms(3 * dcrutil.AtomsPerCoin)
 	invoice, htlc, err := generatePayment(htlcAmt, htlcAmt, 5, mockBlob)
 	if err != nil {
 		t.Fatalf("unable to create payment: %v", err)
@@ -3273,7 +3273,7 @@ func TestChannelRetransmission(t *testing.T) {
 		bobBandwidthBefore := n.firstBobChannelLink.Bandwidth()
 		aliceBandwidthBefore := n.aliceChannelLink.Bandwidth()
 
-		amount := lnwire.NewMSatFromSatoshis(dcrutil.AtomsPerCoin)
+		amount := lnwire.NewMAtFromAtoms(dcrutil.AtomsPerCoin)
 		htlcAmt, totalTimelock, hops := generateHops(amount, testStartingHeight,
 			n.firstBobChannelLink)
 
@@ -3571,7 +3571,7 @@ func TestChannelLinkShutdownDuringForward(t *testing.T) {
 	// Now, make a payment from Alice to Carol, which should cause Bob's
 	// incoming link to block when it tries to submit the packet to the nil
 	// htlcPlex.
-	amount := lnwire.NewMSatFromSatoshis(dcrutil.AtomsPerCoin)
+	amount := lnwire.NewMAtFromAtoms(dcrutil.AtomsPerCoin)
 	htlcAmt, totalTimelock, hops := generateHops(
 		amount, testStartingHeight,
 		n.firstBobChannelLink, n.carolChannelLink,
@@ -3732,7 +3732,7 @@ func TestChannelLinkAcceptDuplicatePayment(t *testing.T) {
 	}
 	defer n.stop()
 
-	amount := lnwire.NewMSatFromSatoshis(dcrutil.AtomsPerCoin)
+	amount := lnwire.NewMAtFromAtoms(dcrutil.AtomsPerCoin)
 
 	// We'll start off by making a payment from Alice to Carol. We'll
 	// manually generate this request so we can control all the parameters.
@@ -3804,7 +3804,7 @@ func TestChannelLinkAcceptOverpay(t *testing.T) {
 
 	// We'll request a route to send 10k satoshis via Alice -> Bob ->
 	// Carol.
-	amount := lnwire.NewMSatFromSatoshis(dcrutil.AtomsPerCoin)
+	amount := lnwire.NewMAtFromAtoms(dcrutil.AtomsPerCoin)
 	htlcAmt, totalTimelock, hops := generateHops(
 		amount, testStartingHeight,
 		n.firstBobChannelLink, n.carolChannelLink,
@@ -4035,8 +4035,8 @@ func restartLink(aliceChannel *lnwallet.LightningChannel, aliceSwitch *Switch,
 		}
 
 		globalPolicy = ForwardingPolicy{
-			MinHTLC:       lnwire.NewMSatFromSatoshis(5),
-			BaseFee:       lnwire.NewMSatFromSatoshis(1),
+			MinHTLC:       lnwire.NewMAtFromAtoms(5),
+			BaseFee:       lnwire.NewMAtFromAtoms(1),
 			TimeLockDelta: 6,
 		}
 
@@ -4120,7 +4120,7 @@ func restartLink(aliceChannel *lnwallet.LightningChannel, aliceSwitch *Switch,
 // gnerateHtlc generates a simple payment from Bob to Alice.
 func generateHtlc(t *testing.T, coreLink *channelLink,
 	bobChannel *lnwallet.LightningChannel, id uint64) *lnwire.UpdateAddHTLC {
-	htlcAmt := lnwire.NewMSatFromSatoshis(10000)
+	htlcAmt := lnwire.NewMAtFromAtoms(10000)
 	hops := []ForwardingInfo{
 		{
 			Network:         BitcoinHop,
@@ -5025,40 +5025,40 @@ func TestChannelLinkFail(t *testing.T) {
 // a baseFee, a feeRate, and an htlc amount.
 func TestExpectedFee(t *testing.T) {
 	testCases := []struct {
-		baseFee  lnwire.MilliSatoshi
-		feeRate  lnwire.MilliSatoshi
-		htlcAmt  lnwire.MilliSatoshi
-		expected lnwire.MilliSatoshi
+		baseFee  lnwire.MilliAtom
+		feeRate  lnwire.MilliAtom
+		htlcAmt  lnwire.MilliAtom
+		expected lnwire.MilliAtom
 	}{
 		{
-			lnwire.MilliSatoshi(0),
-			lnwire.MilliSatoshi(0),
-			lnwire.MilliSatoshi(0),
-			lnwire.MilliSatoshi(0),
+			lnwire.MilliAtom(0),
+			lnwire.MilliAtom(0),
+			lnwire.MilliAtom(0),
+			lnwire.MilliAtom(0),
 		},
 		{
-			lnwire.MilliSatoshi(0),
-			lnwire.MilliSatoshi(1),
-			lnwire.MilliSatoshi(999999),
-			lnwire.MilliSatoshi(0),
+			lnwire.MilliAtom(0),
+			lnwire.MilliAtom(1),
+			lnwire.MilliAtom(999999),
+			lnwire.MilliAtom(0),
 		},
 		{
-			lnwire.MilliSatoshi(0),
-			lnwire.MilliSatoshi(1),
-			lnwire.MilliSatoshi(1000000),
-			lnwire.MilliSatoshi(1),
+			lnwire.MilliAtom(0),
+			lnwire.MilliAtom(1),
+			lnwire.MilliAtom(1000000),
+			lnwire.MilliAtom(1),
 		},
 		{
-			lnwire.MilliSatoshi(0),
-			lnwire.MilliSatoshi(1),
-			lnwire.MilliSatoshi(1000001),
-			lnwire.MilliSatoshi(1),
+			lnwire.MilliAtom(0),
+			lnwire.MilliAtom(1),
+			lnwire.MilliAtom(1000001),
+			lnwire.MilliAtom(1),
 		},
 		{
-			lnwire.MilliSatoshi(1),
-			lnwire.MilliSatoshi(1),
-			lnwire.MilliSatoshi(1000000),
-			lnwire.MilliSatoshi(2),
+			lnwire.MilliAtom(1),
+			lnwire.MilliAtom(1),
+			lnwire.MilliAtom(1000000),
+			lnwire.MilliAtom(2),
 		},
 	}
 
@@ -5112,7 +5112,7 @@ func TestForwardingAsymmetricTimeLockPolicies(t *testing.T) {
 	// Now that the Alice -> Bob link has been updated, we'll craft and
 	// send a payment from Alice -> Carol. This should succeed as normal,
 	// even though Bob has asymmetric time lock policies.
-	amount := lnwire.NewMSatFromSatoshis(dcrutil.AtomsPerCoin)
+	amount := lnwire.NewMAtFromAtoms(dcrutil.AtomsPerCoin)
 	htlcAmt, totalTimelock, hops := generateHops(
 		amount, testStartingHeight, n.firstBobChannelLink,
 		n.carolChannelLink,

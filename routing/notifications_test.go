@@ -76,9 +76,9 @@ func randEdgePolicy(chanID *lnwire.ShortChannelID,
 		ChannelID:                 chanID.ToUint64(),
 		LastUpdate:                time.Unix(int64(prand.Int31()), 0),
 		TimeLockDelta:             uint16(prand.Int63()),
-		MinHTLC:                   lnwire.MilliSatoshi(prand.Int31()),
-		FeeBaseMSat:               lnwire.MilliSatoshi(prand.Int31()),
-		FeeProportionalMillionths: lnwire.MilliSatoshi(prand.Int31()),
+		MinHTLC:                   lnwire.MilliAtom(prand.Int31()),
+		FeeBaseMSat:               lnwire.MilliAtom(prand.Int31()),
+		FeeProportionalMillionths: lnwire.MilliAtom(prand.Int31()),
 		Node:                      node,
 	}
 }

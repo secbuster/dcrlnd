@@ -68,7 +68,7 @@ var (
 // successfully.
 type pendingPayment struct {
 	paymentHash lnwallet.PaymentHash
-	amount      lnwire.MilliSatoshi
+	amount      lnwire.MilliAtom
 
 	preimage chan [chainhash.HashSize]byte
 	err      chan error
@@ -1626,8 +1626,8 @@ out:
 				// stats printed.
 				updates, sent, recv := link.Stats()
 				newNumUpdates += updates
-				newSatSent += sent.ToSatoshis()
-				newSatRecv += recv.ToSatoshis()
+				newSatSent += sent.ToAtoms()
+				newSatRecv += recv.ToAtoms()
 			}
 			s.indexMtx.RUnlock()
 

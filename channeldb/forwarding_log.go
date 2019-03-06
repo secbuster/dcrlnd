@@ -72,11 +72,11 @@ type ForwardingEvent struct {
 
 	// AmtIn is the amount of the incoming HTLC. Subtracting this from the
 	// outgoing amount gives the total fees of this payment circuit.
-	AmtIn lnwire.MilliSatoshi
+	AmtIn lnwire.MilliAtom
 
 	// AmtOut is the amount of the outgoing HTLC. Subtracting the incoming
 	// amount from this gives the total fees for this payment circuit.
-	AmtOut lnwire.MilliSatoshi
+	AmtOut lnwire.MilliAtom
 }
 
 // encodeForwardingEvent writes out the target forwarding event to the passed

@@ -2431,16 +2431,16 @@ type ChannelEdgePolicy struct {
 	TimeLockDelta uint16
 
 	// MinHTLC is the smallest value HTLC this node will accept, expressed
-	// in millisatoshi.
-	MinHTLC lnwire.MilliSatoshi
+	// in MilliAtom.
+	MinHTLC lnwire.MilliAtom
 
 	// FeeBaseMSat is the base HTLC fee that will be charged for forwarding
 	// ANY HTLC, expressed in mSAT's.
-	FeeBaseMSat lnwire.MilliSatoshi
+	FeeBaseMSat lnwire.MilliAtom
 
 	// FeeProportionalMillionths is the rate that the node will charge for
 	// HTLCs for each millionth of a satoshi forwarded.
-	FeeProportionalMillionths lnwire.MilliSatoshi
+	FeeProportionalMillionths lnwire.MilliAtom
 
 	// Node is the LightningNode that this directed edge leads to. Using
 	// this pointer the channel graph can further be traversed.
@@ -3371,17 +3371,17 @@ func deserializeChanEdgePolicy(r io.Reader,
 	if err := binary.Read(r, byteOrder, &n); err != nil {
 		return nil, err
 	}
-	edge.MinHTLC = lnwire.MilliSatoshi(n)
+	edge.MinHTLC = lnwire.MilliAtom(n)
 
 	if err := binary.Read(r, byteOrder, &n); err != nil {
 		return nil, err
 	}
-	edge.FeeBaseMSat = lnwire.MilliSatoshi(n)
+	edge.FeeBaseMSat = lnwire.MilliAtom(n)
 
 	if err := binary.Read(r, byteOrder, &n); err != nil {
 		return nil, err
 	}
-	edge.FeeProportionalMillionths = lnwire.MilliSatoshi(n)
+	edge.FeeProportionalMillionths = lnwire.MilliAtom(n)
 
 	var pub [33]byte
 	if _, err := r.Read(pub[:]); err != nil {

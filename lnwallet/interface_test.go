@@ -387,7 +387,7 @@ func createTestWallet(tempTestDir string, miningNode *rpctest.Harness,
 		FeeEstimator:     lnwallet.NewStaticFeeEstimator(defaultFeeRate, 0),
 		DefaultConstraints: channeldb.ChannelConstraints{
 			DustLimit:        500,
-			MaxPendingAmount: lnwire.NewMSatFromSatoshis(dcrutil.AtomsPerCoin) * 100,
+			MaxPendingAmount: lnwire.NewMAtFromAtoms(dcrutil.AtomsPerCoin) * 100,
 			ChanReserve:      100,
 			MinHTLC:          400,
 			MaxAcceptedHtlcs: 900,
@@ -464,7 +464,7 @@ func testDualFundingReservationWorkflow(miner *rpctest.Harness,
 	aliceChanReservation.SetNumConfsRequired(numReqConfs)
 	err = aliceChanReservation.CommitConstraints(
 		csvDelay, lnwallet.MaxHTLCNumber/2,
-		lnwire.NewMSatFromSatoshis(fundingAmount), 1, fundingAmount/100,
+		lnwire.NewMAtFromAtoms(fundingAmount), 1, fundingAmount/100,
 		lnwallet.DefaultDustLimit(),
 	)
 	if err != nil {
@@ -502,7 +502,7 @@ func testDualFundingReservationWorkflow(miner *rpctest.Harness,
 	}
 	err = bobChanReservation.CommitConstraints(
 		csvDelay, lnwallet.MaxHTLCNumber/2,
-		lnwire.NewMSatFromSatoshis(fundingAmount), 1, fundingAmount/100,
+		lnwire.NewMAtFromAtoms(fundingAmount), 1, fundingAmount/100,
 		lnwallet.DefaultDustLimit(),
 	)
 	if err != nil {
@@ -873,7 +873,7 @@ func testSingleFunderReservationWorkflow(miner *rpctest.Harness,
 	if err != nil {
 		t.Fatalf("unable to create amt: %v", err)
 	}
-	pushAmt := lnwire.NewMSatFromSatoshis(dcrutil.AtomsPerCoin)
+	pushAmt := lnwire.NewMAtFromAtoms(dcrutil.AtomsPerCoin)
 	feePerKB, err := alice.Cfg.FeeEstimator.EstimateFeePerKB(1)
 	if err != nil {
 		t.Fatalf("unable to query fee estimator: %v", err)
@@ -896,7 +896,7 @@ func testSingleFunderReservationWorkflow(miner *rpctest.Harness,
 	aliceChanReservation.SetNumConfsRequired(numReqConfs)
 	err = aliceChanReservation.CommitConstraints(
 		csvDelay, lnwallet.MaxHTLCNumber/2,
-		lnwire.NewMSatFromSatoshis(fundingAmt), 1, fundingAmt/100,
+		lnwire.NewMAtFromAtoms(fundingAmt), 1, fundingAmt/100,
 		lnwallet.DefaultDustLimit(),
 	)
 	if err != nil {
@@ -934,7 +934,7 @@ func testSingleFunderReservationWorkflow(miner *rpctest.Harness,
 	}
 	err = bobChanReservation.CommitConstraints(
 		csvDelay, lnwallet.MaxHTLCNumber/2,
-		lnwire.NewMSatFromSatoshis(fundingAmt), 1, fundingAmt/100,
+		lnwire.NewMAtFromAtoms(fundingAmt), 1, fundingAmt/100,
 		lnwallet.DefaultDustLimit(),
 	)
 	if err != nil {

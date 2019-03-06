@@ -2005,7 +2005,7 @@
         "fee_base_msat": {
           "type": "integer",
           "format": "int64",
-          "description": "/ The base fee of the channel denominated in millisatoshis."
+          "description": "/ The base fee of the channel denominated in MilliAtoms."
         },
         "fee_proportional_millionths": {
           "type": "integer",
@@ -2149,7 +2149,7 @@
         "amt_paid_msat": {
           "type": "string",
           "format": "int64",
-          "description": "*\nThe amount that was accepted for this invoice, in millisatoshis. This will\nONLY be set if this invoice has been settled. We provide this field as if\nthe invoice was created with a zero value, then we need to record what\namount was ultimately accepted. Additionally, it's possible that the sender\npaid MORE that was specified in the original invoice. So we'll record that\nhere as well."
+          "description": "*\nThe amount that was accepted for this invoice, in MilliAtoms. This will\nONLY be set if this invoice has been settled. We provide this field as if\nthe invoice was created with a zero value, then we need to record what\namount was ultimately accepted. Additionally, it's possible that the sender\npaid MORE that was specified in the original invoice. So we'll record that\nhere as well."
         },
         "state": {
           "$ref": "#/definitions/InvoiceInvoiceState",
@@ -2404,7 +2404,7 @@
         "min_htlc_msat": {
           "type": "string",
           "format": "int64",
-          "description": "/ The minimum value in millisatoshi we will require for incoming HTLCs on the channel."
+          "description": "/ The minimum value in MilliAtom we will require for incoming HTLCs on the channel."
         },
         "remote_csv_delay": {
           "type": "integer",
@@ -2720,12 +2720,12 @@
         "total_fees_msat": {
           "type": "string",
           "format": "int64",
-          "description": "*\nThe total fees in millisatoshis."
+          "description": "*\nThe total fees in MilliAtoms."
         },
         "total_amt_msat": {
           "type": "string",
           "format": "int64",
-          "description": "*\nThe total amount in millisatoshis."
+          "description": "*\nThe total amount in MilliAtoms."
         }
       },
       "description": "*\nA path through the channel graph which runs over one or more channels in\nsuccession. This struct carries all the information required to craft the\nSphinx onion packet, and send the payment along the first hop in the path. A\nroute is only selected as valid if all the channels have sufficient capacity to\ncarry the initial payment amount after fees are accounted for."

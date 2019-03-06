@@ -64,7 +64,7 @@ type ChannelUpdate struct {
 	TimeLockDelta uint16
 
 	// HtlcMinimumMsat is the minimum HTLC value which will be accepted.
-	HtlcMinimumMsat MilliSatoshi
+	HtlcMinimumMsat MilliAtom
 
 	// BaseFee is the base fee that must be used for incoming HTLC's to
 	// this particular channel. This value will be tacked onto the required

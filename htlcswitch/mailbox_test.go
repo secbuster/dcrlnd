@@ -33,7 +33,7 @@ func TestMailBoxCouriers(t *testing.T) {
 		pkt := &htlcPacket{
 			outgoingChanID: lnwire.NewShortChanIDFromInt(uint64(prand.Int63())),
 			incomingChanID: lnwire.NewShortChanIDFromInt(uint64(prand.Int63())),
-			amount:         lnwire.MilliSatoshi(prand.Int63()),
+			amount:         lnwire.MilliAtom(prand.Int63()),
 		}
 		sentPackets[i] = pkt
 
@@ -45,7 +45,7 @@ func TestMailBoxCouriers(t *testing.T) {
 	for i := 0; i < numPackets; i++ {
 		msg := &lnwire.UpdateAddHTLC{
 			ID:     uint64(prand.Int63()),
-			Amount: lnwire.MilliSatoshi(prand.Int63()),
+			Amount: lnwire.MilliAtom(prand.Int63()),
 		}
 		sentMessages[i] = msg
 
@@ -173,7 +173,7 @@ func TestMailOrchestrator(t *testing.T) {
 			outgoingHTLCID: uint64(i),
 			incomingChanID: bobChanID,
 			incomingHTLCID: uint64(i),
-			amount:         lnwire.MilliSatoshi(prand.Int63()),
+			amount:         lnwire.MilliAtom(prand.Int63()),
 		}
 		sentPackets[i] = pkt
 
@@ -238,7 +238,7 @@ func TestMailOrchestrator(t *testing.T) {
 			outgoingHTLCID: uint64(halfPackets + i),
 			incomingChanID: bobChanID,
 			incomingHTLCID: uint64(halfPackets + i),
-			amount:         lnwire.MilliSatoshi(prand.Int63()),
+			amount:         lnwire.MilliAtom(prand.Int63()),
 		}
 		sentPackets[i] = pkt
 

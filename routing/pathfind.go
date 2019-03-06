@@ -50,7 +50,7 @@ type HopHint struct {
 	// ChannelID is the unique identifier of the channel.
 	ChannelID uint64
 
-	// FeeBaseMSat is the base fee of the channel in millisatoshis.
+	// FeeBaseMSat is the base fee of the channel in MilliAtoms.
 	FeeBaseMSat uint32
 
 	// FeeProportionalMillionths is the fee rate, in millionths of a
@@ -83,7 +83,7 @@ type Hop struct {
 	// AmtToForward is the amount that this hop will forward to the next
 	// hop. This value is less than the value that the incoming HTLC
 	// carries as a fee will be subtracted by the hop.
-	AmtToForward lnwire.MilliSatoshi
+	AmtToForward lnwire.MilliAtom
 }
 
 // edgePolicyWithSource is a helper struct to keep track of the source node
@@ -97,8 +97,8 @@ type edgePolicyWithSource struct {
 // computeFee computes the fee to forward an HTLC of `amt` milli-satoshis over
 // the passed active payment channel. This value is currently computed as
 // specified in BOLT07, but will likely change in the near future.
-func computeFee(amt lnwire.MilliSatoshi,
-	edge *channeldb.ChannelEdgePolicy) lnwire.MilliSatoshi {
+func computeFee(amt lnwire.MilliAtom,
+	edge *channeldb.ChannelEdgePolicy) lnwire.MilliAtom {
 
 	return edge.FeeBaseMSat + (amt*edge.FeeProportionalMillionths)/1000000
 }
@@ -136,7 +136,7 @@ type Route struct {
 	// TotalFees is the sum of the fees paid at each hop within the final
 	// route. In the case of a one-hop payment, this value will be zero as
 	// we don't need to pay a fee to ourself.
-	TotalFees lnwire.MilliSatoshi
+	TotalFees lnwire.MilliAtom
 
 	// TotalAmount is the total amount of funds required to complete a
 	// payment over this route. This value includes the cumulative fees at
@@ -144,7 +144,7 @@ type Route struct {
 	// route will need to have at least this many satoshis, otherwise the
 	// route will fail at an intermediate node due to an insufficient
 	// amount of fees.
-	TotalAmount lnwire.MilliSatoshi
+	TotalAmount lnwire.MilliAtom
 
 	// SourcePubKey is the pubkey of the node where this route originates
 	// from.
@@ -165,8 +165,8 @@ type Route struct {
 }
 
 // HopFee returns the fee charged by the route hop indicated by hopIndex.
-func (r *Route) HopFee(hopIndex int) lnwire.MilliSatoshi {
-	var incomingAmt lnwire.MilliSatoshi
+func (r *Route) HopFee(hopIndex int) lnwire.MilliAtom {
+	var incomingAmt lnwire.MilliAtom
 	if hopIndex == 0 {
 		incomingAmt = r.TotalAmount
 	} else {
@@ -233,7 +233,7 @@ func (r *Route) ToHopPayloads() []sphinx.HopData {
 //
 // NOTE: The passed slice of ChannelHops MUST be sorted in forward order: from
 // the source to the target node of the path finding attempt.
-func newRoute(amtToSend, feeLimit lnwire.MilliSatoshi, sourceVertex Vertex,
+func newRoute(amtToSend, feeLimit lnwire.MilliAtom, sourceVertex Vertex,
 	pathEdges []*channeldb.ChannelEdgePolicy, currentHeight uint32,
 	finalCLTVDelta uint16) (*Route, error) {
 
@@ -249,7 +249,7 @@ func newRoute(amtToSend, feeLimit lnwire.MilliSatoshi, sourceVertex Vertex,
 		// the *next* hop. Since we're going to be walking the route
 		// backwards below, this next hop gets closer and closer to the
 		// sender of the payment.
-		nextIncomingAmount lnwire.MilliSatoshi
+		nextIncomingAmount lnwire.MilliAtom
 	)
 
 	pathLength := len(pathEdges)
@@ -265,7 +265,7 @@ func newRoute(amtToSend, feeLimit lnwire.MilliSatoshi, sourceVertex Vertex,
 
 		// Fee is not part of the hop payload, but only used for
 		// reporting through RPC. Set to zero for the final hop.
-		fee := lnwire.MilliSatoshi(0)
+		fee := lnwire.MilliAtom(0)
 
 		// If the current hop isn't the last hop, then add enough funds
 		// to pay for transit over the next link.
@@ -346,7 +346,7 @@ func newRoute(amtToSend, feeLimit lnwire.MilliSatoshi, sourceVertex Vertex,
 // NewRouteFromHops creates a new Route structure from the minimally required
 // information to perform the payment. It infers fee amounts and populates the
 // node, chan and prev/next hop maps.
-func NewRouteFromHops(amtToSend lnwire.MilliSatoshi, timeLock uint32,
+func NewRouteFromHops(amtToSend lnwire.MilliAtom, timeLock uint32,
 	sourceVertex Vertex, hops []*Hop) (*Route, error) {
 
 	if len(hops) == 0 {
@@ -402,7 +402,7 @@ func (v Vertex) String() string {
 // channels with shorter time lock deltas and shorter (hops) routes in general.
 // RiskFactor controls the influence of time lock on route selection. This is
 // currently a fixed value, but might be configurable in the future.
-func edgeWeight(lockedAmt lnwire.MilliSatoshi, fee lnwire.MilliSatoshi,
+func edgeWeight(lockedAmt lnwire.MilliAtom, fee lnwire.MilliAtom,
 	timeLockDelta uint16) int64 {
 	// timeLockPenalty is the penalty for the time lock delta of this channel.
 	// It is controlled by RiskFactorBillionths and scales proportional
@@ -435,7 +435,7 @@ type graphParams struct {
 	// local channels when doing path finding. In particular, it should be
 	// set to the current available sending bandwidth for active local
 	// channels, and 0 for inactive channels.
-	bandwidthHints map[uint64]lnwire.MilliSatoshi
+	bandwidthHints map[uint64]lnwire.MilliAtom
 }
 
 // restrictParams wraps the set of restrictions passed to findPath that the
@@ -451,7 +451,7 @@ type restrictParams struct {
 
 	// feeLimit is a maximum fee amount allowed to be used on the path from
 	// the source to the target.
-	feeLimit lnwire.MilliSatoshi
+	feeLimit lnwire.MilliAtom
 }
 
 // findPath attempts to find a path from the source node within the
@@ -467,7 +467,7 @@ type restrictParams struct {
 // to forward at every node against the available bandwidth.
 func findPath(g *graphParams, r *restrictParams,
 	sourceNode *channeldb.LightningNode, target *secp256k1.PublicKey,
-	amt lnwire.MilliSatoshi) ([]*channeldb.ChannelEdgePolicy, error) {
+	amt lnwire.MilliAtom) ([]*channeldb.ChannelEdgePolicy, error) {
 
 	var err error
 	tx := g.tx
@@ -553,7 +553,7 @@ func findPath(g *graphParams, r *restrictParams,
 	// satisfy our specific requirements.
 	processEdge := func(fromNode *channeldb.LightningNode,
 		edge *channeldb.ChannelEdgePolicy,
-		bandwidth lnwire.MilliSatoshi, toNode Vertex) {
+		bandwidth lnwire.MilliAtom, toNode Vertex) {
 
 		fromVertex := Vertex(fromNode.PubKeyBytes)
 
@@ -606,7 +606,7 @@ func findPath(g *graphParams, r *restrictParams,
 		// Also determine the time lock delta that will be added to the
 		// route if fromNode is selected. If fromNode is the source
 		// node, no additional timelock is required.
-		var fee lnwire.MilliSatoshi
+		var fee lnwire.MilliAtom
 		var timeLockDelta uint16
 		if fromVertex != sourceVertex {
 			fee = computeFee(amountToSend, edge)
@@ -716,7 +716,7 @@ func findPath(g *graphParams, r *restrictParams,
 				// If we don't have a hint for this edge, then
 				// we'll just use the known Capacity as the
 				// available bandwidth.
-				edgeBandwidth = lnwire.NewMSatFromSatoshis(
+				edgeBandwidth = lnwire.NewMAtFromAtoms(
 					edgeInfo.Capacity,
 				)
 			}
@@ -801,8 +801,8 @@ func findPath(g *graphParams, r *restrictParams,
 // algorithm in a block box manner.
 func findPaths(tx *bolt.Tx, graph *channeldb.ChannelGraph,
 	source *channeldb.LightningNode, target *secp256k1.PublicKey,
-	amt lnwire.MilliSatoshi, feeLimit lnwire.MilliSatoshi, numPaths uint32,
-	bandwidthHints map[uint64]lnwire.MilliSatoshi) ([][]*channeldb.ChannelEdgePolicy, error) {
+	amt lnwire.MilliAtom, feeLimit lnwire.MilliAtom, numPaths uint32,
+	bandwidthHints map[uint64]lnwire.MilliAtom) ([][]*channeldb.ChannelEdgePolicy, error) {
 
 	ignoredEdges := make(map[edgeLocator]struct{})
 	ignoredVertexes := make(map[Vertex]struct{})

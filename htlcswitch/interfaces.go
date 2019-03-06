@@ -18,7 +18,7 @@ type InvoiceDatabase interface {
 
 	// SettleInvoice attempts to mark an invoice corresponding to the
 	// passed payment hash as fully settled.
-	SettleInvoice(payHash chainhash.Hash, paidAmount lnwire.MilliSatoshi) error
+	SettleInvoice(payHash chainhash.Hash, paidAmount lnwire.MilliAtom) error
 }
 
 // ChannelLink is an interface which represents the subsystem for managing the
@@ -83,8 +83,8 @@ type ChannelLink interface {
 	// Otherwise, a valid protocol failure message should be returned in
 	// order to signal to the source of the HTLC, the policy consistency
 	// issue.
-	HtlcSatifiesPolicy(payHash [32]byte, incomingAmt lnwire.MilliSatoshi,
-		amtToForward lnwire.MilliSatoshi,
+	HtlcSatifiesPolicy(payHash [32]byte, incomingAmt lnwire.MilliAtom,
+		amtToForward lnwire.MilliAtom,
 		incomingTimeout, outgoingTimeout uint32,
 		heightNow uint32) lnwire.FailureMessage
 
@@ -93,11 +93,11 @@ type ChannelLink interface {
 	// represents the up to date available flow through the channel. This
 	// takes into account any forwarded but un-cleared HTLC's, and any
 	// HTLC's which have been set to the over flow queue.
-	Bandwidth() lnwire.MilliSatoshi
+	Bandwidth() lnwire.MilliAtom
 
 	// Stats return the statistics of channel link. Number of updates,
 	// total sent/received milli-satoshis.
-	Stats() (uint64, lnwire.MilliSatoshi, lnwire.MilliSatoshi)
+	Stats() (uint64, lnwire.MilliAtom, lnwire.MilliAtom)
 
 	// Peer returns the representation of remote peer with which we have
 	// the channel link opened.

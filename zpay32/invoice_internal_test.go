@@ -16,14 +16,14 @@ import (
 )
 
 // TestDecodeAmount ensures that the amount string in the hrp of the Invoice
-// properly gets decoded into millisatoshis.
+// properly gets decoded into MilliAtoms.
 func TestDecodeAmount(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
 		amount string
 		valid  bool
-		result lnwire.MilliSatoshi
+		result lnwire.MilliAtom
 	}{
 		{
 			amount: "",
@@ -141,13 +141,13 @@ func TestDecodeAmount(t *testing.T) {
 	}
 }
 
-// TestEncodeAmount checks that the given amount in millisatoshis gets encoded
+// TestEncodeAmount checks that the given amount in MilliAtoms gets encoded
 // into the shortest possible amount string.
 func TestEncodeAmount(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		msat   lnwire.MilliSatoshi
+		msat   lnwire.MilliAtom
 		valid  bool
 		result string
 	}{

@@ -84,7 +84,7 @@ type OutgoingPayment struct {
 	Invoice
 
 	// Fee is the total fee paid for the payment in milli-satoshis.
-	Fee lnwire.MilliSatoshi
+	Fee lnwire.MilliAtom
 
 	// TotalTimeLock is the total cumulative time-lock in the HTLC extended
 	// from the second-to-last hop to the destination.
@@ -302,7 +302,7 @@ func deserializeOutgoingPayment(r io.Reader) (*OutgoingPayment, error) {
 	if _, err := r.Read(scratch[:]); err != nil {
 		return nil, err
 	}
-	p.Fee = lnwire.MilliSatoshi(byteOrder.Uint64(scratch[:]))
+	p.Fee = lnwire.MilliAtom(byteOrder.Uint64(scratch[:]))
 
 	if _, err = r.Read(scratch[:4]); err != nil {
 		return nil, err
