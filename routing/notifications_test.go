@@ -77,7 +77,7 @@ func randEdgePolicy(chanID *lnwire.ShortChannelID,
 		LastUpdate:                time.Unix(int64(prand.Int31()), 0),
 		TimeLockDelta:             uint16(prand.Int63()),
 		MinHTLC:                   lnwire.MilliAtom(prand.Int31()),
-		FeeBaseMSat:               lnwire.MilliAtom(prand.Int31()),
+		FeeBaseMAt:                lnwire.MilliAtom(prand.Int31()),
 		FeeProportionalMillionths: lnwire.MilliAtom(prand.Int31()),
 		Node:                      node,
 	}
@@ -436,9 +436,9 @@ func TestEdgeUpdateNotification(t *testing.T) {
 				"expected %v, got %v", edgeAnn.MinHTLC,
 				edgeUpdate.MinHTLC)
 		}
-		if edgeUpdate.BaseFee != edgeAnn.FeeBaseMSat {
+		if edgeUpdate.BaseFee != edgeAnn.FeeBaseMAt {
 			t.Fatalf("base fee of edge doesn't match: "+
-				"expected %v, got %v", edgeAnn.FeeBaseMSat,
+				"expected %v, got %v", edgeAnn.FeeBaseMAt,
 				edgeUpdate.BaseFee)
 		}
 		if edgeUpdate.FeeRate != edgeAnn.FeeProportionalMillionths {

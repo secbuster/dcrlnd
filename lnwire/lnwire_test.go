@@ -607,13 +607,13 @@ func TestLightningWireProtocol(t *testing.T) {
 		MsgChannelUpdate: func(v []reflect.Value, r *rand.Rand) {
 			var err error
 			req := ChannelUpdate{
-				ShortChannelID:  NewShortChanIDFromInt(uint64(r.Int63())),
-				Timestamp:       uint32(r.Int31()),
-				Flags:           ChanUpdateFlag(r.Int31()),
-				TimeLockDelta:   uint16(r.Int31()),
-				HtlcMinimumMsat: MilliAtom(r.Int63()),
-				BaseFee:         uint32(r.Int31()),
-				FeeRate:         uint32(r.Int31()),
+				ShortChannelID: NewShortChanIDFromInt(uint64(r.Int63())),
+				Timestamp:      uint32(r.Int31()),
+				Flags:          ChanUpdateFlag(r.Int31()),
+				TimeLockDelta:  uint16(r.Int31()),
+				HtlcMinimumMAt: MilliAtom(r.Int63()),
+				BaseFee:        uint32(r.Int31()),
+				FeeRate:        uint32(r.Int31()),
 			}
 			req.Signature, err = NewSigFromSignature(testSig)
 			if err != nil {

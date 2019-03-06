@@ -30,8 +30,8 @@ import (
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/lnrpc"
 	"github.com/decred/dcrlnd/lntest"
-	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwire"
 	"github.com/go-errors/errors"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -217,7 +217,7 @@ func openChannelAndAssert(ctx context.Context, t *harnessTest,
 		t.Fatalf("unable to assert channel existence: %v", err)
 	}
 
-	if _, err := net.FillStakepool() ; err != nil {
+	if _, err := net.FillStakepool(); err != nil {
 		t.Fatalf("unable to fill stakepool: %v", err)
 	}
 
@@ -1070,14 +1070,14 @@ out:
 
 // checkChannelPolicy checks that the policy matches the expected one.
 func checkChannelPolicy(policy, expectedPolicy *lnrpc.RoutingPolicy) error {
-	if policy.FeeBaseMsat != expectedPolicy.FeeBaseMsat {
+	if policy.FeeBaseMat != expectedPolicy.FeeBaseMat {
 		return fmt.Errorf("expected base fee %v, got %v",
-			expectedPolicy.FeeBaseMsat, policy.FeeBaseMsat)
+			expectedPolicy.FeeBaseMat, policy.FeeBaseMat)
 	}
-	if policy.FeeRateMilliMsat != expectedPolicy.FeeRateMilliMsat {
+	if policy.FeeRateMilliMat != expectedPolicy.FeeRateMilliMat {
 		return fmt.Errorf("expected fee rate %v, got %v",
-			expectedPolicy.FeeRateMilliMsat,
-			policy.FeeRateMilliMsat)
+			expectedPolicy.FeeRateMilliMat,
+			policy.FeeRateMilliMat)
 	}
 	if policy.TimeLockDelta != expectedPolicy.TimeLockDelta {
 		return fmt.Errorf("expected time lock delta %v, got %v",
@@ -1136,10 +1136,10 @@ func testUpdateChannelPolicy(net *lntest.NetworkHarness, t *harnessTest) {
 	// Alice and Bob should see each other's ChannelUpdates, advertising the
 	// default routing policies.
 	expectedPolicy := &lnrpc.RoutingPolicy{
-		FeeBaseMsat:      defaultFeeBase,
-		FeeRateMilliMsat: defaultFeeRate,
-		TimeLockDelta:    defaultTimeLockDelta,
-		MinHtlc:          defaultMinHtlc,
+		FeeBaseMat:      defaultFeeBase,
+		FeeRateMilliMat: defaultFeeRate,
+		TimeLockDelta:   defaultTimeLockDelta,
+		MinHtlc:         defaultMinHtlc,
 	}
 
 	for _, graphSub := range graphSubs {
@@ -1214,17 +1214,17 @@ func testUpdateChannelPolicy(net *lntest.NetworkHarness, t *harnessTest) {
 	)
 
 	expectedPolicyBob := &lnrpc.RoutingPolicy{
-		FeeBaseMsat:      defaultFeeBase,
-		FeeRateMilliMsat: defaultFeeRate,
-		TimeLockDelta:    defaultTimeLockDelta,
-		MinHtlc:          customMinHtlc,
+		FeeBaseMat:      defaultFeeBase,
+		FeeRateMilliMat: defaultFeeRate,
+		TimeLockDelta:   defaultTimeLockDelta,
+		MinHtlc:         customMinHtlc,
 	}
 
 	expectedPolicyCarol := &lnrpc.RoutingPolicy{
-		FeeBaseMsat:      defaultFeeBase,
-		FeeRateMilliMsat: defaultFeeRate,
-		TimeLockDelta:    defaultTimeLockDelta,
-		MinHtlc:          defaultMinHtlc,
+		FeeBaseMat:      defaultFeeBase,
+		FeeRateMilliMat: defaultFeeRate,
+		TimeLockDelta:   defaultTimeLockDelta,
+		MinHtlc:         defaultMinHtlc,
 	}
 
 	for _, graphSub := range graphSubs {
@@ -1293,7 +1293,7 @@ func testUpdateChannelPolicy(net *lntest.NetworkHarness, t *harnessTest) {
 
 	// Now we try to send a payment over the channel with a value too low
 	// to be accepted. First we query for a route to route a payment of
-	// 5000 mSAT, as this is accepted.
+	// 5000 mAT, as this is accepted.
 	payAmt = dcrutil.Amount(5)
 	routesReq := &lnrpc.QueryRoutesRequest{
 		PubKey:         carol.PubKeyStr,
@@ -1312,15 +1312,15 @@ func testUpdateChannelPolicy(net *lntest.NetworkHarness, t *harnessTest) {
 		t.Fatalf("expected to find 1 route, got %v", len(routes.Routes))
 	}
 
-	// We change the route to carry a payment of 4000 mSAT instead of 5000
-	// mSAT.
+	// We change the route to carry a payment of 4000 mAT instead of 5000
+	// mAT.
 	payAmt = dcrutil.Amount(4)
-	amtSat := int64(payAmt)
-	amtMSat := int64(lnwire.NewMAtFromAtoms(payAmt))
-	routes.Routes[0].Hops[0].AmtToForward = amtSat
-	routes.Routes[0].Hops[0].AmtToForwardMsat = amtMSat
-	routes.Routes[0].Hops[1].AmtToForward = amtSat
-	routes.Routes[0].Hops[1].AmtToForwardMsat = amtMSat
+	amtAt := int64(payAmt)
+	amtMAt := int64(lnwire.NewMAtFromAtoms(payAmt))
+	routes.Routes[0].Hops[0].AmtToForward = amtAt
+	routes.Routes[0].Hops[0].AmtToForwardMat = amtMAt
+	routes.Routes[0].Hops[1].AmtToForward = amtAt
+	routes.Routes[0].Hops[1].AmtToForwardMat = amtMAt
 
 	// Send the payment with the modified value.
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
@@ -1348,7 +1348,7 @@ func testUpdateChannelPolicy(net *lntest.NetworkHarness, t *harnessTest) {
 	// Expected as part of the error message.
 	substrs := []string{
 		"AmountBelowMinimum",
-		"HtlcMinimumMsat: (lnwire.MilliAtom) 5000 mSAT",
+		"HtlcMinimumMat: (lnwire.MilliAtom) 5000 mAT",
 	}
 	for _, s := range substrs {
 		if !strings.Contains(sendResp.PaymentError, s) {
@@ -1359,12 +1359,12 @@ func testUpdateChannelPolicy(net *lntest.NetworkHarness, t *harnessTest) {
 
 	// Make sure sending using the original value succeeds.
 	payAmt = dcrutil.Amount(5)
-	amtSat = int64(payAmt)
-	amtMSat = int64(lnwire.NewMAtFromAtoms(payAmt))
-	routes.Routes[0].Hops[0].AmtToForward = amtSat
-	routes.Routes[0].Hops[0].AmtToForwardMsat = amtMSat
-	routes.Routes[0].Hops[1].AmtToForward = amtSat
-	routes.Routes[0].Hops[1].AmtToForwardMsat = amtMSat
+	amtAt = int64(payAmt)
+	amtMAt = int64(lnwire.NewMAtFromAtoms(payAmt))
+	routes.Routes[0].Hops[0].AmtToForward = amtAt
+	routes.Routes[0].Hops[0].AmtToForwardMat = amtMAt
+	routes.Routes[0].Hops[1].AmtToForward = amtAt
+	routes.Routes[0].Hops[1].AmtToForwardMat = amtMAt
 
 	sendReq = &lnrpc.SendToRouteRequest{
 		PaymentHash: resp.RHash,
@@ -1394,14 +1394,14 @@ func testUpdateChannelPolicy(net *lntest.NetworkHarness, t *harnessTest) {
 	timeLockDelta := uint32(66)
 
 	expectedPolicy = &lnrpc.RoutingPolicy{
-		FeeBaseMsat:      baseFee,
-		FeeRateMilliMsat: testFeeBase * feeRate,
-		TimeLockDelta:    timeLockDelta,
-		MinHtlc:          defaultMinHtlc,
+		FeeBaseMat:      baseFee,
+		FeeRateMilliMat: testFeeBase * feeRate,
+		TimeLockDelta:   timeLockDelta,
+		MinHtlc:         defaultMinHtlc,
 	}
 
 	req := &lnrpc.PolicyUpdateRequest{
-		BaseFeeMsat:   baseFee,
+		BaseFeeMat:    baseFee,
 		FeeRate:       float64(feeRate),
 		TimeLockDelta: timeLockDelta,
 		Scope: &lnrpc.PolicyUpdateRequest_ChanPoint{
@@ -1487,12 +1487,12 @@ func testUpdateChannelPolicy(net *lntest.NetworkHarness, t *harnessTest) {
 	feeRate = int64(123)
 	timeLockDelta = uint32(22)
 
-	expectedPolicy.FeeBaseMsat = baseFee
-	expectedPolicy.FeeRateMilliMsat = testFeeBase * feeRate
+	expectedPolicy.FeeBaseMat = baseFee
+	expectedPolicy.FeeRateMilliMat = testFeeBase * feeRate
 	expectedPolicy.TimeLockDelta = timeLockDelta
 
 	req = &lnrpc.PolicyUpdateRequest{
-		BaseFeeMsat:   baseFee,
+		BaseFeeMat:    baseFee,
 		FeeRate:       float64(feeRate),
 		TimeLockDelta: timeLockDelta,
 	}
@@ -3530,14 +3530,14 @@ func updateChannelPolicy(t *harnessTest, node *lntest.HarnessNode,
 	ctxb := context.Background()
 
 	expectedPolicy := &lnrpc.RoutingPolicy{
-		FeeBaseMsat:      baseFee,
-		FeeRateMilliMsat: feeRate,
-		TimeLockDelta:    timeLockDelta,
-		MinHtlc:          1000, // default value
+		FeeBaseMat:      baseFee,
+		FeeRateMilliMat: feeRate,
+		TimeLockDelta:   timeLockDelta,
+		MinHtlc:         1000, // default value
 	}
 
 	updateFeeReq := &lnrpc.PolicyUpdateRequest{
-		BaseFeeMsat:   baseFee,
+		BaseFeeMat:    baseFee,
 		FeeRate:       float64(feeRate) / testFeeBase,
 		TimeLockDelta: timeLockDelta,
 		Scope: &lnrpc.PolicyUpdateRequest_ChanPoint{
@@ -7299,7 +7299,7 @@ func testDataLossProtection(net *lntest.NetworkHarness, t *harnessTest) {
 			t.Fatalf("unable to suspend node: %v", err)
 		}
 
-		restart := func () error {
+		restart := func() error {
 			err := restartNode()
 			if err != nil {
 				return err
@@ -7754,7 +7754,7 @@ out:
 		// We'll send in chunks of the max payment amount. If we're
 		// about to send too much, then we'll only send the amount
 		// remaining.
-		toSend := int64(maxPaymentMSat.ToAtoms())
+		toSend := int64(maxPaymentMAt.ToAtoms())
 		if toSend+amtSent > amtToSend {
 			toSend = amtToSend - amtSent
 		}
@@ -9023,7 +9023,7 @@ func testMultiHopHtlcLocalTimeout(net *lntest.NetworkHarness, t *harnessTest) {
 	// timeout.
 	// We'll stop right after the second-level transaction is published but
 	// before it is mined.
-	if _, err := net.Generate(defaultBroadcastDelta - defaultCSV -1); err != nil {
+	if _, err := net.Generate(defaultBroadcastDelta - defaultCSV - 1); err != nil {
 		t.Fatalf("unable to generate blocks: %v", err)
 	}
 
@@ -10273,7 +10273,7 @@ func testMultiHopHtlcRemoteChainClaim(net *lntest.NetworkHarness, t *harnessTest
 	// We mine up to just before the deadline to check the transaction is in
 	// the mempool.
 	claimDelta := uint32(2 * defaultBroadcastDelta)
-	numBlocks := uint32(defaultDecredTimeLockDelta-claimDelta) - defaultCSV -1
+	numBlocks := uint32(defaultDecredTimeLockDelta-claimDelta) - defaultCSV - 1
 	if err := net.GenerateWithTickets(numBlocks); err != nil {
 		t.Fatalf("unable to generate blocks")
 	}
@@ -11905,79 +11905,79 @@ func testQueryRoutes(net *lntest.NetworkHarness, t *harnessTest) {
 		t.Fatalf("unable to get route: %v", err)
 	}
 
-	const mSat = 1000
-	feePerHopMSat := computeFee(1000, 1, paymentAmt*mSat)
+	const mAt = 1000
+	feePerHopMAt := computeFee(1000, 1, paymentAmt*mAt)
 
 	for i, route := range routesRes.Routes {
-		expectedTotalFeesMSat :=
-			lnwire.MilliAtom(len(route.Hops)-1) * feePerHopMSat
-		expectedTotalAmtMSat := (paymentAmt * mSat) + expectedTotalFeesMSat
+		expectedTotalFeesMAt :=
+			lnwire.MilliAtom(len(route.Hops)-1) * feePerHopMAt
+		expectedTotalAmtMAt := (paymentAmt * mAt) + expectedTotalFeesMAt
 
-		if route.TotalFees != route.TotalFeesMsat/mSat {
-			t.Fatalf("route %v: total fees %v (msat) does not "+
+		if route.TotalFees != route.TotalFeesMat/mAt {
+			t.Fatalf("route %v: total fees %v (mAt) does not "+
 				"round down to %v (sat)",
-				i, route.TotalFeesMsat, route.TotalFees)
+				i, route.TotalFeesMat, route.TotalFees)
 		}
-		if route.TotalFeesMsat != int64(expectedTotalFeesMSat) {
-			t.Fatalf("route %v: total fees in msat expected %v got %v",
-				i, expectedTotalFeesMSat, route.TotalFeesMsat)
+		if route.TotalFeesMat != int64(expectedTotalFeesMAt) {
+			t.Fatalf("route %v: total fees in mAt expected %v got %v",
+				i, expectedTotalFeesMAt, route.TotalFeesMat)
 		}
 
-		if route.TotalAmt != route.TotalAmtMsat/mSat {
-			t.Fatalf("route %v: total amt %v (msat) does not "+
+		if route.TotalAmt != route.TotalAmtMat/mAt {
+			t.Fatalf("route %v: total amt %v (mAt) does not "+
 				"round down to %v (sat)",
-				i, route.TotalAmtMsat, route.TotalAmt)
+				i, route.TotalAmtMat, route.TotalAmt)
 		}
-		if route.TotalAmtMsat != int64(expectedTotalAmtMSat) {
-			t.Fatalf("route %v: total amt in msat expected %v got %v",
-				i, expectedTotalAmtMSat, route.TotalAmtMsat)
+		if route.TotalAmtMat != int64(expectedTotalAmtMAt) {
+			t.Fatalf("route %v: total amt in mAt expected %v got %v",
+				i, expectedTotalAmtMAt, route.TotalAmtMat)
 		}
 
 		// For all hops except the last, we check that fee equals feePerHop
 		// and amount to forward deducts feePerHop on each hop.
-		expectedAmtToForwardMSat := expectedTotalAmtMSat
+		expectedAmtToForwardMAt := expectedTotalAmtMAt
 		for j, hop := range route.Hops[:len(route.Hops)-1] {
-			expectedAmtToForwardMSat -= feePerHopMSat
+			expectedAmtToForwardMAt -= feePerHopMAt
 
-			if hop.Fee != hop.FeeMsat/mSat {
-				t.Fatalf("route %v hop %v: fee %v (msat) does not "+
+			if hop.Fee != hop.FeeMat/mAt {
+				t.Fatalf("route %v hop %v: fee %v (mAt) does not "+
 					"round down to %v (sat)",
-					i, j, hop.FeeMsat, hop.Fee)
+					i, j, hop.FeeMat, hop.Fee)
 			}
-			if hop.FeeMsat != int64(feePerHopMSat) {
-				t.Fatalf("route %v hop %v: fee in msat expected %v got %v",
-					i, j, feePerHopMSat, hop.FeeMsat)
+			if hop.FeeMat != int64(feePerHopMAt) {
+				t.Fatalf("route %v hop %v: fee in mAt expected %v got %v",
+					i, j, feePerHopMAt, hop.FeeMat)
 			}
 
-			if hop.AmtToForward != hop.AmtToForwardMsat/mSat {
-				t.Fatalf("route %v hop %v: amt to forward %v (msat) does not "+
+			if hop.AmtToForward != hop.AmtToForwardMat/mAt {
+				t.Fatalf("route %v hop %v: amt to forward %v (mAt) does not "+
 					"round down to %v (sat)",
-					i, j, hop.AmtToForwardMsat, hop.AmtToForward)
+					i, j, hop.AmtToForwardMat, hop.AmtToForward)
 			}
-			if hop.AmtToForwardMsat != int64(expectedAmtToForwardMSat) {
-				t.Fatalf("route %v hop %v: amt to forward in msat "+
+			if hop.AmtToForwardMat != int64(expectedAmtToForwardMAt) {
+				t.Fatalf("route %v hop %v: amt to forward in mAt "+
 					"expected %v got %v",
-					i, j, expectedAmtToForwardMSat, hop.AmtToForwardMsat)
+					i, j, expectedAmtToForwardMAt, hop.AmtToForwardMat)
 			}
 		}
 		// Last hop should have zero fee and amount to forward should equal
 		// payment amount.
 		hop := route.Hops[len(route.Hops)-1]
 
-		if hop.Fee != 0 || hop.FeeMsat != 0 {
-			t.Fatalf("route %v hop %v: fee expected 0 got %v (sat) %v (msat)",
-				i, len(route.Hops)-1, hop.Fee, hop.FeeMsat)
+		if hop.Fee != 0 || hop.FeeMat != 0 {
+			t.Fatalf("route %v hop %v: fee expected 0 got %v (sat) %v (mAt)",
+				i, len(route.Hops)-1, hop.Fee, hop.FeeMat)
 		}
 
-		if hop.AmtToForward != hop.AmtToForwardMsat/mSat {
-			t.Fatalf("route %v hop %v: amt to forward %v (msat) does not "+
+		if hop.AmtToForward != hop.AmtToForwardMat/mAt {
+			t.Fatalf("route %v hop %v: amt to forward %v (mAt) does not "+
 				"round down to %v (sat)",
-				i, len(route.Hops)-1, hop.AmtToForwardMsat, hop.AmtToForward)
+				i, len(route.Hops)-1, hop.AmtToForwardMat, hop.AmtToForward)
 		}
-		if hop.AmtToForwardMsat != paymentAmt*mSat {
-			t.Fatalf("route %v hop %v: amt to forward in msat "+
+		if hop.AmtToForwardMat != paymentAmt*mAt {
+			t.Fatalf("route %v hop %v: amt to forward in mAt "+
 				"expected %v got %v",
-				i, len(route.Hops)-1, paymentAmt*mSat, hop.AmtToForwardMsat)
+				i, len(route.Hops)-1, paymentAmt*mAt, hop.AmtToForwardMat)
 		}
 	}
 
@@ -12119,14 +12119,14 @@ func testRouteFeeCutoff(net *lntest.NetworkHarness, t *harnessTest) {
 	timeLockDelta := uint32(144)
 
 	expectedPolicy := &lnrpc.RoutingPolicy{
-		FeeBaseMsat:      baseFee,
-		FeeRateMilliMsat: testFeeBase * feeRate,
-		TimeLockDelta:    timeLockDelta,
-		MinHtlc:          1000, // default value
+		FeeBaseMat:      baseFee,
+		FeeRateMilliMat: testFeeBase * feeRate,
+		TimeLockDelta:   timeLockDelta,
+		MinHtlc:         1000, // default value
 	}
 
 	updateFeeReq := &lnrpc.PolicyUpdateRequest{
-		BaseFeeMsat:   baseFee,
+		BaseFeeMat:    baseFee,
 		FeeRate:       float64(feeRate),
 		TimeLockDelta: timeLockDelta,
 		Scope: &lnrpc.PolicyUpdateRequest_ChanPoint{
@@ -12366,11 +12366,11 @@ func testSendUpdateDisableChannel(net *lntest.NetworkHarness, t *harnessTest) {
 	// We should expect to see a channel update with the default routing
 	// policy, except that it should indicate the channel is disabled.
 	expectedPolicy := &lnrpc.RoutingPolicy{
-		FeeBaseMsat:      int64(defaultDecredBaseFeeMSat),
-		FeeRateMilliMsat: int64(defaultDecredFeeRate),
-		TimeLockDelta:    defaultDecredTimeLockDelta,
-		MinHtlc:          1000, // default value
-		Disabled:         true,
+		FeeBaseMat:      int64(defaultDecredBaseFeeMAt),
+		FeeRateMilliMat: int64(defaultDecredFeeRate),
+		TimeLockDelta:   defaultDecredTimeLockDelta,
+		MinHtlc:         1000, // default value
+		Disabled:        true,
 	}
 
 	// Let Carol go offline. Since Eve has an inactive timeout of 2s, we

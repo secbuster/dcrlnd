@@ -14,7 +14,7 @@ import (
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/htlcswitch"
 	"github.com/decred/dcrlnd/lnwire"
-	"github.com/lightningnetwork/lightning-onion" // TODO(decred): ok?
+	sphinx "github.com/lightningnetwork/lightning-onion" // TODO(decred): ok?
 )
 
 var (

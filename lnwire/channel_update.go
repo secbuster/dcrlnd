@@ -63,8 +63,8 @@ type ChannelUpdate struct {
 	// to this node.
 	TimeLockDelta uint16
 
-	// HtlcMinimumMsat is the minimum HTLC value which will be accepted.
-	HtlcMinimumMsat MilliAtom
+	// HtlcMinimumMAt is the minimum HTLC value which will be accepted.
+	HtlcMinimumMAt MilliAtom
 
 	// BaseFee is the base fee that must be used for incoming HTLC's to
 	// this particular channel. This value will be tacked onto the required
@@ -100,7 +100,7 @@ func (a *ChannelUpdate) Decode(r io.Reader, pver uint32) error {
 		&a.Timestamp,
 		&a.Flags,
 		&a.TimeLockDelta,
-		&a.HtlcMinimumMsat,
+		&a.HtlcMinimumMAt,
 		&a.BaseFee,
 		&a.FeeRate,
 	)
@@ -135,7 +135,7 @@ func (a *ChannelUpdate) Encode(w io.Writer, pver uint32) error {
 		a.Timestamp,
 		a.Flags,
 		a.TimeLockDelta,
-		a.HtlcMinimumMsat,
+		a.HtlcMinimumMAt,
 		a.BaseFee,
 		a.FeeRate,
 		a.ExtraOpaqueData,
@@ -170,7 +170,7 @@ func (a *ChannelUpdate) DataToSign() ([]byte, error) {
 		a.Timestamp,
 		a.Flags,
 		a.TimeLockDelta,
-		a.HtlcMinimumMsat,
+		a.HtlcMinimumMAt,
 		a.BaseFee,
 		a.FeeRate,
 		a.ExtraOpaqueData,

@@ -450,12 +450,12 @@ func createUpdateAnnouncement(blockHeight uint32, flags lnwire.ChanUpdateFlag,
 		ShortChannelID: lnwire.ShortChannelID{
 			BlockHeight: blockHeight,
 		},
-		Timestamp:       timestamp,
-		TimeLockDelta:   uint16(prand.Int63()),
-		Flags:           flags,
-		HtlcMinimumMsat: lnwire.MilliAtom(prand.Int63()),
-		FeeRate:         uint32(prand.Int31()),
-		BaseFee:         uint32(prand.Int31()),
+		Timestamp:      timestamp,
+		TimeLockDelta:  uint16(prand.Int63()),
+		Flags:          flags,
+		HtlcMinimumMAt: lnwire.MilliAtom(prand.Int63()),
+		FeeRate:        uint32(prand.Int31()),
+		BaseFee:        uint32(prand.Int31()),
 	}
 	if len(extraBytes) == 1 {
 		a.ExtraOpaqueData = extraBytes[0]

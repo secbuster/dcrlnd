@@ -2434,9 +2434,9 @@ type ChannelEdgePolicy struct {
 	// in MilliAtom.
 	MinHTLC lnwire.MilliAtom
 
-	// FeeBaseMSat is the base HTLC fee that will be charged for forwarding
-	// ANY HTLC, expressed in mSAT's.
-	FeeBaseMSat lnwire.MilliAtom
+	// FeeBaseMAt is the base HTLC fee that will be charged for forwarding
+	// ANY HTLC, expressed in mAT's.
+	FeeBaseMAt lnwire.MilliAtom
 
 	// FeeProportionalMillionths is the rate that the node will charge for
 	// HTLCs for each millionth of a satoshi forwarded.
@@ -3192,7 +3192,7 @@ func putChanEdgePolicy(edges, nodes *bolt.Bucket, edge *ChannelEdgePolicy,
 	if err := binary.Write(&b, byteOrder, uint64(edge.MinHTLC)); err != nil {
 		return err
 	}
-	if err := binary.Write(&b, byteOrder, uint64(edge.FeeBaseMSat)); err != nil {
+	if err := binary.Write(&b, byteOrder, uint64(edge.FeeBaseMAt)); err != nil {
 		return err
 	}
 	if err := binary.Write(&b, byteOrder, uint64(edge.FeeProportionalMillionths)); err != nil {
@@ -3376,7 +3376,7 @@ func deserializeChanEdgePolicy(r io.Reader,
 	if err := binary.Read(r, byteOrder, &n); err != nil {
 		return nil, err
 	}
-	edge.FeeBaseMSat = lnwire.MilliAtom(n)
+	edge.FeeBaseMAt = lnwire.MilliAtom(n)
 
 	if err := binary.Read(r, byteOrder, &n); err != nil {
 		return nil, err

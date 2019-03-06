@@ -640,7 +640,7 @@ func generateHops(payAmt lnwire.MilliAtom, startingHeight uint32,
 		}
 
 		hops[i] = ForwardingInfo{
-			Network:         BitcoinHop,
+			Network:         DecredHop,
 			NextHop:         nextHop,
 			AmountToForward: amount,
 			OutgoingCTLV:    timeLock,

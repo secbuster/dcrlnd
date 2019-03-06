@@ -226,21 +226,21 @@ func TestSimpleAddSettleWorkflow(t *testing.T) {
 	aliceSent := lnwire.MilliAtom(0)
 	bobSent := lnwire.MilliAtom(0)
 
-	if aliceChannel.channelState.TotalMSatSent != aliceSent {
-		t.Fatalf("alice has incorrect milli-satoshis sent: %v vs %v",
-			aliceChannel.channelState.TotalMSatSent, aliceSent)
+	if aliceChannel.channelState.TotalMAtSent != aliceSent {
+		t.Fatalf("alice has incorrect milli-atoms sent: %v vs %v",
+			aliceChannel.channelState.TotalMAtSent, aliceSent)
 	}
-	if aliceChannel.channelState.TotalMSatReceived != bobSent {
-		t.Fatalf("alice has incorrect milli-satoshis received %v vs %v",
-			aliceChannel.channelState.TotalMSatReceived, bobSent)
+	if aliceChannel.channelState.TotalMAtReceived != bobSent {
+		t.Fatalf("alice has incorrect milli-atoms received %v vs %v",
+			aliceChannel.channelState.TotalMAtReceived, bobSent)
 	}
-	if bobChannel.channelState.TotalMSatSent != bobSent {
-		t.Fatalf("bob has incorrect milli-satoshis sent %v vs %v",
-			bobChannel.channelState.TotalMSatSent, bobSent)
+	if bobChannel.channelState.TotalMAtSent != bobSent {
+		t.Fatalf("bob has incorrect milli-atoms sent %v vs %v",
+			bobChannel.channelState.TotalMAtSent, bobSent)
 	}
-	if bobChannel.channelState.TotalMSatReceived != aliceSent {
-		t.Fatalf("bob has incorrect milli-satoshis received %v vs %v",
-			bobChannel.channelState.TotalMSatReceived, aliceSent)
+	if bobChannel.channelState.TotalMAtReceived != aliceSent {
+		t.Fatalf("bob has incorrect milli-atoms received %v vs %v",
+			bobChannel.channelState.TotalMAtReceived, aliceSent)
 	}
 	if bobChannel.currentHeight != 1 {
 		t.Fatalf("bob has incorrect commitment height, %v vs %v",
@@ -344,24 +344,24 @@ func TestSimpleAddSettleWorkflow(t *testing.T) {
 	// 4 DCR. Alice's channel should show 1 DCR sent and Bob's channel
 	// should show 1 DCR received. They should also be at commitment height
 	// two, with the revocation window extended by 1 (5).
-	mSatTransferred := lnwire.NewMAtFromAtoms(dcrutil.AtomsPerCoin)
-	if aliceChannel.channelState.TotalMSatSent != mSatTransferred {
+	mAtTransferred := lnwire.NewMAtFromAtoms(dcrutil.AtomsPerCoin)
+	if aliceChannel.channelState.TotalMAtSent != mAtTransferred {
 		t.Fatalf("alice satoshis sent incorrect %v vs %v expected",
-			aliceChannel.channelState.TotalMSatSent,
-			mSatTransferred)
+			aliceChannel.channelState.TotalMAtSent,
+			mAtTransferred)
 	}
-	if aliceChannel.channelState.TotalMSatReceived != 0 {
+	if aliceChannel.channelState.TotalMAtReceived != 0 {
 		t.Fatalf("alice satoshis received incorrect %v vs %v expected",
-			aliceChannel.channelState.TotalMSatReceived, 0)
+			aliceChannel.channelState.TotalMAtReceived, 0)
 	}
-	if bobChannel.channelState.TotalMSatReceived != mSatTransferred {
+	if bobChannel.channelState.TotalMAtReceived != mAtTransferred {
 		t.Fatalf("bob satoshis received incorrect %v vs %v expected",
-			bobChannel.channelState.TotalMSatReceived,
-			mSatTransferred)
+			bobChannel.channelState.TotalMAtReceived,
+			mAtTransferred)
 	}
-	if bobChannel.channelState.TotalMSatSent != 0 {
+	if bobChannel.channelState.TotalMAtSent != 0 {
 		t.Fatalf("bob satoshis sent incorrect %v vs %v expected",
-			bobChannel.channelState.TotalMSatSent, 0)
+			bobChannel.channelState.TotalMAtSent, 0)
 	}
 	if bobChannel.currentHeight != 2 {
 		t.Fatalf("bob has incorrect commitment height, %v vs %v",
@@ -1115,9 +1115,9 @@ func TestHTLCDustLimit(t *testing.T) {
 		t.Fatalf("incorrect # of outputs: expected %v, got %v",
 			2, len(commitment.txn.TxOut))
 	}
-	if aliceChannel.channelState.TotalMSatSent != htlcAmount {
+	if aliceChannel.channelState.TotalMAtSent != htlcAmount {
 		t.Fatalf("alice satoshis sent incorrect: expected %v, got %v",
-			htlcAmount, aliceChannel.channelState.TotalMSatSent)
+			htlcAmount, aliceChannel.channelState.TotalMAtSent)
 	}
 }
 
@@ -1140,8 +1140,8 @@ func TestHTLCSigNumber(t *testing.T) {
 		}
 
 		for i, htlcSat := range htlcValues {
-			htlcMsat := lnwire.NewMAtFromAtoms(htlcSat)
-			htlc, _ := createHTLC(i, htlcMsat)
+			htlcMat := lnwire.NewMAtFromAtoms(htlcSat)
+			htlc, _ := createHTLC(i, htlcMat)
 			_, err := aliceChannel.AddHTLC(htlc, nil)
 			if err != nil {
 				t.Fatalf("alice unable to add htlc: %v", err)
@@ -1366,9 +1366,9 @@ func TestChannelBalanceDustLimit(t *testing.T) {
 		t.Fatalf("incorrect # of outputs for bob: expected %v, got %v",
 			1, len(bobCommitment.txn.TxOut))
 	}
-	if aliceChannel.channelState.TotalMSatSent != htlcAmount {
+	if aliceChannel.channelState.TotalMAtSent != htlcAmount {
 		t.Fatalf("alice satoshis sent incorrect: expected %v, got %v",
-			htlcAmount, aliceChannel.channelState.TotalMSatSent)
+			htlcAmount, aliceChannel.channelState.TotalMAtSent)
 	}
 	aliceCommitment := aliceChannel.localCommitChain.tip()
 	if len(aliceCommitment.txn.TxOut) != 2 {
@@ -1635,21 +1635,21 @@ func TestStateUpdatePersistence(t *testing.T) {
 
 	// The amounts transferred should been updated as per the amounts in
 	// the HTLCs
-	if aliceChannelNew.channelState.TotalMSatSent != htlcAmt*3 {
+	if aliceChannelNew.channelState.TotalMAtSent != htlcAmt*3 {
 		t.Fatalf("expected %v alice satoshis sent, got %v",
-			htlcAmt*3, aliceChannelNew.channelState.TotalMSatSent)
+			htlcAmt*3, aliceChannelNew.channelState.TotalMAtSent)
 	}
-	if aliceChannelNew.channelState.TotalMSatReceived != htlcAmt {
+	if aliceChannelNew.channelState.TotalMAtReceived != htlcAmt {
 		t.Fatalf("expected %v alice satoshis received, got %v",
-			htlcAmt, aliceChannelNew.channelState.TotalMSatReceived)
+			htlcAmt, aliceChannelNew.channelState.TotalMAtReceived)
 	}
-	if bobChannelNew.channelState.TotalMSatSent != htlcAmt {
+	if bobChannelNew.channelState.TotalMAtSent != htlcAmt {
 		t.Fatalf("expected %v bob satoshis sent, got %v",
-			htlcAmt, bobChannel.channelState.TotalMSatSent)
+			htlcAmt, bobChannel.channelState.TotalMAtSent)
 	}
-	if bobChannelNew.channelState.TotalMSatReceived != htlcAmt*3 {
+	if bobChannelNew.channelState.TotalMAtReceived != htlcAmt*3 {
 		t.Fatalf("expected %v bob satoshis sent, got %v",
-			htlcAmt*3, bobChannel.channelState.TotalMSatReceived)
+			htlcAmt*3, bobChannel.channelState.TotalMAtReceived)
 	}
 
 	// As a final test, we'll ensure that the HTLC counters for both sides
@@ -2918,22 +2918,22 @@ func TestChanSyncOweCommitment(t *testing.T) {
 
 	// At this point, the final balances of both parties should properly
 	// reflect the amount of HTLC's sent.
-	bobMsatSent := numBobHtlcs * htlcAmt
-	if aliceChannel.channelState.TotalMSatSent != htlcAmt {
-		t.Fatalf("wrong value for msat sent: expected %v, got %v",
-			htlcAmt, aliceChannel.channelState.TotalMSatSent)
+	bobMatSent := numBobHtlcs * htlcAmt
+	if aliceChannel.channelState.TotalMAtSent != htlcAmt {
+		t.Fatalf("wrong value for mAt sent: expected %v, got %v",
+			htlcAmt, aliceChannel.channelState.TotalMAtSent)
 	}
-	if aliceChannel.channelState.TotalMSatReceived != bobMsatSent {
-		t.Fatalf("wrong value for msat recv: expected %v, got %v",
-			bobMsatSent, aliceChannel.channelState.TotalMSatReceived)
+	if aliceChannel.channelState.TotalMAtReceived != bobMatSent {
+		t.Fatalf("wrong value for mAt recv: expected %v, got %v",
+			bobMatSent, aliceChannel.channelState.TotalMAtReceived)
 	}
-	if bobChannel.channelState.TotalMSatSent != bobMsatSent {
-		t.Fatalf("wrong value for msat sent: expected %v, got %v",
-			bobMsatSent, bobChannel.channelState.TotalMSatSent)
+	if bobChannel.channelState.TotalMAtSent != bobMatSent {
+		t.Fatalf("wrong value for mAt sent: expected %v, got %v",
+			bobMatSent, bobChannel.channelState.TotalMAtSent)
 	}
-	if bobChannel.channelState.TotalMSatReceived != htlcAmt {
-		t.Fatalf("wrong value for msat recv: expected %v, got %v",
-			htlcAmt, bobChannel.channelState.TotalMSatReceived)
+	if bobChannel.channelState.TotalMAtReceived != htlcAmt {
+		t.Fatalf("wrong value for mAt recv: expected %v, got %v",
+			htlcAmt, bobChannel.channelState.TotalMAtReceived)
 	}
 }
 

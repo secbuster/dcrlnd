@@ -17,7 +17,7 @@ import (
 	"github.com/decred/dcrlnd/htlcswitch"
 	"github.com/decred/dcrlnd/lnwire"
 
-	"github.com/lightningnetwork/lightning-onion" // TODO(decred): ok?
+	sphinx "github.com/lightningnetwork/lightning-onion" // TODO(decred): ok?
 )
 
 // defaultNumRoutes is the default value for the maximum number of routes to
@@ -548,13 +548,13 @@ func TestSendPaymentErrorRepeatedFeeInsufficient(t *testing.T) {
 	}
 
 	errChanUpdate := lnwire.ChannelUpdate{
-		ShortChannelID:  lnwire.NewShortChanIDFromInt(chanID),
-		Timestamp:       uint32(edgeUpateToFail.LastUpdate.Unix()),
-		Flags:           edgeUpateToFail.Flags,
-		TimeLockDelta:   edgeUpateToFail.TimeLockDelta,
-		HtlcMinimumMsat: edgeUpateToFail.MinHTLC,
-		BaseFee:         uint32(edgeUpateToFail.FeeBaseMSat),
-		FeeRate:         uint32(edgeUpateToFail.FeeProportionalMillionths),
+		ShortChannelID: lnwire.NewShortChanIDFromInt(chanID),
+		Timestamp:      uint32(edgeUpateToFail.LastUpdate.Unix()),
+		Flags:          edgeUpateToFail.Flags,
+		TimeLockDelta:  edgeUpateToFail.TimeLockDelta,
+		HtlcMinimumMAt: edgeUpateToFail.MinHTLC,
+		BaseFee:        uint32(edgeUpateToFail.FeeBaseMAt),
+		FeeRate:        uint32(edgeUpateToFail.FeeProportionalMillionths),
 	}
 
 	// The error will be returned by Son Goku.
@@ -654,13 +654,13 @@ func TestSendPaymentErrorNonFinalTimeLockErrors(t *testing.T) {
 	}
 
 	errChanUpdate := lnwire.ChannelUpdate{
-		ShortChannelID:  lnwire.NewShortChanIDFromInt(chanID),
-		Timestamp:       uint32(edgeUpateToFail.LastUpdate.Unix()),
-		Flags:           edgeUpateToFail.Flags,
-		TimeLockDelta:   edgeUpateToFail.TimeLockDelta,
-		HtlcMinimumMsat: edgeUpateToFail.MinHTLC,
-		BaseFee:         uint32(edgeUpateToFail.FeeBaseMSat),
-		FeeRate:         uint32(edgeUpateToFail.FeeProportionalMillionths),
+		ShortChannelID: lnwire.NewShortChanIDFromInt(chanID),
+		Timestamp:      uint32(edgeUpateToFail.LastUpdate.Unix()),
+		Flags:          edgeUpateToFail.Flags,
+		TimeLockDelta:  edgeUpateToFail.TimeLockDelta,
+		HtlcMinimumMAt: edgeUpateToFail.MinHTLC,
+		BaseFee:        uint32(edgeUpateToFail.FeeBaseMAt),
+		FeeRate:        uint32(edgeUpateToFail.FeeProportionalMillionths),
 	}
 
 	// The error will be returned by Son Goku.
@@ -1095,7 +1095,7 @@ func TestAddEdgeUnknownVertexes(t *testing.T) {
 		LastUpdate:                testTime,
 		TimeLockDelta:             10,
 		MinHTLC:                   1,
-		FeeBaseMSat:               10,
+		FeeBaseMAt:                10,
 		FeeProportionalMillionths: 10000,
 	}
 	edgePolicy.Flags = 0
@@ -1111,7 +1111,7 @@ func TestAddEdgeUnknownVertexes(t *testing.T) {
 		LastUpdate:                testTime,
 		TimeLockDelta:             10,
 		MinHTLC:                   1,
-		FeeBaseMSat:               10,
+		FeeBaseMAt:                10,
 		FeeProportionalMillionths: 10000,
 	}
 	edgePolicy.Flags = 1
@@ -1191,7 +1191,7 @@ func TestAddEdgeUnknownVertexes(t *testing.T) {
 		LastUpdate:                testTime,
 		TimeLockDelta:             10,
 		MinHTLC:                   1,
-		FeeBaseMSat:               10,
+		FeeBaseMAt:                10,
 		FeeProportionalMillionths: 10000,
 	}
 	edgePolicy.Flags = 0
@@ -1206,7 +1206,7 @@ func TestAddEdgeUnknownVertexes(t *testing.T) {
 		LastUpdate:                testTime,
 		TimeLockDelta:             10,
 		MinHTLC:                   1,
-		FeeBaseMSat:               10,
+		FeeBaseMAt:                10,
 		FeeProportionalMillionths: 10000,
 	}
 	edgePolicy.Flags = 1
@@ -2097,7 +2097,7 @@ func TestIsStaleEdgePolicy(t *testing.T) {
 		LastUpdate:                updateTimeStamp,
 		TimeLockDelta:             10,
 		MinHTLC:                   1,
-		FeeBaseMSat:               10,
+		FeeBaseMAt:                10,
 		FeeProportionalMillionths: 10000,
 	}
 	edgePolicy.Flags = 0
@@ -2111,7 +2111,7 @@ func TestIsStaleEdgePolicy(t *testing.T) {
 		LastUpdate:                updateTimeStamp,
 		TimeLockDelta:             10,
 		MinHTLC:                   1,
-		FeeBaseMSat:               10,
+		FeeBaseMAt:                10,
 		FeeProportionalMillionths: 10000,
 	}
 	edgePolicy.Flags = 1

@@ -64,12 +64,12 @@ func mAtToMDcr(mat lnwire.MilliAtom) (uint64, error) {
 }
 
 // mAtToUDcr converts the given amount in MilliAtoms to microDCR.
-func mAtToUDcr(msat lnwire.MilliAtom) (uint64, error) {
-	if msat%100000 != 0 {
-		return 0, fmt.Errorf("%d msat not expressible "+
-			"in uBTC", msat)
+func mAtToUDcr(mat lnwire.MilliAtom) (uint64, error) {
+	if mat%100000 != 0 {
+		return 0, fmt.Errorf("%d mAt not expressible "+
+			"in uBTC", mat)
 	}
-	return uint64(msat / 100000), nil
+	return uint64(mat / 100000), nil
 }
 
 // mAtToNDcr converts the given amount in MilliAtoms to nanoDCR.

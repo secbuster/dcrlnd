@@ -701,7 +701,7 @@ func TestEdgeInfoUpdates(t *testing.T) {
 		Flags:                     0,
 		TimeLockDelta:             99,
 		MinHTLC:                   2342135,
-		FeeBaseMSat:               4352345,
+		FeeBaseMAt:                4352345,
 		FeeProportionalMillionths: 3452352,
 		Node:                      secondNode,
 		ExtraOpaqueData:           []byte("new unknown feature2"),
@@ -714,7 +714,7 @@ func TestEdgeInfoUpdates(t *testing.T) {
 		Flags:                     1,
 		TimeLockDelta:             99,
 		MinHTLC:                   2342135,
-		FeeBaseMSat:               4352345,
+		FeeBaseMAt:                4352345,
 		FeeProportionalMillionths: 90392423,
 		Node:                      firstNode,
 		ExtraOpaqueData:           []byte("new unknown feature1"),
@@ -793,7 +793,7 @@ func newEdgePolicy(chanID uint64, op wire.OutPoint, db *DB,
 		LastUpdate:                time.Unix(updateTime, 0),
 		TimeLockDelta:             uint16(prand.Int63()),
 		MinHTLC:                   lnwire.MilliAtom(prand.Int63()),
-		FeeBaseMSat:               lnwire.MilliAtom(prand.Int63()),
+		FeeBaseMAt:                lnwire.MilliAtom(prand.Int63()),
 		FeeProportionalMillionths: lnwire.MilliAtom(prand.Int63()),
 		db:                        db,
 	}
@@ -2656,9 +2656,9 @@ func compareEdgePolicies(a, b *ChannelEdgePolicy) error {
 		return fmt.Errorf("MinHTLC doesn't match: expected %v, "+
 			"got %v", a.MinHTLC, b.MinHTLC)
 	}
-	if a.FeeBaseMSat != b.FeeBaseMSat {
-		return fmt.Errorf("FeeBaseMSat doesn't match: expected %v, "+
-			"got %v", a.FeeBaseMSat, b.FeeBaseMSat)
+	if a.FeeBaseMAt != b.FeeBaseMAt {
+		return fmt.Errorf("FeeBaseMAt doesn't match: expected %v, "+
+			"got %v", a.FeeBaseMAt, b.FeeBaseMAt)
 	}
 	if a.FeeProportionalMillionths != b.FeeProportionalMillionths {
 		return fmt.Errorf("FeeProportionalMillionths doesn't match: "+

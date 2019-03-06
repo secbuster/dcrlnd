@@ -460,7 +460,7 @@ func (p *peer) loadActiveChannels(chans []*channeldb.OpenChannel) error {
 		if selfPolicy != nil {
 			forwardingPolicy = &htlcswitch.ForwardingPolicy{
 				MinHTLC:       selfPolicy.MinHTLC,
-				BaseFee:       selfPolicy.FeeBaseMSat,
+				BaseFee:       selfPolicy.FeeBaseMAt,
 				FeeRate:       selfPolicy.FeeProportionalMillionths,
 				TimeLockDelta: uint32(selfPolicy.TimeLockDelta),
 			}

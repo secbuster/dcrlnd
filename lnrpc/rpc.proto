@@ -1917,7 +1917,7 @@ message Payment {
     /// The value of the payment in satoshis
     int64 value_sat = 7 [json_name = "value_sat"];
 
-    /// The value of the payment in milli-satoshis
+    /// The value of the payment in milli-atoms
     int64 value_msat = 8 [json_name = "value_msat"];
 }
 
@@ -1973,13 +1973,13 @@ message ChannelFeeReport {
     /// The channel that this fee report belongs to.
     string chan_point = 1 [json_name = "channel_point"];
 
-    /// The base fee charged regardless of the number of milli-satoshis sent.
+    /// The base fee charged regardless of the number of milli-atoms sent.
     int64 base_fee_msat = 2 [json_name = "base_fee_msat"];
 
-    /// The amount charged per milli-satoshis transferred expressed in millionths of a satoshi.
+    /// The amount charged per milli-atoms transferred expressed in millionths of a satoshi.
     int64 fee_per_mil = 3 [json_name = "fee_per_mil"];
 
-    /// The effective fee rate in milli-satoshis. Computed by dividing the fee_per_mil value by 1 million.
+    /// The effective fee rate in milli-atoms. Computed by dividing the fee_per_mil value by 1 million.
     double fee_rate = 4 [json_name = "fee_rate"];
 }
 message FeeReportResponse {
@@ -2005,10 +2005,10 @@ message PolicyUpdateRequest {
         ChannelPoint chan_point = 2 [json_name = "chan_point"];
     }
 
-    /// The base fee charged regardless of the number of milli-satoshis sent.
+    /// The base fee charged regardless of the number of milli-atoms sent.
     int64 base_fee_msat = 3 [json_name = "base_fee_msat"];
 
-    /// The effective fee rate in milli-satoshis. The precision of this value goes up to 6 decimal places, so 1e-6.
+    /// The effective fee rate in milli-atoms. The precision of this value goes up to 6 decimal places, so 1e-6.
     double fee_rate = 4 [json_name = "fee_rate"];
 
     /// The required timelock delta for HTLCs forwarded over the channel.
@@ -2049,7 +2049,7 @@ message ForwardingEvent {
     /// The total fee (in satoshis) that this payment circuit carried.
     uint64 fee = 7 [json_name = "fee"];
 
-    /// The total fee (in milli-satoshis) that this payment circuit carried.
+    /// The total fee (in milli-atoms) that this payment circuit carried.
     uint64 fee_msat = 8 [json_name = "fee_msat"];
 
     // TODO(roasbeef): add settlement latency?

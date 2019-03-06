@@ -42,7 +42,7 @@ type htlcPacket struct {
 	// settle/fail in response to the sourceRef.
 	destRef *channeldb.SettleFailRef
 
-	// incomingAmount is the value in milli-satoshis that arrived on an
+	// incomingAmount is the value in milli-atoms that arrived on an
 	// incoming link.
 	incomingAmount lnwire.MilliAtom
 

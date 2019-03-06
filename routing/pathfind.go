@@ -11,7 +11,7 @@ import (
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/lnwire"
-	"github.com/lightningnetwork/lightning-onion" // TODO(decred): ok?
+	sphinx "github.com/lightningnetwork/lightning-onion" // TODO(decred): ok?
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -27,7 +27,7 @@ const (
 
 	// RiskFactorBillionths controls the influence of time lock delta
 	// of a channel on route selection. It is expressed as billionths
-	// of msat per msat sent through the channel per time lock delta
+	// of mAt per mAt sent through the channel per time lock delta
 	// block. See edgeWeight function below for more details.
 	// The chosen value is based on the previous incorrect weight function
 	// 1 + timelock + fee * fee. In this function, the fee penalty
@@ -50,8 +50,8 @@ type HopHint struct {
 	// ChannelID is the unique identifier of the channel.
 	ChannelID uint64
 
-	// FeeBaseMSat is the base fee of the channel in MilliAtoms.
-	FeeBaseMSat uint32
+	// FeeBaseMAt is the base fee of the channel in MilliAtoms.
+	FeeBaseMAt uint32
 
 	// FeeProportionalMillionths is the fee rate, in millionths of a
 	// satoshi, for every satoshi sent through the channel.
@@ -94,13 +94,13 @@ type edgePolicyWithSource struct {
 	edge       *channeldb.ChannelEdgePolicy
 }
 
-// computeFee computes the fee to forward an HTLC of `amt` milli-satoshis over
+// computeFee computes the fee to forward an HTLC of `amt` milli-atoms over
 // the passed active payment channel. This value is currently computed as
 // specified in BOLT07, but will likely change in the near future.
 func computeFee(amt lnwire.MilliAtom,
 	edge *channeldb.ChannelEdgePolicy) lnwire.MilliAtom {
 
-	return edge.FeeBaseMSat + (amt*edge.FeeProportionalMillionths)/1000000
+	return edge.FeeBaseMAt + (amt*edge.FeeProportionalMillionths)/1000000
 }
 
 // isSamePath returns true if path1 and path2 travel through the exact same

@@ -92,7 +92,7 @@ type testChan struct {
 	Flags        uint16 `json:"flags"`
 	Expiry       uint16 `json:"expiry"`
 	MinHTLC      int64  `json:"min_htlc"`
-	FeeBaseMsat  int64  `json:"fee_base_msat"`
+	FeeBaseMat   int64  `json:"fee_base_mat"`
 	FeeRate      int64  `json:"fee_rate"`
 	Capacity     int64  `json:"capacity"`
 }
@@ -276,7 +276,7 @@ func parseTestGraph(path string) (*testGraphInstance, error) {
 			LastUpdate:                testTime,
 			TimeLockDelta:             edge.Expiry,
 			MinHTLC:                   lnwire.MilliAtom(edge.MinHTLC),
-			FeeBaseMSat:               lnwire.MilliAtom(edge.FeeBaseMsat),
+			FeeBaseMAt:                lnwire.MilliAtom(edge.FeeBaseMat),
 			FeeProportionalMillionths: lnwire.MilliAtom(edge.FeeRate),
 		}
 		if err := graph.UpdateEdgePolicy(edgePolicy); err != nil {
@@ -292,10 +292,10 @@ func parseTestGraph(path string) (*testGraphInstance, error) {
 }
 
 type testChannelPolicy struct {
-	Expiry      uint16
-	MinHTLC     lnwire.MilliAtom
-	FeeBaseMsat lnwire.MilliAtom
-	FeeRate     lnwire.MilliAtom
+	Expiry     uint16
+	MinHTLC    lnwire.MilliAtom
+	FeeBaseMat lnwire.MilliAtom
+	FeeRate    lnwire.MilliAtom
 }
 
 type testChannelEnd struct {
@@ -307,10 +307,10 @@ func defaultTestChannelEnd(alias string) *testChannelEnd {
 	return &testChannelEnd{
 		Alias: alias,
 		testChannelPolicy: testChannelPolicy{
-			Expiry:      144,
-			MinHTLC:     lnwire.MilliAtom(1000),
-			FeeBaseMsat: lnwire.MilliAtom(1000),
-			FeeRate:     lnwire.MilliAtom(1),
+			Expiry:     144,
+			MinHTLC:    lnwire.MilliAtom(1000),
+			FeeBaseMat: lnwire.MilliAtom(1000),
+			FeeRate:    lnwire.MilliAtom(1),
 		},
 	}
 }
@@ -491,7 +491,7 @@ func createTestGraphFromChannels(testChannels []*testChannel) (*testGraphInstanc
 			LastUpdate:                testTime,
 			TimeLockDelta:             testChannel.Node1.Expiry,
 			MinHTLC:                   testChannel.Node1.MinHTLC,
-			FeeBaseMSat:               testChannel.Node1.FeeBaseMsat,
+			FeeBaseMAt:                testChannel.Node1.FeeBaseMat,
 			FeeProportionalMillionths: testChannel.Node1.FeeRate,
 		}
 		if err := graph.UpdateEdgePolicy(edgePolicy); err != nil {
@@ -505,7 +505,7 @@ func createTestGraphFromChannels(testChannels []*testChannel) (*testGraphInstanc
 			LastUpdate:                testTime,
 			TimeLockDelta:             testChannel.Node2.Expiry,
 			MinHTLC:                   testChannel.Node2.MinHTLC,
-			FeeBaseMSat:               testChannel.Node2.FeeBaseMsat,
+			FeeBaseMAt:                testChannel.Node2.FeeBaseMat,
 			FeeProportionalMillionths: testChannel.Node2.FeeRate,
 		}
 
@@ -886,7 +886,7 @@ func TestPathFindingWithAdditionalEdges(t *testing.T) {
 	songokuToDoge := &channeldb.ChannelEdgePolicy{
 		Node:                      doge,
 		ChannelID:                 1337,
-		FeeBaseMSat:               1,
+		FeeBaseMAt:                1,
 		FeeProportionalMillionths: 1000,
 		TimeLockDelta:             9,
 	}
@@ -987,7 +987,7 @@ func TestNewRoute(t *testing.T) {
 		return &channeldb.ChannelEdgePolicy{
 			Node:                      &channeldb.LightningNode{},
 			FeeProportionalMillionths: feeRate,
-			FeeBaseMSat:               baseFee,
+			FeeBaseMAt:                baseFee,
 			TimeLockDelta:             timeLockDelta,
 		}
 	}
@@ -1064,7 +1064,7 @@ func TestNewRoute(t *testing.T) {
 			feeLimit:              noFeeLimit,
 		}, {
 			// A three hop payment where the first and second hop
-			// will both charge 1 msat. The fee for the first hop
+			// will both charge 1 mat. The fee for the first hop
 			// is actually slightly higher than 1, because the amount
 			// to forward also includes the fee for the second hop. This
 			// gets rounded down to 1.
@@ -1106,11 +1106,11 @@ func TestNewRoute(t *testing.T) {
 				createHop(0, 10000, 1000000, 10),
 
 				// First hop charges 0.1% so the second hop fee
-				// should show up in the first hop fee as 1 msat
+				// should show up in the first hop fee as 1 mat
 				// extra.
 				createHop(0, 1000, 1000000, 5),
 
-				// Second hop charges a fixed 1000 msat.
+				// Second hop charges a fixed 1000 mat.
 				createHop(1000, 0, 1000000, 3),
 			},
 			expectedFees:          []lnwire.MilliAtom{101, 1000, 0},
@@ -1697,7 +1697,7 @@ func TestPathFindSpecExample(t *testing.T) {
 		t.Fatalf("unable to set source node: %v", err)
 	}
 
-	// Query for a route of 4,999,999 mSAT to carol.
+	// Query for a route of 4,999,999 mAT to carol.
 	carol := ctx.aliases["C"]
 	const amt lnwire.MilliAtom = 4999999
 	routes, err := ctx.router.FindRoutes(carol, amt, noFeeLimit, 100)

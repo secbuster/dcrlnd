@@ -50,81 +50,81 @@ func TestDecodeAmount(t *testing.T) {
 			valid:  false,
 		},
 		{
-			amount: "1p",  // pBTC
+			amount: "1p",  // pDCR
 			valid:  false, // too small
 		},
 		{
-			amount: "1109p", // pBTC
+			amount: "1109p", // pDCR
 			valid:  false,   // not divisible by 10
 		},
 		{
-			amount: "-10p", // pBTC
+			amount: "-10p", // pDCR
 			valid:  false,  // negative amount
 		},
 		{
-			amount: "10p", // pBTC
+			amount: "10p", // pDCR
 			valid:  true,
-			result: 1, // mSat
+			result: 1, // mAt
 		},
 		{
-			amount: "1000p", // pBTC
+			amount: "1000p", // pDCR
 			valid:  true,
-			result: 100, // mSat
+			result: 100, // mAt
 		},
 		{
-			amount: "1n", // nBTC
+			amount: "1n", // nDCR
 			valid:  true,
-			result: 100, // mSat
+			result: 100, // mAt
 		},
 		{
-			amount: "9000n", // nBTC
+			amount: "9000n", // nDCR
 			valid:  true,
-			result: 900000, // mSat
+			result: 900000, // mAt
 		},
 		{
-			amount: "9u", // uBTC
+			amount: "9u", // uDCR
 			valid:  true,
-			result: 900000, // mSat
+			result: 900000, // mAt
 		},
 		{
-			amount: "2000u", // uBTC
+			amount: "2000u", // uDCR
 			valid:  true,
-			result: 200000000, // mSat
+			result: 200000000, // mAt
 		},
 		{
-			amount: "2m", // mBTC
+			amount: "2m", // mDCR
 			valid:  true,
-			result: 200000000, // mSat
+			result: 200000000, // mAt
 		},
 		{
-			amount: "2000m", // mBTC
+			amount: "2000m", // mDCR
 			valid:  true,
-			result: 200000000000, // mSat
+			result: 200000000000, // mAt
 		},
 		{
-			amount: "2", // BTC
+			amount: "2", // DCR
 			valid:  true,
-			result: 200000000000, // mSat
+			result: 200000000000, // mAt
 		},
 		{
-			amount: "2000", // BTC
+			amount: "2000", // DCR
 			valid:  true,
-			result: 200000000000000, // mSat
+			result: 200000000000000, // mAt
 		},
 		{
-			amount: "2009", // BTC
+			amount: "2009", // DCR
 			valid:  true,
-			result: 200900000000000, // mSat
+			result: 200900000000000, // mAt
 		},
 		{
-			amount: "1234", // BTC
+			amount: "1234", // DCR
 			valid:  true,
-			result: 123400000000000, // mSat
+			result: 123400000000000, // mAt
 		},
 		{
-			amount: "21000000", // BTC
+			amount: "21000000", // DCR
 			valid:  true,
-			result: 2100000000000000000, // mSat
+			result: 2100000000000000000, // mAt
 		},
 	}
 
@@ -147,64 +147,64 @@ func TestEncodeAmount(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		msat   lnwire.MilliAtom
+		mat    lnwire.MilliAtom
 		valid  bool
 		result string
 	}{
 		{
-			msat:   1, // mSat
+			mat:    1, // mAt
 			valid:  true,
-			result: "10p", // pBTC
+			result: "10p", // pDCR
 		},
 		{
-			msat:   120, // mSat
+			mat:    120, // mAt
 			valid:  true,
-			result: "1200p", // pBTC
+			result: "1200p", // pDCR
 		},
 		{
-			msat:   100, // mSat
+			mat:    100, // mAt
 			valid:  true,
-			result: "1n", // nBTC
+			result: "1n", // nDCR
 		},
 		{
-			msat:   900000, // mSat
+			mat:    900000, // mAt
 			valid:  true,
-			result: "9u", // uBTC
+			result: "9u", // uDCR
 		},
 		{
-			msat:   200000000, // mSat
+			mat:    200000000, // mAt
 			valid:  true,
-			result: "2m", // mBTC
+			result: "2m", // mDCR
 		},
 		{
-			msat:   200000000000, // mSat
+			mat:    200000000000, // mAt
 			valid:  true,
-			result: "2", // BTC
+			result: "2", // DCR
 		},
 		{
-			msat:   200000000000000, // mSat
+			mat:    200000000000000, // mAt
 			valid:  true,
-			result: "2000", // BTC
+			result: "2000", // DCR
 		},
 		{
-			msat:   200900000000000, // mSat
+			mat:    200900000000000, // mAt
 			valid:  true,
-			result: "2009", // BTC
+			result: "2009", // DCR
 		},
 		{
-			msat:   123400000000000, // mSat
+			mat:    123400000000000, // mAt
 			valid:  true,
-			result: "1234", // BTC
+			result: "1234", // DCR
 		},
 		{
-			msat:   2100000000000000000, // mSat
+			mat:    2100000000000000000, // mAt
 			valid:  true,
-			result: "21000000", // BTC
+			result: "21000000", // DCR
 		},
 	}
 
 	for i, test := range tests {
-		shortened, err := encodeAmount(test.msat)
+		shortened, err := encodeAmount(test.mat)
 		if (err == nil) != test.valid {
 			t.Errorf("amount encoding test %d failed: %v", i, err)
 			return
@@ -698,7 +698,7 @@ func TestParseRouteHint(t *testing.T) {
 		base256 := make([]byte, 51)
 		copy(base256[:33], r.NodeID.SerializeCompressed())
 		binary.BigEndian.PutUint64(base256[33:41], r.ChannelID)
-		binary.BigEndian.PutUint32(base256[41:45], r.FeeBaseMSat)
+		binary.BigEndian.PutUint32(base256[41:45], r.FeeBaseMAt)
 		binary.BigEndian.PutUint32(base256[45:49], r.FeeProportionalMillionths)
 		binary.BigEndian.PutUint16(base256[49:51], r.CLTVExpiryDelta)
 		testSingleHopData = append(testSingleHopData, base256...)
@@ -710,7 +710,7 @@ func TestParseRouteHint(t *testing.T) {
 		base256 := make([]byte, 51)
 		copy(base256[:33], r.NodeID.SerializeCompressed())
 		binary.BigEndian.PutUint64(base256[33:41], r.ChannelID)
-		binary.BigEndian.PutUint32(base256[41:45], r.FeeBaseMSat)
+		binary.BigEndian.PutUint32(base256[41:45], r.FeeBaseMAt)
 		binary.BigEndian.PutUint32(base256[45:49], r.FeeProportionalMillionths)
 		binary.BigEndian.PutUint16(base256[49:51], r.CLTVExpiryDelta)
 		testDoubleHopData = append(testDoubleHopData, base256...)

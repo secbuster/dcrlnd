@@ -2002,8 +2002,8 @@ func (l *channelLink) Stats() (uint64, lnwire.MilliAtom, lnwire.MilliAtom) {
 	snapshot := l.channel.StateSnapshot()
 
 	return snapshot.ChannelCommitment.CommitHeight,
-		snapshot.TotalMSatSent,
-		snapshot.TotalMSatReceived
+		snapshot.TotalMAtSent,
+		snapshot.TotalMAtReceived
 }
 
 // String returns the string representation of channel link.

@@ -88,7 +88,7 @@ type ChannelLink interface {
 		incomingTimeout, outgoingTimeout uint32,
 		heightNow uint32) lnwire.FailureMessage
 
-	// Bandwidth returns the amount of milli-satoshis which current link
+	// Bandwidth returns the amount of milli-atoms which current link
 	// might pass through channel link. The value returned from this method
 	// represents the up to date available flow through the channel. This
 	// takes into account any forwarded but un-cleared HTLC's, and any
@@ -96,7 +96,7 @@ type ChannelLink interface {
 	Bandwidth() lnwire.MilliAtom
 
 	// Stats return the statistics of channel link. Number of updates,
-	// total sent/received milli-satoshis.
+	// total sent/received milli-atoms.
 	Stats() (uint64, lnwire.MilliAtom, lnwire.MilliAtom)
 
 	// Peer returns the representation of remote peer with which we have

@@ -862,10 +862,10 @@ func assertChannelAnnouncements(t *testing.T, alice, bob *testNode,
 					minHtlc = customMinHtlc[j]
 				}
 
-				if m.HtlcMinimumMsat != minHtlc {
+				if m.HtlcMinimumMAt != minHtlc {
 					t.Fatalf("expected ChannelUpdate to "+
 						"advertise min HTLC %v, had %v",
-						minHtlc, m.HtlcMinimumMsat)
+						minHtlc, m.HtlcMinimumMAt)
 				}
 
 				gotChannelUpdate = true

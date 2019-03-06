@@ -3168,7 +3168,7 @@ var updateChannelPolicyCommand = cli.Command{
 	Category: "Channels",
 	Usage: "Update the channel policy for all channels, or a single " +
 		"channel.",
-	ArgsUsage: "base_fee_msat fee_rate time_lock_delta [channel_point]",
+	ArgsUsage: "base_fee_mat fee_rate time_lock_delta [channel_point]",
 	Description: `
 	Updates the channel policy for all channels, or just a particular channel
 	identified by its channel point. The update will be committed, and
@@ -3176,8 +3176,8 @@ var updateChannelPolicyCommand = cli.Command{
 	Channel points are encoded as: funding_txid:output_index`,
 	Flags: []cli.Flag{
 		cli.Int64Flag{
-			Name: "base_fee_msat",
-			Usage: "the base fee in milli-satoshis that will " +
+			Name: "base_fee_mat",
+			Usage: "the base fee in milli-atoms that will " +
 				"be charged for each forwarded HTLC, regardless " +
 				"of payment size",
 		},
@@ -3216,16 +3216,16 @@ func updateChannelPolicy(ctx *cli.Context) error {
 	args := ctx.Args()
 
 	switch {
-	case ctx.IsSet("base_fee_msat"):
-		baseFee = ctx.Int64("base_fee_msat")
+	case ctx.IsSet("base_fee_mat"):
+		baseFee = ctx.Int64("base_fee_mat")
 	case args.Present():
 		baseFee, err = strconv.ParseInt(args.First(), 10, 64)
 		if err != nil {
-			return fmt.Errorf("unable to decode base_fee_msat: %v", err)
+			return fmt.Errorf("unable to decode base_fee_mat: %v", err)
 		}
 		args = args.Tail()
 	default:
-		return fmt.Errorf("base_fee_msat argument missing")
+		return fmt.Errorf("base_fee_mat argument missing")
 	}
 
 	switch {

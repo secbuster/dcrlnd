@@ -219,7 +219,7 @@ type PaymentDescriptor struct {
 	// expires.
 	Timeout uint32
 
-	// Amount is the HTLC amount in milli-satoshis.
+	// Amount is the HTLC amount in milli-atoms.
 	Amount lnwire.MilliAtom
 
 	// LogIndex is the log entry number that his HTLC update has within the
@@ -2330,7 +2330,7 @@ func (lc *LightningChannel) createCommitmentTx(c *commitment,
 	// With the size known, we can now calculate the commitment fee,
 	// ensuring that we account for any dust outputs trimmed above.
 	commitFee := c.feePerKw.FeeForSize(totalCommitSize)
-	commitFeeMSat := lnwire.NewMAtFromAtoms(commitFee)
+	commitFeeMAt := lnwire.NewMAtFromAtoms(commitFee)
 
 	// Currently, within the protocol, the initiator always pays the fees.
 	// So we'll subtract the fee amount from the balance of the current
@@ -2341,13 +2341,13 @@ func (lc *LightningChannel) createCommitmentTx(c *commitment,
 		ourBalance = 0
 
 	case lc.channelState.IsInitiator:
-		ourBalance -= commitFeeMSat
+		ourBalance -= commitFeeMAt
 
 	case !lc.channelState.IsInitiator && commitFee > theirBalance.ToAtoms():
 		theirBalance = 0
 
 	case !lc.channelState.IsInitiator:
-		theirBalance -= commitFeeMSat
+		theirBalance -= commitFeeMAt
 	}
 
 	var (
@@ -2477,7 +2477,7 @@ func (lc *LightningChannel) evaluateHTLCView(view *htlcView, ourBalance,
 		// number of satoshis we've received within the channel.
 		if mutateState && entry.EntryType == Settle && !remoteChain &&
 			entry.removeCommitHeightLocal == 0 {
-			lc.channelState.TotalMSatReceived += entry.Amount
+			lc.channelState.TotalMAtReceived += entry.Amount
 		}
 
 		addEntry := lc.remoteUpdateLog.lookupHtlc(entry.ParentIndex)
@@ -2512,7 +2512,7 @@ func (lc *LightningChannel) evaluateHTLCView(view *htlcView, ourBalance,
 		// channel.
 		if mutateState && entry.EntryType == Settle && !remoteChain &&
 			entry.removeCommitHeightLocal == 0 {
-			lc.channelState.TotalMSatSent += entry.Amount
+			lc.channelState.TotalMAtSent += entry.Amount
 		}
 
 		addEntry := lc.localUpdateLog.lookupHtlc(entry.ParentIndex)
@@ -3619,11 +3619,11 @@ func (lc *LightningChannel) validateCommitmentSanity(theirLogCounter,
 	// Calculate the commitment fee, and subtract it from the initiator's
 	// balance.
 	commitFee := feePerKB.FeeForSize(commitSize)
-	commitFeeMsat := lnwire.NewMAtFromAtoms(commitFee)
+	commitFeeMat := lnwire.NewMAtFromAtoms(commitFee)
 	if lc.channelState.IsInitiator {
-		ourBalance -= commitFeeMsat
+		ourBalance -= commitFeeMat
 	} else {
-		theirBalance -= commitFeeMsat
+		theirBalance -= commitFeeMat
 	}
 
 	// As a quick sanity check, we'll ensure that if we interpret the

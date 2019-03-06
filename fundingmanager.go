@@ -1048,7 +1048,7 @@ func (f *fundingManager) handleFundingOpen(fmsg *fundingOpenMsg) {
 		Capacity:        amt,
 		CommitFeePerKw:  lnwallet.AtomPerKByte(msg.FeePerKiloWeight),
 		FundingFeePerKw: 0,
-		PushMSat:        msg.PushAmount,
+		PushMAt:         msg.PushAmount,
 		Flags:           msg.ChannelFlags,
 		MinConfs:        1,
 	}
@@ -2471,10 +2471,10 @@ func (f *fundingManager) newChanAnnouncement(localPubKey, remotePubKey,
 		Flags:          chanFlags,
 		TimeLockDelta:  uint16(f.cfg.DefaultRoutingPolicy.TimeLockDelta),
 
-		// We use the HtlcMinimumMsat that the remote party required us
+		// We use the HtlcMinimumMAt that the remote party required us
 		// to use, as our ChannelUpdate will be used to carry HTLCs
 		// towards them.
-		HtlcMinimumMsat: fwdMinHTLC,
+		HtlcMinimumMAt: fwdMinHTLC,
 
 		BaseFee: uint32(f.cfg.DefaultRoutingPolicy.BaseFee),
 		FeeRate: uint32(f.cfg.DefaultRoutingPolicy.FeeRate),
@@ -2687,7 +2687,7 @@ func (f *fundingManager) handleInitFundingMsg(msg *initFundingMsg) {
 		Capacity:        capacity,
 		CommitFeePerKw:  commitFeePerKB,
 		FundingFeePerKw: msg.fundingFeePerKw,
-		PushMSat:        msg.pushAmt,
+		PushMAt:         msg.pushAmt,
 		Flags:           channelFlags,
 		MinConfs:        msg.minConfs,
 	}

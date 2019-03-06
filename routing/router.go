@@ -25,7 +25,7 @@ import (
 	"github.com/decred/dcrlnd/routing/chainview"
 
 	"github.com/go-errors/errors"
-	"github.com/lightningnetwork/lightning-onion" // TODO(decred): ok?
+	sphinx "github.com/lightningnetwork/lightning-onion" // TODO(decred): ok?
 )
 
 const (
@@ -121,14 +121,14 @@ type ChannelGraphSource interface {
 // Using the coefficients described within the schema, the required fee to
 // forward outgoing payments can be derived.
 type FeeSchema struct {
-	// BaseFee is the base amount of milli-satoshis that will be chained
+	// BaseFee is the base amount of milli-atoms that will be chained
 	// for ANY payment forwarded.
 	BaseFee lnwire.MilliAtom
 
 	// FeeRate is the rate that will be charged for forwarding payments.
 	// This value should be interpreted as the numerator for a fraction
 	// (fixed point arithmetic) whose denominator is 1 million. As a result
-	// the effective fee rate charged per mSAT will be: (amount *
+	// the effective fee rate charged per mAT will be: (amount *
 	// FeeRate/1,000,000).
 	FeeRate uint32
 }
@@ -1576,7 +1576,7 @@ type LightningPayment struct {
 	Target *secp256k1.PublicKey
 
 	// Amount is the value of the payment to send through the network in
-	// milli-satoshis.
+	// milli-atoms.
 	Amount lnwire.MilliAtom
 
 	// FeeLimit is the maximum fee in MilliAtoms that the payment should
@@ -2072,8 +2072,8 @@ func (r *ChannelRouter) applyChannelUpdate(msg *lnwire.ChannelUpdate,
 		LastUpdate:                time.Unix(int64(msg.Timestamp), 0),
 		Flags:                     msg.Flags,
 		TimeLockDelta:             msg.TimeLockDelta,
-		MinHTLC:                   msg.HtlcMinimumMsat,
-		FeeBaseMSat:               lnwire.MilliAtom(msg.BaseFee),
+		MinHTLC:                   msg.HtlcMinimumMAt,
+		FeeBaseMAt:                lnwire.MilliAtom(msg.BaseFee),
 		FeeProportionalMillionths: lnwire.MilliAtom(msg.FeeRate),
 	})
 	if err != nil && !IsError(err, ErrIgnored, ErrOutdated) {

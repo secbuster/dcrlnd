@@ -6435,7 +6435,7 @@ type Payment struct {
 	PaymentPreimage string `protobuf:"bytes,6,opt,name=payment_preimage,proto3" json:"payment_preimage,omitempty"`
 	// / The value of the payment in satoshis
 	ValueSat int64 `protobuf:"varint,7,opt,name=value_sat,proto3" json:"value_sat,omitempty"`
-	// / The value of the payment in milli-satoshis
+	// / The value of the payment in milli-atoms
 	ValueMsat            int64    `protobuf:"varint,8,opt,name=value_msat,proto3" json:"value_msat,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
@@ -6986,11 +6986,11 @@ var xxx_messageInfo_FeeReportRequest proto.InternalMessageInfo
 type ChannelFeeReport struct {
 	// / The channel that this fee report belongs to.
 	ChanPoint string `protobuf:"bytes,1,opt,name=chan_point,json=channel_point,proto3" json:"chan_point,omitempty"`
-	// / The base fee charged regardless of the number of milli-satoshis sent.
+	// / The base fee charged regardless of the number of milli-atoms sent.
 	BaseFeeMsat int64 `protobuf:"varint,2,opt,name=base_fee_msat,proto3" json:"base_fee_msat,omitempty"`
-	// / The amount charged per milli-satoshis transferred expressed in millionths of a satoshi.
+	// / The amount charged per milli-atoms transferred expressed in millionths of a satoshi.
 	FeePerMil int64 `protobuf:"varint,3,opt,name=fee_per_mil,proto3" json:"fee_per_mil,omitempty"`
-	// / The effective fee rate in milli-satoshis. Computed by dividing the fee_per_mil value by 1 million.
+	// / The effective fee rate in milli-atoms. Computed by dividing the fee_per_mil value by 1 million.
 	FeeRate              float64  `protobuf:"fixed64,4,opt,name=fee_rate,proto3" json:"fee_rate,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
@@ -7120,9 +7120,9 @@ type PolicyUpdateRequest struct {
 	//	*PolicyUpdateRequest_Global
 	//	*PolicyUpdateRequest_ChanPoint
 	Scope isPolicyUpdateRequest_Scope `protobuf_oneof:"scope"`
-	// / The base fee charged regardless of the number of milli-satoshis sent.
+	// / The base fee charged regardless of the number of milli-atoms sent.
 	BaseFeeMsat int64 `protobuf:"varint,3,opt,name=base_fee_msat,proto3" json:"base_fee_msat,omitempty"`
-	// / The effective fee rate in milli-satoshis. The precision of this value goes up to 6 decimal places, so 1e-6.
+	// / The effective fee rate in milli-atoms. The precision of this value goes up to 6 decimal places, so 1e-6.
 	FeeRate float64 `protobuf:"fixed64,4,opt,name=fee_rate,proto3" json:"fee_rate,omitempty"`
 	// / The required timelock delta for HTLCs forwarded over the channel.
 	TimeLockDelta        uint32   `protobuf:"varint,5,opt,name=time_lock_delta,proto3" json:"time_lock_delta,omitempty"`
@@ -7395,7 +7395,7 @@ type ForwardingEvent struct {
 	AmtOut uint64 `protobuf:"varint,6,opt,name=amt_out,proto3" json:"amt_out,omitempty"`
 	// / The total fee (in satoshis) that this payment circuit carried.
 	Fee uint64 `protobuf:"varint,7,opt,name=fee,proto3" json:"fee,omitempty"`
-	// / The total fee (in milli-satoshis) that this payment circuit carried.
+	// / The total fee (in milli-atoms) that this payment circuit carried.
 	FeeMsat              uint64   `protobuf:"varint,8,opt,name=fee_msat,proto3" json:"fee_msat,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`

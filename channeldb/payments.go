@@ -83,7 +83,7 @@ func (ps PaymentStatus) String() string {
 type OutgoingPayment struct {
 	Invoice
 
-	// Fee is the total fee paid for the payment in milli-satoshis.
+	// Fee is the total fee paid for the payment in milli-atoms.
 	Fee lnwire.MilliAtom
 
 	// TotalTimeLock is the total cumulative time-lock in the HTLC extended

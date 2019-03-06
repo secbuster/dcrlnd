@@ -1554,20 +1554,20 @@
           "type": "string",
           "description": "/ The channel that this fee report belongs to."
         },
-        "base_fee_msat": {
+        "base_fee_mat": {
           "type": "string",
           "format": "int64",
-          "description": "/ The base fee charged regardless of the number of milli-satoshis sent."
+          "description": "/ The base fee charged regardless of the number of milli-atoms sent."
         },
         "fee_per_mil": {
           "type": "string",
           "format": "int64",
-          "description": "/ The amount charged per milli-satoshis transferred expressed in millionths of a satoshi."
+          "description": "/ The amount charged per milli-atoms transferred expressed in millionths of a satoshi."
         },
         "fee_rate": {
           "type": "number",
           "format": "double",
-          "description": "/ The effective fee rate in milli-satoshis. Computed by dividing the fee_per_mil value by 1 million."
+          "description": "/ The effective fee rate in milli-atoms. Computed by dividing the fee_per_mil value by 1 million."
         }
       }
     },
@@ -1767,10 +1767,10 @@
           "format": "uint64",
           "description": "/ The total fee (in satoshis) that this payment circuit carried."
         },
-        "fee_msat": {
+        "fee_mat": {
           "type": "string",
           "format": "uint64",
-          "description": "/ The total fee (in milli-satoshis) that this payment circuit carried."
+          "description": "/ The total fee (in milli-atoms) that this payment circuit carried."
         }
       }
     },
@@ -1976,11 +1976,11 @@
           "type": "integer",
           "format": "int64"
         },
-        "amt_to_forward_msat": {
+        "amt_to_forward_mat": {
           "type": "string",
           "format": "int64"
         },
-        "fee_msat": {
+        "fee_mat": {
           "type": "string",
           "format": "int64"
         },
@@ -2002,7 +2002,7 @@
           "format": "uint64",
           "description": "/ The unique identifier of the channel."
         },
-        "fee_base_msat": {
+        "fee_base_mat": {
           "type": "integer",
           "format": "int64",
           "description": "/ The base fee of the channel denominated in MilliAtoms."
@@ -2139,14 +2139,14 @@
         "amt_paid": {
           "type": "string",
           "format": "int64",
-          "description": "/ Deprecated, use amt_paid_sat or amt_paid_msat."
+          "description": "/ Deprecated, use amt_paid_sat or amt_paid_mat."
         },
         "amt_paid_sat": {
           "type": "string",
           "format": "int64",
           "description": "*\nThe amount that was accepted for this invoice, in satoshis. This will ONLY\nbe set if this invoice has been settled. We provide this field as if the\ninvoice was created with a zero value, then we need to record what amount\nwas ultimately accepted. Additionally, it's possible that the sender paid\nMORE that was specified in the original invoice. So we'll record that here\nas well."
         },
-        "amt_paid_msat": {
+        "amt_paid_mat": {
           "type": "string",
           "format": "int64",
           "description": "*\nThe amount that was accepted for this invoice, in MilliAtoms. This will\nONLY be set if this invoice has been settled. We provide this field as if\nthe invoice was created with a zero value, then we need to record what\namount was ultimately accepted. Additionally, it's possible that the sender\npaid MORE that was specified in the original invoice. So we'll record that\nhere as well."
@@ -2486,7 +2486,7 @@
         "value": {
           "type": "string",
           "format": "int64",
-          "description": "/ Deprecated, use value_sat or value_msat."
+          "description": "/ Deprecated, use value_sat or value_mat."
         },
         "creation_date": {
           "type": "string",
@@ -2514,10 +2514,10 @@
           "format": "int64",
           "title": "/ The value of the payment in satoshis"
         },
-        "value_msat": {
+        "value_mat": {
           "type": "string",
           "format": "int64",
-          "title": "/ The value of the payment in milli-satoshis"
+          "title": "/ The value of the payment in milli-atoms"
         }
       }
     },
@@ -2661,15 +2661,15 @@
           "$ref": "#/definitions/lnrpcChannelPoint",
           "description": "/ If set, this update will target a specific channel."
         },
-        "base_fee_msat": {
+        "base_fee_mat": {
           "type": "string",
           "format": "int64",
-          "description": "/ The base fee charged regardless of the number of milli-satoshis sent."
+          "description": "/ The base fee charged regardless of the number of milli-atoms sent."
         },
         "fee_rate": {
           "type": "number",
           "format": "double",
-          "description": "/ The effective fee rate in milli-satoshis. The precision of this value goes up to 6 decimal places, so 1e-6."
+          "description": "/ The effective fee rate in milli-atoms. The precision of this value goes up to 6 decimal places, so 1e-6."
         },
         "time_lock_delta": {
           "type": "integer",
@@ -2717,12 +2717,12 @@
           },
           "description": "*\nContains details concerning the specific forwarding details at each hop."
         },
-        "total_fees_msat": {
+        "total_fees_mat": {
           "type": "string",
           "format": "int64",
           "description": "*\nThe total fees in MilliAtoms."
         },
-        "total_amt_msat": {
+        "total_amt_mat": {
           "type": "string",
           "format": "int64",
           "description": "*\nThe total amount in MilliAtoms."
@@ -2753,11 +2753,11 @@
           "type": "string",
           "format": "int64"
         },
-        "fee_base_msat": {
+        "fee_base_mat": {
           "type": "string",
           "format": "int64"
         },
-        "fee_rate_milli_msat": {
+        "fee_rate_milli_mat": {
           "type": "string",
           "format": "int64"
         },

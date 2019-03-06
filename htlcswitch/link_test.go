@@ -803,7 +803,7 @@ func TestUpdateForwardingPolicy(t *testing.T) {
 		testStartingHeight,
 		n.firstBobChannelLink, n.carolChannelLink)
 
-	// First, send this 10 mSAT payment over the three hops, the payment
+	// First, send this 10 mAT payment over the three hops, the payment
 	// should succeed, and all balances should be updated accordingly.
 	firstHop := n.firstBobChannelLink.ShortChanID()
 	payResp, err := n.makePayment(
@@ -4123,7 +4123,7 @@ func generateHtlc(t *testing.T, coreLink *channelLink,
 	htlcAmt := lnwire.NewMAtFromAtoms(10000)
 	hops := []ForwardingInfo{
 		{
-			Network:         BitcoinHop,
+			Network:         DecredHop,
 			NextHop:         exitHop,
 			AmountToForward: htlcAmt,
 			OutgoingCTLV:    144,

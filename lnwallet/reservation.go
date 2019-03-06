@@ -115,10 +115,10 @@ type ChannelReservation struct {
 	// throughout its lifetime.
 	reservationID uint64
 
-	// pushMSat the amount of milli-satoshis that should be pushed to the
+	// pushMAt the amount of milli-atoms that should be pushed to the
 	// responder of a single funding channel as part of the initial
 	// commitment state.
-	pushMSat lnwire.MilliAtom
+	pushMAt lnwire.MilliAtom
 
 	// chanOpen houses a struct containing the channel and additional
 	// confirmation details will be sent on once the channel is considered
@@ -136,7 +136,7 @@ type ChannelReservation struct {
 // lnwallet.InitChannelReservation interface.
 func NewChannelReservation(capacity, fundingAmt dcrutil.Amount,
 	commitFeePerKw AtomPerKByte, wallet *LightningWallet,
-	id uint64, pushMSat lnwire.MilliAtom, chainHash *chainhash.Hash,
+	id uint64, pushMAt lnwire.MilliAtom, chainHash *chainhash.Hash,
 	flags lnwire.FundingFlag) (*ChannelReservation, error) {
 
 	var (
@@ -147,16 +147,16 @@ func NewChannelReservation(capacity, fundingAmt dcrutil.Amount,
 
 	commitFee := commitFeePerKw.FeeForSize(CommitmentTxSize)
 
-	fundingMSat := lnwire.NewMAtFromAtoms(fundingAmt)
-	capacityMSat := lnwire.NewMAtFromAtoms(capacity)
-	feeMSat := lnwire.NewMAtFromAtoms(commitFee)
+	fundingMAt := lnwire.NewMAtFromAtoms(fundingAmt)
+	capacityMAt := lnwire.NewMAtFromAtoms(capacity)
+	feeMAt := lnwire.NewMAtFromAtoms(commitFee)
 
 	// If we're the responder to a single-funder reservation, then we have
 	// no initial balance in the channel unless the remote party is pushing
 	// some funds to us within the first commitment state.
 	if fundingAmt == 0 {
-		ourBalance = pushMSat
-		theirBalance = capacityMSat - feeMSat - pushMSat
+		ourBalance = pushMAt
+		theirBalance = capacityMAt - feeMAt - pushMAt
 		initiator = false
 
 		// If the responder doesn't have enough funds to actually pay
@@ -176,14 +176,14 @@ func NewChannelReservation(capacity, fundingAmt dcrutil.Amount,
 			// we pay all the initial fees within the commitment
 			// transaction. We also deduct our balance by the
 			// amount pushed as part of the initial state.
-			ourBalance = capacityMSat - feeMSat - pushMSat
-			theirBalance = pushMSat
+			ourBalance = capacityMAt - feeMAt - pushMAt
+			theirBalance = pushMAt
 		} else {
 			// Otherwise, this is a dual funder workflow where both
 			// slides split the amount funded and the commitment
 			// fee.
-			ourBalance = fundingMSat - (feeMSat / 2)
-			theirBalance = capacityMSat - fundingMSat - (feeMSat / 2) + pushMSat
+			ourBalance = fundingMAt - (feeMAt / 2)
+			theirBalance = capacityMAt - fundingMAt - (feeMAt / 2) + pushMAt
 		}
 
 		initiator = true
@@ -218,7 +218,7 @@ func NewChannelReservation(capacity, fundingAmt dcrutil.Amount,
 	// If either of the balances are zero at this point, or we have a
 	// non-zero push amt (there's no pushing for dual funder), then this is
 	// a single-funder channel.
-	if ourBalance == 0 || theirBalance == 0 || pushMSat != 0 {
+	if ourBalance == 0 || theirBalance == 0 || pushMAt != 0 {
 		chanType = channeldb.SingleFunder
 	} else {
 		// Otherwise, this is a dual funder channel, and no side is
@@ -257,7 +257,7 @@ func NewChannelReservation(capacity, fundingAmt dcrutil.Amount,
 			},
 			Db: wallet.Cfg.Database,
 		},
-		pushMSat:      pushMSat,
+		pushMAt:       pushMAt,
 		reservationID: id,
 		chanOpen:      make(chan *openChanDetails, 1),
 		chanOpenErr:   make(chan error, 1),

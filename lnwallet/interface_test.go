@@ -454,7 +454,7 @@ func testDualFundingReservationWorkflow(miner *rpctest.Harness,
 		Capacity:        fundingAmount * 2,
 		CommitFeePerKw:  feePerKB,
 		FundingFeePerKw: feePerKB,
-		PushMSat:        0,
+		PushMAt:         0,
 		Flags:           lnwire.FFAnnounceChannel,
 	}
 	aliceChanReservation, err := alice.InitChannelReservation(aliceReq)
@@ -493,7 +493,7 @@ func testDualFundingReservationWorkflow(miner *rpctest.Harness,
 		Capacity:        fundingAmount * 2,
 		CommitFeePerKw:  feePerKB,
 		FundingFeePerKw: feePerKB,
-		PushMSat:        0,
+		PushMAt:         0,
 		Flags:           lnwire.FFAnnounceChannel,
 	}
 	bobChanReservation, err := bob.InitChannelReservation(bobReq)
@@ -655,7 +655,7 @@ func testFundingTransactionLockedOutputs(miner *rpctest.Harness,
 		Capacity:        fundingAmount,
 		CommitFeePerKw:  feePerKB,
 		FundingFeePerKw: feePerKB,
-		PushMSat:        0,
+		PushMAt:         0,
 		Flags:           lnwire.FFAnnounceChannel,
 	}
 	if _, err := alice.InitChannelReservation(req); err != nil {
@@ -677,7 +677,7 @@ func testFundingTransactionLockedOutputs(miner *rpctest.Harness,
 		Capacity:        amt,
 		CommitFeePerKw:  feePerKB,
 		FundingFeePerKw: feePerKB,
-		PushMSat:        0,
+		PushMAt:         0,
 		Flags:           lnwire.FFAnnounceChannel,
 	}
 	failedReservation, err := alice.InitChannelReservation(failedReq)
@@ -713,7 +713,7 @@ func testFundingCancellationNotEnoughFunds(miner *rpctest.Harness,
 		Capacity:        fundingAmount,
 		CommitFeePerKw:  feePerKB,
 		FundingFeePerKw: feePerKB,
-		PushMSat:        0,
+		PushMAt:         0,
 		Flags:           lnwire.FFAnnounceChannel,
 	}
 	chanReservation, err := alice.InitChannelReservation(req)
@@ -805,7 +805,7 @@ func testReservationInitiatorBalanceBelowDustCancel(miner *rpctest.Harness,
 		Capacity:        fundingAmount,
 		CommitFeePerKw:  feePerKw,
 		FundingFeePerKw: feePerKw,
-		PushMSat:        0,
+		PushMAt:         0,
 		Flags:           lnwire.FFAnnounceChannel,
 	}
 	_, err = alice.InitChannelReservation(req)
@@ -886,7 +886,7 @@ func testSingleFunderReservationWorkflow(miner *rpctest.Harness,
 		Capacity:        fundingAmt,
 		CommitFeePerKw:  feePerKB,
 		FundingFeePerKw: feePerKB,
-		PushMSat:        pushAmt,
+		PushMAt:         pushAmt,
 		Flags:           lnwire.FFAnnounceChannel,
 	}
 	aliceChanReservation, err := alice.InitChannelReservation(aliceReq)
@@ -925,7 +925,7 @@ func testSingleFunderReservationWorkflow(miner *rpctest.Harness,
 		Capacity:        fundingAmt,
 		CommitFeePerKw:  feePerKB,
 		FundingFeePerKw: feePerKB,
-		PushMSat:        pushAmt,
+		PushMAt:         pushAmt,
 		Flags:           lnwire.FFAnnounceChannel,
 	}
 	bobChanReservation, err := bob.InitChannelReservation(bobReq)

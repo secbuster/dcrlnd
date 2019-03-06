@@ -26,8 +26,8 @@ import (
 
 const (
 	// TODO(decred) verify these amounts
-	defaultDecredMinHTLCMSat   = lnwire.MilliAtom(1000)
-	defaultDecredBaseFeeMSat   = lnwire.MilliAtom(1000)
+	defaultDecredMinHTLCMAt    = lnwire.MilliAtom(1000)
+	defaultDecredBaseFeeMAt    = lnwire.MilliAtom(1000)
 	defaultDecredFeeRate       = lnwire.MilliAtom(1)
 	defaultDecredTimeLockDelta = 144
 
@@ -324,9 +324,9 @@ var (
 	// chainMap is a simple index that maps a chain's genesis hash to the
 	// chainCode enum for that chain.
 	chainMap = map[chainhash.Hash]chainCode{
-		decredTestnet3Genesis:  decredChain,
+		decredTestnet3Genesis: decredChain,
 
-		decredMainnetGenesis:  decredChain,
+		decredMainnetGenesis: decredChain,
 	}
 
 	// chainDNSSeeds is a map of a chain's hash to the set of DNS seeds

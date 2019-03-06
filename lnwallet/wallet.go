@@ -86,9 +86,9 @@ type InitFundingReserveMsg struct {
 	// funding transaction.
 	FundingFeePerKw AtomPerKByte
 
-	// PushMSat is the number of milli-satoshis that should be pushed over
+	// PushMAt is the number of milli-atoms that should be pushed over
 	// the responder as part of the initial channel creation.
-	PushMSat lnwire.MilliAtom
+	PushMAt lnwire.MilliAtom
 
 	// Flags are the channel flags specified by the initiator in the
 	// open_channel message.
@@ -449,7 +449,7 @@ func (l *LightningWallet) handleFundingReserveRequest(req *InitFundingReserveMsg
 	id := atomic.AddUint64(&l.nextFundingID, 1)
 	reservation, err := NewChannelReservation(
 		req.Capacity, req.FundingAmount, req.CommitFeePerKw, l, id,
-		req.PushMSat, l.Cfg.NetParams.GenesisHash, req.Flags,
+		req.PushMAt, l.Cfg.NetParams.GenesisHash, req.Flags,
 	)
 	if err != nil {
 		req.err <- err

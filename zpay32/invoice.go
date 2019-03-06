@@ -98,9 +98,9 @@ type Invoice struct {
 	// Net specifies what network this Lightning invoice is meant for.
 	Net *chaincfg.Params
 
-	// MilliSat specifies the amount of this invoice in MilliAtom.
+	// MilliAt specifies the amount of this invoice in MilliAtom.
 	// Optional.
-	MilliSat *lnwire.MilliAtom
+	MilliAt *lnwire.MilliAtom
 
 	// Timestamp specifies the time this invoice was created.
 	// Mandatory
@@ -161,9 +161,9 @@ type Invoice struct {
 
 // Amount is a functional option that allows callers of NewInvoice to set the
 // amount in MilliAtoms that the Invoice should encode.
-func Amount(milliSat lnwire.MilliAtom) func(*Invoice) {
+func Amount(milliAt lnwire.MilliAtom) func(*Invoice) {
 	return func(i *Invoice) {
-		i.MilliSat = &milliSat
+		i.MilliAt = &milliAt
 	}
 }
 
@@ -294,7 +294,7 @@ func Decode(invoice string, net *chaincfg.Params) (*Invoice, error) {
 		if err != nil {
 			return nil, err
 		}
-		decodedInvoice.MilliSat = &amount
+		decodedInvoice.MilliAt = &amount
 	}
 
 	// Everything except the last 520 bits of the data encodes the invoice's
@@ -402,9 +402,9 @@ func (invoice *Invoice) Encode(signer MessageSigner) (string, error) {
 
 	// The human-readable part (hrp) is "ln" + net hrp + optional amount.
 	hrp := "ln" + decredHRPPrefixes[invoice.Net.Name]
-	if invoice.MilliSat != nil {
+	if invoice.MilliAt != nil {
 		// Encode the amount using the fewest possible characters.
-		am, err := encodeAmount(*invoice.MilliSat)
+		am, err := encodeAmount(*invoice.MilliAt)
 		if err != nil {
 			return "", err
 		}
@@ -498,8 +498,8 @@ func validateInvoice(invoice *Invoice) error {
 	}
 
 	// Ensure that if there is an amount set, it is not negative.
-	if invoice.MilliSat != nil && *invoice.MilliSat < 0 {
-		return fmt.Errorf("negative amount: %v", *invoice.MilliSat)
+	if invoice.MilliAt != nil && *invoice.MilliAt < 0 {
+		return fmt.Errorf("negative amount: %v", *invoice.MilliAt)
 	}
 
 	// The invoice must contain a payment hash.
@@ -856,7 +856,7 @@ func parseRouteHint(data []byte) ([]routing.HopHint, error) {
 			return nil, err
 		}
 		hopHint.ChannelID = binary.BigEndian.Uint64(base256Data[33:41])
-		hopHint.FeeBaseMSat = binary.BigEndian.Uint32(base256Data[41:45])
+		hopHint.FeeBaseMAt = binary.BigEndian.Uint32(base256Data[41:45])
 		hopHint.FeeProportionalMillionths = binary.BigEndian.Uint32(base256Data[45:49])
 		hopHint.CLTVExpiryDelta = binary.BigEndian.Uint16(base256Data[49:51])
 
@@ -972,7 +972,7 @@ func writeTaggedFields(bufferBase32 *bytes.Buffer, invoice *Invoice) error {
 				hopHintBase256[33:41], hopHint.ChannelID,
 			)
 			binary.BigEndian.PutUint32(
-				hopHintBase256[41:45], hopHint.FeeBaseMSat,
+				hopHintBase256[41:45], hopHint.FeeBaseMAt,
 			)
 			binary.BigEndian.PutUint32(
 				hopHintBase256[45:49], hopHint.FeeProportionalMillionths,

@@ -7,7 +7,7 @@ import (
 	"github.com/btcsuite/btcd/btcec"
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrlnd/lnwire"
-	"github.com/lightningnetwork/lightning-onion" // TODO(decred): ok?
+	sphinx "github.com/lightningnetwork/lightning-onion" // TODO(decred): ok?
 )
 
 // NetworkHop indicates the blockchain network that is intended to be the next
@@ -17,28 +17,14 @@ import (
 type NetworkHop uint8
 
 const (
-	//TODO(decred) remove these?
-
-	// BitcoinHop denotes that an HTLC is to be forwarded along the Bitcoin
-	// link with the specified short channel ID.
-	BitcoinHop NetworkHop = iota
-
-	// LitecoinHop denotes that an HTLC is to be forwarded along the
-	// Litecoin link with the specified short channel ID.
-	LitecoinHop
-
 	// DecredHop denotes that an HTLC is to be forwarded along the
 	// Decred link with the specified short channel ID.
-	DecredHop
+	DecredHop = iota
 )
 
 // String returns the string representation of the target NetworkHop.
 func (c NetworkHop) String() string {
 	switch c {
-	case BitcoinHop:
-		return "Bitcoin"
-	case LitecoinHop:
-		return "Litecoin"
 	case DecredHop:
 		return "Decred"
 	default:
@@ -71,7 +57,7 @@ type ForwardingInfo struct {
 	// end-to-end route.
 	NextHop lnwire.ShortChannelID
 
-	// AmountToForward is the amount of milli-satoshis that the receiving
+	// AmountToForward is the amount of milli-atoms that the receiving
 	// node should forward to the next hop.
 	AmountToForward lnwire.MilliAtom
 
@@ -161,7 +147,7 @@ func (r *sphinxHopIterator) ForwardingInstructions() ForwardingInfo {
 	}
 
 	return ForwardingInfo{
-		Network:         BitcoinHop,
+		Network:         DecredHop,
 		NextHop:         nextHop,
 		AmountToForward: lnwire.MilliAtom(fwdInst.ForwardAmount),
 		OutgoingCTLV:    fwdInst.OutgoingCltv,
