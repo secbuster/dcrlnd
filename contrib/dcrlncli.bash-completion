@@ -1,15 +1,15 @@
-# bash programmable completion for lncli
+# bash programmable completion for dcrlncli
 # copy to /etc/bash_completion.d and restart your shell session
 # Copyright (c) by Andreas M. Antonopoulos
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-_lncli() {
+_dcrlncli() {
     local cur prev words=() cword
-    local lncli
+    local dcrlncli
 
-    # lncli might not be in $PATH
-    lncli="$1"
+    # dcrlncli might not be in $PATH
+    dcrlncli="$1"
 
     COMPREPLY=()
     _get_comp_words_by_ref -n = cur prev words cword
@@ -17,7 +17,7 @@ _lncli() {
     case "$prev" in
         # example of further completion
         newaddress)
-            COMPREPLY=( $( compgen -W "p2wkh np2wkh p2pkh" -- "$cur" ) )
+            COMPREPLY=( $( compgen -W "p2pkh" -- "$cur" ) )
             return 0
             ;;
     esac
@@ -31,18 +31,18 @@ _lncli() {
 
             # get the global options, starting with --
             if [[ -z "$cur" || "$cur" =~ ^- ]]; then
-                globalcmds=$($lncli help 2>&1 | awk '$1 ~ /^-/ { sub(/,/, ""); print $1}')
+                globalcmds=$($dcrlncli help 2>&1 | awk '$1 ~ /^-/ { sub(/,/, ""); print $1}')
             fi
 
             # get the regular commands
             if [[ -z "$cur" || "$cur" =~ ^[a-z] ]]; then
-                helpopts=$($lncli help 2>/dev/null | awk '$1 ~ /^[a-z]/ { print $1; }' )
+                helpopts=$($dcrlncli help 2>/dev/null | awk '$1 ~ /^[a-z]/ { print $1; }' )
             fi
 
             COMPREPLY=( $( compgen -W "$helpopts $globalcmds" -X "*," -- "$cur" ) )
     esac
 } &&
-complete -F _lncli lncli
+complete -F _dcrlncli dcrlncli
 
 # Local variables:
 # mode: shell-script
