@@ -404,7 +404,7 @@ func createTestWallet(tempTestDir string, miningNode *rpctest.Harness,
 	}
 
 	// Wait for the initial wallet sync and rescan.
-	timeout := time.After(time.Second * 10)
+	timeout := time.After(time.Second * 30)
 	var synced bool
 	for !synced {
 		// Do a short wait
