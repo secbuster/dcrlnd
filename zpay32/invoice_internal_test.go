@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/btcsuite/btcutil/bech32"
+	"github.com/decred/dcrd/bech32"
 	"github.com/decred/dcrd/chaincfg"
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrd/dcrutil"

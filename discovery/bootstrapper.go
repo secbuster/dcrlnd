@@ -15,11 +15,11 @@ import (
 	"github.com/miekg/dns"
 
 	"github.com/davecgh/go-spew/spew"
+	"github.com/decred/dcrd/bech32"
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrlnd/autopilot"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/tor"
-	"github.com/roasbeef/btcutil/bech32" // TODO(decred): dcrutil...
 )
 
 func init() {

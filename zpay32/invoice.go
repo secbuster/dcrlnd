@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/btcsuite/btcutil/bech32" // TODO(decred): dcrutil...
+	"github.com/decred/dcrd/bech32"
 	"github.com/decred/dcrd/chaincfg"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrec"
