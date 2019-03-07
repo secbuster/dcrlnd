@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	// FeePerKBFloor is the lowest fee rate in sat/kw that we should use for
+	// FeePerKBFloor is the lowest fee rate in atom/kw that we should use for
 	// determining transaction fees.
 	// TODO(decred) determine this value.
 	FeePerKBFloor AtomPerKByte = 253
@@ -225,7 +225,7 @@ func (b *DcrdFeeEstimator) EstimateFeePerKB(numBlocks uint32) (AtomPerKByte, err
 }
 
 // fetchEstimate returns a fee estimate for a transaction to be confirmed in
-// confTarget blocks. The estimate is returned in sat/kw.
+// confTarget blocks. The estimate is returned in atom/kw.
 func (b *DcrdFeeEstimator) fetchEstimate(confTarget uint32) (AtomPerKByte, error) {
 	// TODO(decred): Implement fee estimation.
 	//

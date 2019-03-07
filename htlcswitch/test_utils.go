@@ -165,7 +165,7 @@ func createTestChannel(alicePrivKey, bobPrivKey []byte,
 
 	aliceConstraints := &channeldb.ChannelConstraints{
 		DustLimit: dcrutil.Amount(200),
-		MaxPendingAmount: lnwire.NewMAtFromAtoms(
+		MaxPendingAmount: lnwire.NewMAtomsFromAtoms(
 			channelCapacity),
 		ChanReserve:      aliceReserve,
 		MinHTLC:          0,
@@ -174,7 +174,7 @@ func createTestChannel(alicePrivKey, bobPrivKey []byte,
 
 	bobConstraints := &channeldb.ChannelConstraints{
 		DustLimit: dcrutil.Amount(800),
-		MaxPendingAmount: lnwire.NewMAtFromAtoms(
+		MaxPendingAmount: lnwire.NewMAtomsFromAtoms(
 			channelCapacity),
 		ChanReserve:      bobReserve,
 		MinHTLC:          0,
@@ -294,8 +294,8 @@ func createTestChannel(alicePrivKey, bobPrivKey []byte,
 
 	aliceCommit := channeldb.ChannelCommitment{
 		CommitHeight:  0,
-		LocalBalance:  lnwire.NewMAtFromAtoms(aliceAmount - commitFee),
-		RemoteBalance: lnwire.NewMAtFromAtoms(bobAmount),
+		LocalBalance:  lnwire.NewMAtomsFromAtoms(aliceAmount - commitFee),
+		RemoteBalance: lnwire.NewMAtomsFromAtoms(bobAmount),
 		CommitFee:     commitFee,
 		FeePerKw:      dcrutil.Amount(feePerKw),
 		CommitTx:      aliceCommitTx,
@@ -303,8 +303,8 @@ func createTestChannel(alicePrivKey, bobPrivKey []byte,
 	}
 	bobCommit := channeldb.ChannelCommitment{
 		CommitHeight:  0,
-		LocalBalance:  lnwire.NewMAtFromAtoms(bobAmount),
-		RemoteBalance: lnwire.NewMAtFromAtoms(aliceAmount - commitFee),
+		LocalBalance:  lnwire.NewMAtomsFromAtoms(bobAmount),
+		RemoteBalance: lnwire.NewMAtomsFromAtoms(aliceAmount - commitFee),
 		CommitFee:     commitFee,
 		FeePerKw:      dcrutil.Amount(feePerKw),
 		CommitTx:      bobCommitTx,
@@ -899,8 +899,8 @@ func newThreeHopNetwork(t testing.TB, aliceChannel, firstBobChannel,
 	}
 
 	globalPolicy := ForwardingPolicy{
-		MinHTLC:       lnwire.NewMAtFromAtoms(5),
-		BaseFee:       lnwire.NewMAtFromAtoms(1),
+		MinHTLC:       lnwire.NewMAtomsFromAtoms(5),
+		BaseFee:       lnwire.NewMAtomsFromAtoms(1),
 		TimeLockDelta: defaultDelta,
 	}
 	obfuscator := NewMockObfuscator()

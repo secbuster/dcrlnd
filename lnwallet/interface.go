@@ -76,7 +76,7 @@ type TransactionDetail struct {
 	// Hash is the transaction hash of the transaction.
 	Hash chainhash.Hash
 
-	// Value is the net value of this transaction (in satoshis) from the
+	// Value is the net value of this transaction (in atoms) from the
 	// PoV of the wallet. If this transaction purely spends from the
 	// wallet's funds, then this value will be negative. Similarly, if this
 	// transaction credits the wallet, then this value will be positive.
@@ -101,7 +101,7 @@ type TransactionDetail struct {
 	// timestamp of txn creation.
 	Timestamp int64
 
-	// TotalFees is the total fee in satoshis paid by this transaction.
+	// TotalFees is the total fee in atoms paid by this transaction.
 	TotalFees int64
 
 	// DestAddresses are the destinations for a transaction
@@ -165,7 +165,7 @@ type WalletController interface {
 	// SendOutputs funds, signs, and broadcasts a Bitcoin transaction paying
 	// out to the specified outputs. In the case the wallet has insufficient
 	// funds, or the outputs are non-standard, an error should be returned.
-	// This method also takes the target fee expressed in sat/kw that should
+	// This method also takes the target fee expressed in atoms/kw that should
 	// be used when crafting the transaction.
 	SendOutputs(outputs []*wire.TxOut,
 		feeRate AtomPerKByte) (*wire.MsgTx, error)

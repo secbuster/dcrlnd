@@ -147,10 +147,10 @@ var sendCoinsCommand = cli.Command{
 	Usage:     "Send bitcoin on-chain to an address.",
 	ArgsUsage: "addr amt",
 	Description: `
-	Send amt coins in satoshis to the BASE58 encoded bitcoin address addr.
+	Send amt coins in atoms to the BASE58 encoded bitcoin address addr.
 
 	Fees used when sending the transaction can be specified via the --conf_target, or
-	--sat_per_byte optional flags.
+	--atoms_per_byte optional flags.
 
 	Positional arguments and flags can be used interchangeably but not at the same time!
 	`,
@@ -159,10 +159,10 @@ var sendCoinsCommand = cli.Command{
 			Name:  "addr",
 			Usage: "the BASE58 encoded bitcoin address to send coins to on-chain",
 		},
-		// TODO(roasbeef): switch to BTC on command line? int may not be sufficient
+		// TODO(roasbeef): switch to DCR on command line? int may not be sufficient
 		cli.Int64Flag{
 			Name:  "amt",
-			Usage: "the number of bitcoin denominated in satoshis to send",
+			Usage: "the number of bitcoin denominated in atoms to send",
 		},
 		cli.Int64Flag{
 			Name: "conf_target",
@@ -171,9 +171,9 @@ var sendCoinsCommand = cli.Command{
 				"used for fee estimation",
 		},
 		cli.Int64Flag{
-			Name: "sat_per_byte",
+			Name: "atoms_per_byte",
 			Usage: "(optional) a manual fee expressed in " +
-				"sat/byte that should be used when crafting " +
+				"atom/byte that should be used when crafting " +
 				"the transaction",
 		},
 	},
@@ -193,8 +193,8 @@ func sendCoins(ctx *cli.Context) error {
 		return nil
 	}
 
-	if ctx.IsSet("conf_target") && ctx.IsSet("sat_per_byte") {
-		return fmt.Errorf("either conf_target or sat_per_byte should be " +
+	if ctx.IsSet("conf_target") && ctx.IsSet("atoms_per_byte") {
+		return fmt.Errorf("either conf_target or atoms_per_byte should be " +
 			"set, but not both")
 	}
 
@@ -226,10 +226,10 @@ func sendCoins(ctx *cli.Context) error {
 	defer cleanUp()
 
 	req := &lnrpc.SendCoinsRequest{
-		Addr:       addr,
-		Amount:     amt,
-		TargetConf: int32(ctx.Int64("conf_target")),
-		SatPerByte: ctx.Int64("sat_per_byte"),
+		Addr:         addr,
+		Amount:       amt,
+		TargetConf:   int32(ctx.Int64("conf_target")),
+		AtomsPerByte: ctx.Int64("atoms_per_byte"),
 	}
 	txid, err := client.SendCoins(ctxb, req)
 	if err != nil {
@@ -339,14 +339,14 @@ var sendManyCommand = cli.Command{
 	Name:      "sendmany",
 	Category:  "On-chain",
 	Usage:     "Send bitcoin on-chain to multiple addresses.",
-	ArgsUsage: "send-json-string [--conf_target=N] [--sat_per_byte=P]",
+	ArgsUsage: "send-json-string [--conf_target=N] [--atoms_per_byte=P]",
 	Description: `
 	Create and broadcast a transaction paying the specified amount(s) to the passed address(es).
 
 	The send-json-string' param decodes addresses and the amount to send
 	respectively in the following format:
 
-	    '{"ExampleAddr": NumCoinsInSatoshis, "SecondAddr": NumCoins}'
+	    '{"ExampleAddr": NumCoinsInAtoms, "SecondAddr": NumCoins}'
 	`,
 	Flags: []cli.Flag{
 		cli.Int64Flag{
@@ -355,8 +355,8 @@ var sendManyCommand = cli.Command{
 				"confirm in, will be used for fee estimation",
 		},
 		cli.Int64Flag{
-			Name: "sat_per_byte",
-			Usage: "(optional) a manual fee expressed in sat/byte that should be " +
+			Name: "atoms_per_byte",
+			Usage: "(optional) a manual fee expressed in atom/byte that should be " +
 				"used when crafting the transaction",
 		},
 	},
@@ -371,8 +371,8 @@ func sendMany(ctx *cli.Context) error {
 		return err
 	}
 
-	if ctx.IsSet("conf_target") && ctx.IsSet("sat_per_byte") {
-		return fmt.Errorf("either conf_target or sat_per_byte should be " +
+	if ctx.IsSet("conf_target") && ctx.IsSet("atoms_per_byte") {
+		return fmt.Errorf("either conf_target or atoms_per_byte should be " +
 			"set, but not both")
 	}
 
@@ -383,7 +383,7 @@ func sendMany(ctx *cli.Context) error {
 	txid, err := client.SendMany(ctxb, &lnrpc.SendManyRequest{
 		AddrToAmount: amountToAddr,
 		TargetConf:   int32(ctx.Int64("conf_target")),
-		SatPerByte:   ctx.Int64("sat_per_byte"),
+		AtomsPerByte:    ctx.Int64("atoms_per_byte"),
 	})
 	if err != nil {
 		return err
@@ -495,13 +495,13 @@ var openChannelCommand = cli.Command{
 	setting its host:port via the --connect argument. For this to work,
 	the node_key must be provided, rather than the peer_id. This is optional.
 
-	The channel will be initialized with local-amt satoshis local and push-amt
-	satoshis for the remote node. Note that specifying push-amt means you give that
+	The channel will be initialized with local-amt atoms local and push-amt
+	atoms for the remote node. Note that specifying push-amt means you give that
 	amount to the remote node as part of the channel opening. Once the channel is open,
 	a channelPoint (txid:vout) of the funding output is returned.
 
 	One can manually set the fee to be used for the funding transaction via either
-	the --conf_target or --sat_per_byte arguments. This is optional.`,
+	the --conf_target or --atoms_per_byte arguments. This is optional.`,
 	ArgsUsage: "node-key local-amt push-amt",
 	Flags: []cli.Flag{
 		cli.StringFlag{
@@ -515,11 +515,11 @@ var openChannelCommand = cli.Command{
 		},
 		cli.IntFlag{
 			Name:  "local_amt",
-			Usage: "the number of satoshis the wallet should commit to the channel",
+			Usage: "the number of atoms the wallet should commit to the channel",
 		},
 		cli.IntFlag{
 			Name: "push_amt",
-			Usage: "the number of satoshis to give the remote side " +
+			Usage: "the number of atoms to give the remote side " +
 				"as part of the initial commitment state, " +
 				"this is equivalent to first opening a " +
 				"channel and sending the remote party funds, " +
@@ -536,9 +536,9 @@ var openChannelCommand = cli.Command{
 				"used for fee estimation",
 		},
 		cli.Int64Flag{
-			Name: "sat_per_byte",
+			Name: "atoms_per_byte",
 			Usage: "(optional) a manual fee expressed in " +
-				"sat/byte that should be used when crafting " +
+				"atom/byte that should be used when crafting " +
 				"the transaction",
 		},
 		cli.BoolFlag{
@@ -550,7 +550,7 @@ var openChannelCommand = cli.Command{
 				"to route through it",
 		},
 		cli.Int64Flag{
-			Name: "min_htlc_msat",
+			Name: "min_htlc_m_atoms",
 			Usage: "(optional) the minimum value we will require " +
 				"for incoming HTLCs on the channel",
 		},
@@ -590,8 +590,8 @@ func openChannel(ctx *cli.Context) error {
 
 	req := &lnrpc.OpenChannelRequest{
 		TargetConf:     int32(ctx.Int64("conf_target")),
-		SatPerByte:     ctx.Int64("sat_per_byte"),
-		MinHtlcMsat:    ctx.Int64("min_htlc_msat"),
+		AtomsPerByte:      ctx.Int64("atoms_per_byte"),
+		MinHtlcMAtoms:  ctx.Int64("min_htlc_m_atoms"),
 		RemoteCsvDelay: uint32(ctx.Uint64("remote_csv_delay")),
 		MinConfs:       int32(ctx.Uint64("min_confs")),
 	}
@@ -652,9 +652,9 @@ func openChannel(ctx *cli.Context) error {
 	}
 
 	if ctx.IsSet("push_amt") {
-		req.PushSat = int64(ctx.Int("push_amt"))
+		req.PushAtoms = int64(ctx.Int("push_amt"))
 	} else if args.Present() {
-		req.PushSat, err = strconv.ParseInt(args.First(), 10, 64)
+		req.PushAtoms, err = strconv.ParseInt(args.First(), 10, 64)
 		if err != nil {
 			return fmt.Errorf("unable to decode push amt: %v", err)
 		}
@@ -745,7 +745,7 @@ var closeChannelCommand = cli.Command{
 
 	In the case of a cooperative closure, One can manually set the fee to
 	be used for the closing transaction via either the --conf_target or
-	--sat_per_byte arguments. This will be the starting value used during
+	--atoms_per_byte arguments. This will be the starting value used during
 	fee negotiation. This is optional.
 
 	To view which funding_txids/output_indexes can be used for a channel close,
@@ -783,9 +783,9 @@ var closeChannelCommand = cli.Command{
 				"used for fee estimation",
 		},
 		cli.Int64Flag{
-			Name: "sat_per_byte",
+			Name: "atoms_per_byte",
 			Usage: "(optional) a manual fee expressed in " +
-				"sat/byte that should be used when crafting " +
+				"atom/byte that should be used when crafting " +
 				"the transaction",
 		},
 	},
@@ -812,7 +812,7 @@ func closeChannel(ctx *cli.Context) error {
 		ChannelPoint: channelPoint,
 		Force:        ctx.Bool("force"),
 		TargetConf:   int32(ctx.Int64("conf_target")),
-		SatPerByte:   ctx.Int64("sat_per_byte"),
+		AtomsPerByte:    ctx.Int64("atoms_per_byte"),
 	}
 
 	// After parsing the request, we'll spin up a goroutine that will
@@ -1895,11 +1895,11 @@ var sendPaymentCommand = cli.Command{
 		},
 		cli.Int64Flag{
 			Name:  "amt, a",
-			Usage: "number of satoshis to send",
+			Usage: "number of atoms to send",
 		},
 		cli.Int64Flag{
 			Name: "fee_limit",
-			Usage: "maximum fee allowed in satoshis when sending" +
+			Usage: "maximum fee allowed in atoms when sending" +
 				"the payment",
 		},
 		cli.Int64Flag{
@@ -1967,8 +1967,8 @@ func confirmPayReq(ctx *cli.Context, client lnrpc.LightningClient, payReq string
 	}
 
 	// If the amount was not included in the invoice, then we let
-	// the payee specify the amount of satoshis they wish to send.
-	amt := resp.GetNumSatoshis()
+	// the payee specify the amount of atoms they wish to send.
+	amt := resp.GetNumAtoms()
 	if amt == 0 {
 		amt = ctx.Int64("amt")
 		if amt == 0 {
@@ -1978,7 +1978,7 @@ func confirmPayReq(ctx *cli.Context, client lnrpc.LightningClient, payReq string
 	}
 
 	fmt.Printf("Description: %v\n", resp.GetDescription())
-	fmt.Printf("Amount (in satoshis): %v\n", amt)
+	fmt.Printf("Amount (in atoms): %v\n", amt)
 	fmt.Printf("Destination: %v\n", resp.GetDestination())
 
 	confirm := promptForConfirmation("Confirm payment (yes/no): ")
@@ -2145,12 +2145,12 @@ var payInvoiceCommand = cli.Command{
 		},
 		cli.Int64Flag{
 			Name: "amt",
-			Usage: "(optional) number of satoshis to fulfill the " +
+			Usage: "(optional) number of atoms to fulfill the " +
 				"invoice",
 		},
 		cli.Int64Flag{
 			Name: "fee_limit",
-			Usage: "maximum fee allowed in satoshis when sending " +
+			Usage: "maximum fee allowed in atoms when sending " +
 				"the payment",
 		},
 		cli.Int64Flag{
@@ -2354,7 +2354,7 @@ var addInvoiceCommand = cli.Command{
 
 	Invoices without an amount can be created by not supplying any
 	parameters or providing an amount of 0. These invoices allow the payee
-	to specify the amount of satoshis they wish to send.`,
+	to specify the amount of atoms they wish to send.`,
 	ArgsUsage: "value preimage",
 	Flags: []cli.Flag{
 		cli.StringFlag{
@@ -2375,7 +2375,7 @@ var addInvoiceCommand = cli.Command{
 		},
 		cli.Int64Flag{
 			Name:  "amt",
-			Usage: "the amt of satoshis in this invoice",
+			Usage: "the amt of atoms in this invoice",
 		},
 		cli.StringFlag{
 			Name: "description_hash",
@@ -2795,11 +2795,11 @@ var queryRoutesCommand = cli.Command{
 		},
 		cli.Int64Flag{
 			Name:  "amt",
-			Usage: "the amount to send expressed in satoshis",
+			Usage: "the amount to send expressed in atoms",
 		},
 		cli.Int64Flag{
 			Name: "fee_limit",
-			Usage: "maximum fee allowed in satoshis when sending " +
+			Usage: "maximum fee allowed in atoms when sending " +
 				"the payment",
 		},
 		cli.Int64Flag{
@@ -3168,7 +3168,7 @@ var updateChannelPolicyCommand = cli.Command{
 	Category: "Channels",
 	Usage: "Update the channel policy for all channels, or a single " +
 		"channel.",
-	ArgsUsage: "base_fee_mat fee_rate time_lock_delta [channel_point]",
+	ArgsUsage: "base_fee_m_atoms fee_rate time_lock_delta [channel_point]",
 	Description: `
 	Updates the channel policy for all channels, or just a particular channel
 	identified by its channel point. The update will be committed, and
@@ -3176,7 +3176,7 @@ var updateChannelPolicyCommand = cli.Command{
 	Channel points are encoded as: funding_txid:output_index`,
 	Flags: []cli.Flag{
 		cli.Int64Flag{
-			Name: "base_fee_mat",
+			Name: "base_fee_m_atoms",
 			Usage: "the base fee in milli-atoms that will " +
 				"be charged for each forwarded HTLC, regardless " +
 				"of payment size",
@@ -3216,16 +3216,16 @@ func updateChannelPolicy(ctx *cli.Context) error {
 	args := ctx.Args()
 
 	switch {
-	case ctx.IsSet("base_fee_mat"):
-		baseFee = ctx.Int64("base_fee_mat")
+	case ctx.IsSet("base_fee_m_atoms"):
+		baseFee = ctx.Int64("base_fee_m_atoms")
 	case args.Present():
 		baseFee, err = strconv.ParseInt(args.First(), 10, 64)
 		if err != nil {
-			return fmt.Errorf("unable to decode base_fee_mat: %v", err)
+			return fmt.Errorf("unable to decode base_fee_m_atoms: %v", err)
 		}
 		args = args.Tail()
 	default:
-		return fmt.Errorf("base_fee_mat argument missing")
+		return fmt.Errorf("base_fee_m_atoms argument missing")
 	}
 
 	switch {
@@ -3290,7 +3290,7 @@ func updateChannelPolicy(ctx *cli.Context) error {
 	}
 
 	req := &lnrpc.PolicyUpdateRequest{
-		BaseFeeMsat:   baseFee,
+		BaseFeeMAtoms: baseFee,
 		FeeRate:       feeRate,
 		TimeLockDelta: uint32(timeLockDelta),
 	}

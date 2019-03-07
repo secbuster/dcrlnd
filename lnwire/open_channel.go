@@ -33,7 +33,7 @@ type OpenChannel struct {
 	// created by the initiated single funder workflow.
 	PendingChannelID [32]byte
 
-	// FundingAmount is the amount of satoshis that the initiator of the
+	// FundingAmount is the amount of atoms that the initiator of the
 	// channel wishes to use as the total capacity of the channel. The
 	// initial balance of the funding will be this value minus the push
 	// amount (if set).
@@ -66,10 +66,10 @@ type OpenChannel struct {
 	HtlcMinimum MilliAtom
 
 	// FeePerKiloWeight is the initial fee rate that the initiator suggests
-	// for both commitment transaction. This value is expressed in sat per
+	// for both commitment transaction. This value is expressed in atoms per
 	// kilo-weight.
 	//
-	// TODO(halseth): make SatPerKWeight when fee estimation is in own
+	// TODO(halseth): make AtomsPerKWeight when fee estimation is in own
 	// package. Currently this will cause an import cycle.
 	FeePerKiloWeight uint32
 

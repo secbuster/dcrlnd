@@ -72,7 +72,7 @@ func TestPeerChannelClosureAcceptFeeResponder(t *testing.T) {
 
 	// We accept the fee, and send a ClosingSigned with the same fee back,
 	// so she knows we agreed.
-	peerFee := responderClosingSigned.FeeSatoshis
+	peerFee := responderClosingSigned.FeeAtoms
 	initiatorSig, _, _, err := initiatorChan.CreateCloseProposal(
 		peerFee, dummyDeliveryScript, respDeliveryScript,
 	)
@@ -193,9 +193,9 @@ func TestPeerChannelClosureAcceptFeeInitiator(t *testing.T) {
 		t.Fatalf("expected ClosingSigned message, got %T", msg)
 	}
 
-	if closingSignedMsg.FeeSatoshis != fee {
+	if closingSignedMsg.FeeAtoms != fee {
 		t.Fatalf("expected ClosingSigned fee to be %v, instead got %v",
-			fee, closingSignedMsg.FeeSatoshis)
+			fee, closingSignedMsg.FeeAtoms)
 	}
 
 	// The initiator will now see that we agreed on the fee, and broadcast
@@ -270,7 +270,7 @@ func TestPeerChannelClosureFeeNegotiationsResponder(t *testing.T) {
 	}
 
 	// We don't agree with the fee, and will send back one that's 2.5x.
-	preferredRespFee := responderClosingSigned.FeeSatoshis
+	preferredRespFee := responderClosingSigned.FeeAtoms
 	increasedFee := dcrutil.Amount(float64(preferredRespFee) * 2.5)
 	initiatorSig, _, _, err := initiatorChan.CreateCloseProposal(
 		increasedFee, dummyDeliveryScript, respDeliveryScript,
@@ -307,7 +307,7 @@ func TestPeerChannelClosureFeeNegotiationsResponder(t *testing.T) {
 
 	// The fee sent by the responder should be less than the fee we just
 	// sent as it should attempt to compromise.
-	peerFee := responderClosingSigned.FeeSatoshis
+	peerFee := responderClosingSigned.FeeAtoms
 	if peerFee > increasedFee {
 		t.Fatalf("new fee should be less than our fee: new=%v, "+
 			"prior=%v", peerFee, increasedFee)
@@ -349,7 +349,7 @@ func TestPeerChannelClosureFeeNegotiationsResponder(t *testing.T) {
 
 	// The peer should inch towards our fee, in order to compromise.
 	// Additionally, this fee should be less than the fee we sent prior.
-	peerFee = responderClosingSigned.FeeSatoshis
+	peerFee = responderClosingSigned.FeeAtoms
 	if peerFee < lastFeeResponder {
 		t.Fatalf("new fee should be greater than prior: new=%v, "+
 			"prior=%v", peerFee, lastFeeResponder)
@@ -484,11 +484,11 @@ func TestPeerChannelClosureFeeNegotiationsInitiator(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected ClosingSigned message, got %T", msg)
 	}
-	if closingSignedMsg.FeeSatoshis != initiatorIdealFee {
+	if closingSignedMsg.FeeAtoms != initiatorIdealFee {
 		t.Fatalf("expected ClosingSigned fee to be %v, instead got %v",
-			initiatorIdealFee, closingSignedMsg.FeeSatoshis)
+			initiatorIdealFee, closingSignedMsg.FeeAtoms)
 	}
-	lastFeeSent := closingSignedMsg.FeeSatoshis
+	lastFeeSent := closingSignedMsg.FeeAtoms
 
 	// The second message should be the compromise fee sent in response to
 	// them receiving our fee proposal.
@@ -505,7 +505,7 @@ func TestPeerChannelClosureFeeNegotiationsInitiator(t *testing.T) {
 
 	// The peer should inch towards our fee, in order to compromise.
 	// Additionally, this fee should be less than the fee we sent prior.
-	peerFee := closingSignedMsg.FeeSatoshis
+	peerFee := closingSignedMsg.FeeAtoms
 	if peerFee < lastFeeSent {
 		t.Fatalf("new fee should be greater than prior: new=%v, "+
 			"prior=%v", peerFee, lastFeeSent)
@@ -514,7 +514,7 @@ func TestPeerChannelClosureFeeNegotiationsInitiator(t *testing.T) {
 		t.Fatalf("new fee should be less than our fee: new=%v, "+
 			"prior=%v", peerFee, increasedFee)
 	}
-	lastFeeSent = closingSignedMsg.FeeSatoshis
+	lastFeeSent = closingSignedMsg.FeeAtoms
 
 	// We try negotiating a 2.1x fee, which should also be rejected.
 	increasedFee = dcrutil.Amount(float64(initiatorIdealFee) * 2.1)
@@ -552,7 +552,7 @@ func TestPeerChannelClosureFeeNegotiationsInitiator(t *testing.T) {
 
 	// Once again, the fee sent by the initiator should be greater than the
 	// last fee they sent, but less than the last fee we sent.
-	peerFee = initiatorClosingSigned.FeeSatoshis
+	peerFee = initiatorClosingSigned.FeeAtoms
 	if peerFee < lastFeeSent {
 		t.Fatalf("new fee should be greater than prior: new=%v, "+
 			"prior=%v", peerFee, lastFeeSent)

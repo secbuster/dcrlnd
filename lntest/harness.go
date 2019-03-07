@@ -780,7 +780,7 @@ type OpenChannelParams struct {
 	// unconfirmed outputs to fund the channel.
 	SpendUnconfirmed bool
 
-	// MinHtlc is the htlc_minimum_mat value set when opening the channel.
+	// MinHtlc is the htlc_minimum_m_atoms value set when opening the channel.
 	MinHtlc lnwire.MilliAtom
 }
 
@@ -812,11 +812,11 @@ func (n *NetworkHarness) OpenChannel(ctx context.Context,
 	openReq := &lnrpc.OpenChannelRequest{
 		NodePubkey:         destNode.PubKey[:],
 		LocalFundingAmount: int64(p.Amt),
-		PushSat:            int64(p.PushAmt),
+		PushAtoms:             int64(p.PushAmt),
 		Private:            p.Private,
 		MinConfs:           minConfs,
 		SpendUnconfirmed:   p.SpendUnconfirmed,
-		MinHtlcMsat:        int64(p.MinHtlc),
+		MinHtlcMAtoms:         int64(p.MinHtlc),
 	}
 
 	respStream, err := srcNode.OpenChannel(ctx, openReq)
@@ -875,7 +875,7 @@ func (n *NetworkHarness) OpenPendingChannel(ctx context.Context,
 	openReq := &lnrpc.OpenChannelRequest{
 		NodePubkey:         destNode.PubKey[:],
 		LocalFundingAmount: int64(amt),
-		PushSat:            int64(pushAmt),
+		PushAtoms:             int64(pushAmt),
 		Private:            false,
 	}
 
@@ -1223,7 +1223,7 @@ func (n *NetworkHarness) DumpLogs(node *HarnessNode) (string, error) {
 	return string(buf), nil
 }
 
-// SendCoins attempts to send amt satoshis from the internal mining node to the
+// SendCoins attempts to send amt atoms from the internal mining node to the
 // targeted lightning node using a P2WKH address. 6 blocks are mined after in
 // order to confirm the transaction.
 func (n *NetworkHarness) SendCoins(ctx context.Context, amt dcrutil.Amount,
@@ -1247,7 +1247,7 @@ func (n *NetworkHarness) SendCoinsUnconfirmed(ctx context.Context,
 	)
 }
 
-// sendCoins attempts to send amt satoshis from the internal mining node to the
+// sendCoins attempts to send amt atoms from the internal mining node to the
 // targeted lightning node. The confirmed boolean indicates whether the
 // transaction that pays to the target should confirm.
 func (n *NetworkHarness) sendCoins(ctx context.Context, amt dcrutil.Amount,

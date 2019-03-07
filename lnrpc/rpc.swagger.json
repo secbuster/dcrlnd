@@ -34,7 +34,7 @@
     },
     "/v1/balance/channels": {
       "get": {
-        "summary": "* lncli: `channelbalance`\nChannelBalance returns the total funds available across all open channels\nin satoshis.",
+        "summary": "* lncli: `channelbalance`\nChannelBalance returns the total funds available across all open channels\nin atoms.",
         "operationId": "ChannelBalance",
         "responses": {
           "200": {
@@ -538,7 +538,7 @@
     },
     "/v1/graph/routes/{pub_key}/{amt}": {
       "get": {
-        "summary": "* lncli: `queryroutes`\nQueryRoutes attempts to query the daemon's Channel Router for a possible\nroute to a target destination capable of carrying a specific amount of\nsatoshis. The retuned route contains the full details required to craft and\nsend an HTLC, also including the necessary information that should be\npresent within the Sphinx packet encapsulated within the HTLC.",
+        "summary": "* lncli: `queryroutes`\nQueryRoutes attempts to query the daemon's Channel Router for a possible\nroute to a target destination capable of carrying a specific amount of\natoms. The retuned route contains the full details required to craft and\nsend an HTLC, also including the necessary information that should be\npresent within the Sphinx packet encapsulated within the HTLC.",
         "operationId": "QueryRoutes",
         "responses": {
           "200": {
@@ -580,7 +580,7 @@
           },
           {
             "name": "fee_limit.fixed",
-            "description": "/ The fee limit expressed as a fixed amount of satoshis.",
+            "description": "/ The fee limit expressed as a fixed amount of atoms.",
             "in": "query",
             "required": false,
             "type": "string",
@@ -1001,7 +1001,7 @@
         ]
       },
       "post": {
-        "summary": "* lncli: `sendcoins`\nSendCoins executes a request to send coins to a particular address. Unlike\nSendMany, this RPC call only allows creating a single output at a time. If\nneither target_conf, or sat_per_byte are set, then the internal wallet will\nconsult its fee model to determine a fee for the default confirmation\ntarget.",
+        "summary": "* lncli: `sendcoins`\nSendCoins executes a request to send coins to a particular address. Unlike\nSendMany, this RPC call only allows creating a single output at a time. If\nneither target_conf, or atoms_per_byte are set, then the internal wallet will\nconsult its fee model to determine a fee for the default confirmation\ntarget.",
         "operationId": "SendCoins",
         "responses": {
           "200": {
@@ -1164,7 +1164,7 @@
         "limbo_balance": {
           "type": "string",
           "format": "int64",
-          "title": "/ The balance in satoshis encumbered in this pending channel"
+          "title": "/ The balance in atoms encumbered in this pending channel"
         },
         "maturity_height": {
           "type": "integer",
@@ -1237,7 +1237,7 @@
         "fee_per_kw": {
           "type": "string",
           "format": "int64",
-          "description": "*\nThe required number of satoshis per kilo-weight that the requester will\npay at all times, for both the funding transaction and commitment\ntransaction. This value can later be updated once the channel is open."
+          "description": "*\nThe required number of atoms per kilo-weight that the requester will\npay at all times, for both the funding transaction and commitment\ntransaction. This value can later be updated once the channel is open."
         }
       }
     },
@@ -1251,7 +1251,7 @@
         "limbo_balance": {
           "type": "string",
           "format": "int64",
-          "title": "/ The balance in satoshis encumbered in this channel"
+          "title": "/ The balance in atoms encumbered in this channel"
         }
       }
     },
@@ -1368,22 +1368,22 @@
         "fee_per_kw": {
           "type": "string",
           "format": "int64",
-          "description": "*\nThe required number of satoshis per kilo-weight that the requester will pay\nat all times, for both the funding transaction and commitment transaction.\nThis value can later be updated once the channel is open."
+          "description": "*\nThe required number of atoms per kilo-weight that the requester will pay\nat all times, for both the funding transaction and commitment transaction.\nThis value can later be updated once the channel is open."
         },
         "unsettled_balance": {
           "type": "string",
           "format": "int64",
           "title": "/ The unsettled balance in this channel"
         },
-        "total_satoshis_sent": {
+        "total_atoms_sent": {
           "type": "string",
           "format": "int64",
-          "description": "*\nThe total number of satoshis we've sent within this channel."
+          "description": "*\nThe total number of atoms we've sent within this channel."
         },
-        "total_satoshis_received": {
+        "total_atoms_received": {
           "type": "string",
           "format": "int64",
-          "description": "*\nThe total number of satoshis we've received within this channel."
+          "description": "*\nThe total number of atoms we've received within this channel."
         },
         "num_updates": {
           "type": "string",
@@ -1415,12 +1415,12 @@
         "balance": {
           "type": "string",
           "format": "int64",
-          "title": "/ Sum of channels balances denominated in satoshis"
+          "title": "/ Sum of channels balances denominated in atoms"
         },
         "pending_open_balance": {
           "type": "string",
           "format": "int64",
-          "title": "/ Sum of channels pending balances denominated in satoshis"
+          "title": "/ Sum of channels pending balances denominated in atoms"
         }
       }
     },
@@ -1554,7 +1554,7 @@
           "type": "string",
           "description": "/ The channel that this fee report belongs to."
         },
-        "base_fee_mat": {
+        "base_fee_m_atoms": {
           "type": "string",
           "format": "int64",
           "description": "/ The base fee charged regardless of the number of milli-atoms sent."
@@ -1562,7 +1562,7 @@
         "fee_per_mil": {
           "type": "string",
           "format": "int64",
-          "description": "/ The amount charged per milli-atoms transferred expressed in millionths of a satoshi."
+          "description": "/ The amount charged per milli-atoms transferred expressed in millionths of a atom."
         },
         "fee_rate": {
           "type": "number",
@@ -1698,7 +1698,7 @@
         "fixed": {
           "type": "string",
           "format": "int64",
-          "description": "/ The fee limit expressed as a fixed amount of satoshis."
+          "description": "/ The fee limit expressed as a fixed amount of atoms."
         },
         "percent": {
           "type": "string",
@@ -1720,17 +1720,17 @@
         "day_fee_sum": {
           "type": "string",
           "format": "uint64",
-          "description": "/ The total amount of fee revenue (in satoshis) the switch has collected over the past 24 hrs."
+          "description": "/ The total amount of fee revenue (in atoms) the switch has collected over the past 24 hrs."
         },
         "week_fee_sum": {
           "type": "string",
           "format": "uint64",
-          "description": "/ The total amount of fee revenue (in satoshis) the switch has collected over the past 1 week."
+          "description": "/ The total amount of fee revenue (in atoms) the switch has collected over the past 1 week."
         },
         "month_fee_sum": {
           "type": "string",
           "format": "uint64",
-          "description": "/ The total amount of fee revenue (in satoshis) the switch has collected over the past 1 month."
+          "description": "/ The total amount of fee revenue (in atoms) the switch has collected over the past 1 month."
         }
       }
     },
@@ -1755,19 +1755,19 @@
         "amt_in": {
           "type": "string",
           "format": "uint64",
-          "description": "/ The total amount (in satoshis) of the incoming HTLC that created half the circuit."
+          "description": "/ The total amount (in atoms) of the incoming HTLC that created half the circuit."
         },
         "amt_out": {
           "type": "string",
           "format": "uint64",
-          "description": "/ The total amount (in satoshis) of the outgoing HTLC that created the second half of the circuit."
+          "description": "/ The total amount (in atoms) of the outgoing HTLC that created the second half of the circuit."
         },
         "fee": {
           "type": "string",
           "format": "uint64",
-          "description": "/ The total fee (in satoshis) that this payment circuit carried."
+          "description": "/ The total fee (in atoms) that this payment circuit carried."
         },
-        "fee_mat": {
+        "fee_m_atoms": {
           "type": "string",
           "format": "uint64",
           "description": "/ The total fee (in milli-atoms) that this payment circuit carried."
@@ -1976,11 +1976,11 @@
           "type": "integer",
           "format": "int64"
         },
-        "amt_to_forward_mat": {
+        "amt_to_forward_m_atoms": {
           "type": "string",
           "format": "int64"
         },
-        "fee_mat": {
+        "fee_m_atoms": {
           "type": "string",
           "format": "int64"
         },
@@ -2002,7 +2002,7 @@
           "format": "uint64",
           "description": "/ The unique identifier of the channel."
         },
-        "fee_base_mat": {
+        "fee_base_m_atoms": {
           "type": "integer",
           "format": "int64",
           "description": "/ The base fee of the channel denominated in MilliAtoms."
@@ -2010,7 +2010,7 @@
         "fee_proportional_millionths": {
           "type": "integer",
           "format": "int64",
-          "description": "*\nThe fee rate of the channel for sending one satoshi across it denominated in\nmillionths of a satoshi."
+          "description": "*\nThe fee rate of the channel for sending one atom across it denominated in\nmillionths of a atom."
         },
         "cltv_expiry_delta": {
           "type": "integer",
@@ -2074,7 +2074,7 @@
         "value": {
           "type": "string",
           "format": "int64",
-          "title": "/ The value of this invoice in satoshis"
+          "title": "/ The value of this invoice in atoms"
         },
         "settled": {
           "type": "boolean",
@@ -2139,14 +2139,14 @@
         "amt_paid": {
           "type": "string",
           "format": "int64",
-          "description": "/ Deprecated, use amt_paid_sat or amt_paid_mat."
+          "description": "/ Deprecated, use amt_paid_atoms or amt_paid_m_atoms."
         },
-        "amt_paid_sat": {
+        "amt_paid_atoms": {
           "type": "string",
           "format": "int64",
-          "description": "*\nThe amount that was accepted for this invoice, in satoshis. This will ONLY\nbe set if this invoice has been settled. We provide this field as if the\ninvoice was created with a zero value, then we need to record what amount\nwas ultimately accepted. Additionally, it's possible that the sender paid\nMORE that was specified in the original invoice. So we'll record that here\nas well."
+          "description": "*\nThe amount that was accepted for this invoice, in atoms. This will ONLY\nbe set if this invoice has been settled. We provide this field as if the\ninvoice was created with a zero value, then we need to record what amount\nwas ultimately accepted. Additionally, it's possible that the sender paid\nMORE that was specified in the original invoice. So we'll record that here\nas well."
         },
-        "amt_paid_mat": {
+        "amt_paid_m_atoms": {
           "type": "string",
           "format": "int64",
           "description": "*\nThe amount that was accepted for this invoice, in MilliAtoms. This will\nONLY be set if this invoice has been settled. We provide this field as if\nthe invoice was created with a zero value, then we need to record what\namount was ultimately accepted. Additionally, it's possible that the sender\npaid MORE that was specified in the original invoice. So we'll record that\nhere as well."
@@ -2379,29 +2379,29 @@
         "local_funding_amount": {
           "type": "string",
           "format": "int64",
-          "title": "/ The number of satoshis the wallet should commit to the channel"
+          "title": "/ The number of atoms the wallet should commit to the channel"
         },
-        "push_sat": {
+        "push_atoms": {
           "type": "string",
           "format": "int64",
-          "title": "/ The number of satoshis to push to the remote side as part of the initial commitment state"
+          "title": "/ The number of atoms to push to the remote side as part of the initial commitment state"
         },
         "target_conf": {
           "type": "integer",
           "format": "int32",
           "description": "/ The target number of blocks that the funding transaction should be confirmed by."
         },
-        "sat_per_byte": {
+        "atoms_per_byte": {
           "type": "string",
           "format": "int64",
-          "description": "/ A manual fee rate set in sat/byte that should be used when crafting the funding transaction."
+          "description": "/ A manual fee rate set in atom/byte that should be used when crafting the funding transaction."
         },
         "private": {
           "type": "boolean",
           "format": "boolean",
           "description": "/ Whether this channel should be private, not announced to the greater network."
         },
-        "min_htlc_msat": {
+        "min_htlc_m_atoms": {
           "type": "string",
           "format": "int64",
           "description": "/ The minimum value in MilliAtom we will require for incoming HTLCs on the channel."
@@ -2443,7 +2443,7 @@
         "payment_hash": {
           "type": "string"
         },
-        "num_satoshis": {
+        "num_atoms": {
           "type": "string",
           "format": "int64"
         },
@@ -2486,7 +2486,7 @@
         "value": {
           "type": "string",
           "format": "int64",
-          "description": "/ Deprecated, use value_sat or value_mat."
+          "description": "/ Deprecated, use value_atoms or value_m_atoms."
         },
         "creation_date": {
           "type": "string",
@@ -2503,18 +2503,18 @@
         "fee": {
           "type": "string",
           "format": "int64",
-          "title": "/ The fee paid for this payment in satoshis"
+          "title": "/ The fee paid for this payment in atoms"
         },
         "payment_preimage": {
           "type": "string",
           "title": "/ The payment preimage"
         },
-        "value_sat": {
+        "value_atoms": {
           "type": "string",
           "format": "int64",
-          "title": "/ The value of the payment in satoshis"
+          "title": "/ The value of the payment in atoms"
         },
-        "value_mat": {
+        "value_m_atoms": {
           "type": "string",
           "format": "int64",
           "title": "/ The value of the payment in milli-atoms"
@@ -2542,15 +2542,15 @@
           "format": "uint64",
           "title": "/ Bytes of data transmitted from this peer"
         },
-        "sat_sent": {
+        "atoms_sent": {
           "type": "string",
           "format": "int64",
-          "title": "/ Satoshis sent to this peer"
+          "title": "/ Atoms sent to this peer"
         },
-        "sat_recv": {
+        "atoms_recv": {
           "type": "string",
           "format": "int64",
-          "title": "/ Satoshis received from this peer"
+          "title": "/ Atoms received from this peer"
         },
         "inbound": {
           "type": "boolean",
@@ -2570,7 +2570,7 @@
         "total_limbo_balance": {
           "type": "string",
           "format": "int64",
-          "title": "/ The balance in satoshis encumbered in pending channels"
+          "title": "/ The balance in atoms encumbered in pending channels"
         },
         "pending_open_channels": {
           "type": "array",
@@ -2661,7 +2661,7 @@
           "$ref": "#/definitions/lnrpcChannelPoint",
           "description": "/ If set, this update will target a specific channel."
         },
-        "base_fee_mat": {
+        "base_fee_m_atoms": {
           "type": "string",
           "format": "int64",
           "description": "/ The base fee charged regardless of the number of milli-atoms sent."
@@ -2708,7 +2708,7 @@
         "total_amt": {
           "type": "string",
           "format": "int64",
-          "description": "*\nThe total amount of funds required to complete a payment over this route.\nThis value includes the cumulative fees at each hop. As a result, the HTLC\nextended to the first-hop in the route will need to have at least this many\nsatoshis, otherwise the route will fail at an intermediate node due to an\ninsufficient amount of fees."
+          "description": "*\nThe total amount of funds required to complete a payment over this route.\nThis value includes the cumulative fees at each hop. As a result, the HTLC\nextended to the first-hop in the route will need to have at least this many\natoms, otherwise the route will fail at an intermediate node due to an\ninsufficient amount of fees."
         },
         "hops": {
           "type": "array",
@@ -2717,12 +2717,12 @@
           },
           "description": "*\nContains details concerning the specific forwarding details at each hop."
         },
-        "total_fees_mat": {
+        "total_fees_m_atoms": {
           "type": "string",
           "format": "int64",
           "description": "*\nThe total fees in MilliAtoms."
         },
-        "total_amt_mat": {
+        "total_amt_m_atoms": {
           "type": "string",
           "format": "int64",
           "description": "*\nThe total amount in MilliAtoms."
@@ -2753,11 +2753,11 @@
           "type": "string",
           "format": "int64"
         },
-        "fee_base_mat": {
+        "fee_base_m_atoms": {
           "type": "string",
           "format": "int64"
         },
-        "fee_rate_milli_mat": {
+        "fee_rate_milli_m_atoms": {
           "type": "string",
           "format": "int64"
         },
@@ -2777,17 +2777,17 @@
         "amount": {
           "type": "string",
           "format": "int64",
-          "title": "/ The amount in satoshis to send"
+          "title": "/ The amount in atoms to send"
         },
         "target_conf": {
           "type": "integer",
           "format": "int32",
           "description": "/ The target number of blocks that this transaction should be confirmed by."
         },
-        "sat_per_byte": {
+        "atoms_per_byte": {
           "type": "string",
           "format": "int64",
-          "description": "/ A manual fee rate set in sat/byte that should be used when crafting the transaction."
+          "description": "/ A manual fee rate set in atom/byte that should be used when crafting the transaction."
         }
       }
     },
@@ -2824,7 +2824,7 @@
         "amt": {
           "type": "string",
           "format": "int64",
-          "description": "/ Number of satoshis to send."
+          "description": "/ Number of atoms to send."
         },
         "payment_hash": {
           "type": "string",
@@ -2846,7 +2846,7 @@
         },
         "fee_limit": {
           "$ref": "#/definitions/lnrpcFeeLimit",
-          "description": "*\nThe maximum number of satoshis that will be paid as a fee of the payment.\nThis value can be represented either as a percentage of the amount being\nsent, or as a fixed amount of the maximum fee the user is willing the pay to\nsend the payment."
+          "description": "*\nThe maximum number of atoms that will be paid as a fee of the payment.\nThis value can be represented either as a percentage of the amount being\nsent, or as a fixed amount of the maximum fee the user is willing the pay to\nsend the payment."
         }
       }
     },
@@ -2922,7 +2922,7 @@
         "amount": {
           "type": "string",
           "format": "int64",
-          "title": "/ The transaction amount, denominated in satoshis"
+          "title": "/ The transaction amount, denominated in atoms"
         },
         "num_confirmations": {
           "type": "integer",
@@ -2998,10 +2998,10 @@
           "type": "string",
           "title": "/ The address"
         },
-        "amount_sat": {
+        "amount_atoms": {
           "type": "string",
           "format": "int64",
-          "title": "/ The value of the unspent coin in satoshis"
+          "title": "/ The value of the unspent coin in atoms"
         },
         "script_pubkey": {
           "type": "string",

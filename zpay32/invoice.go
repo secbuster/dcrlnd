@@ -856,7 +856,7 @@ func parseRouteHint(data []byte) ([]routing.HopHint, error) {
 			return nil, err
 		}
 		hopHint.ChannelID = binary.BigEndian.Uint64(base256Data[33:41])
-		hopHint.FeeBaseMAt = binary.BigEndian.Uint32(base256Data[41:45])
+		hopHint.FeeBaseMAtoms = binary.BigEndian.Uint32(base256Data[41:45])
 		hopHint.FeeProportionalMillionths = binary.BigEndian.Uint32(base256Data[45:49])
 		hopHint.CLTVExpiryDelta = binary.BigEndian.Uint16(base256Data[49:51])
 
@@ -972,7 +972,7 @@ func writeTaggedFields(bufferBase32 *bytes.Buffer, invoice *Invoice) error {
 				hopHintBase256[33:41], hopHint.ChannelID,
 			)
 			binary.BigEndian.PutUint32(
-				hopHintBase256[41:45], hopHint.FeeBaseMAt,
+				hopHintBase256[41:45], hopHint.FeeBaseMAtoms,
 			)
 			binary.BigEndian.PutUint32(
 				hopHintBase256[45:49], hopHint.FeeProportionalMillionths,

@@ -213,8 +213,8 @@ func (m *missionControl) NewPaymentSession(routeHints [][]HopHint,
 			edge := &channeldb.ChannelEdgePolicy{
 				Node:      endNode,
 				ChannelID: hopHint.ChannelID,
-				FeeBaseMAt: lnwire.MilliAtom(
-					hopHint.FeeBaseMAt,
+				FeeBaseMAtoms: lnwire.MilliAtom(
+					hopHint.FeeBaseMAtoms,
 				),
 				FeeProportionalMillionths: lnwire.MilliAtom(
 					hopHint.FeeProportionalMillionths,

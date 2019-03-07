@@ -1048,7 +1048,7 @@ func (f *fundingManager) handleFundingOpen(fmsg *fundingOpenMsg) {
 		Capacity:        amt,
 		CommitFeePerKw:  lnwallet.AtomPerKByte(msg.FeePerKiloWeight),
 		FundingFeePerKw: 0,
-		PushMAt:         msg.PushAmount,
+		PushMAtoms:      msg.PushAmount,
 		Flags:           msg.ChannelFlags,
 		MinConfs:        1,
 	}
@@ -2445,8 +2445,8 @@ func (f *fundingManager) newChanAnnouncement(localPubKey, remotePubKey,
 	if bytes.Compare(selfBytes, remoteBytes) == -1 {
 		copy(chanAnn.NodeID1[:], localPubKey.SerializeCompressed())
 		copy(chanAnn.NodeID2[:], remotePubKey.SerializeCompressed())
-		copy(chanAnn.BitcoinKey1[:], localFundingKey.SerializeCompressed())
-		copy(chanAnn.BitcoinKey2[:], remoteFundingKey.SerializeCompressed())
+		copy(chanAnn.DecredKey1[:], localFundingKey.SerializeCompressed())
+		copy(chanAnn.DecredKey2[:], remoteFundingKey.SerializeCompressed())
 
 		// If we're the first node then update the chanFlags to
 		// indicate the "direction" of the update.
@@ -2454,8 +2454,8 @@ func (f *fundingManager) newChanAnnouncement(localPubKey, remotePubKey,
 	} else {
 		copy(chanAnn.NodeID1[:], remotePubKey.SerializeCompressed())
 		copy(chanAnn.NodeID2[:], localPubKey.SerializeCompressed())
-		copy(chanAnn.BitcoinKey1[:], remoteFundingKey.SerializeCompressed())
-		copy(chanAnn.BitcoinKey2[:], localFundingKey.SerializeCompressed())
+		copy(chanAnn.DecredKey1[:], remoteFundingKey.SerializeCompressed())
+		copy(chanAnn.DecredKey2[:], localFundingKey.SerializeCompressed())
 
 		// If we're the second node then update the chanFlags to
 		// indicate the "direction" of the update.
@@ -2471,10 +2471,10 @@ func (f *fundingManager) newChanAnnouncement(localPubKey, remotePubKey,
 		Flags:          chanFlags,
 		TimeLockDelta:  uint16(f.cfg.DefaultRoutingPolicy.TimeLockDelta),
 
-		// We use the HtlcMinimumMAt that the remote party required us
+		// We use the HtlcMinimumMAtoms that the remote party required us
 		// to use, as our ChannelUpdate will be used to carry HTLCs
 		// towards them.
-		HtlcMinimumMAt: fwdMinHTLC,
+		HtlcMinimumMAtoms: fwdMinHTLC,
 
 		BaseFee: uint32(f.cfg.DefaultRoutingPolicy.BaseFee),
 		FeeRate: uint32(f.cfg.DefaultRoutingPolicy.FeeRate),
@@ -2515,7 +2515,7 @@ func (f *fundingManager) newChanAnnouncement(localPubKey, remotePubKey,
 		return nil, errors.Errorf("unable to generate node "+
 			"signature for channel announcement: %v", err)
 	}
-	bitcoinSig, err := f.cfg.SignMessage(localFundingKey, chanAnnMsg)
+	decredSig, err := f.cfg.SignMessage(localFundingKey, chanAnnMsg)
 	if err != nil {
 		return nil, errors.Errorf("unable to generate bitcoin "+
 			"signature for node public key: %v", err)
@@ -2532,7 +2532,7 @@ func (f *fundingManager) newChanAnnouncement(localPubKey, remotePubKey,
 	if err != nil {
 		return nil, err
 	}
-	proof.BitcoinSignature, err = lnwire.NewSigFromSignature(bitcoinSig)
+	proof.DecredSignature, err = lnwire.NewSigFromSignature(decredSig)
 	if err != nil {
 		return nil, err
 	}
@@ -2687,7 +2687,7 @@ func (f *fundingManager) handleInitFundingMsg(msg *initFundingMsg) {
 		Capacity:        capacity,
 		CommitFeePerKw:  commitFeePerKB,
 		FundingFeePerKw: msg.fundingFeePerKw,
-		PushMAt:         msg.pushAmt,
+		PushMAtoms:      msg.pushAmt,
 		Flags:           channelFlags,
 		MinConfs:        msg.minConfs,
 	}
@@ -2702,7 +2702,7 @@ func (f *fundingManager) handleInitFundingMsg(msg *initFundingMsg) {
 	// reservation throughout its lifetime.
 	chanID := f.nextPendingChanID()
 
-	fndgLog.Infof("Target commit tx sat/kw for pendingID(%x): %v", chanID,
+	fndgLog.Infof("Target commit tx atom/kw for pendingID(%x): %v", chanID,
 		int64(commitFeePerKB))
 
 	// If the remote CSV delay was not set in the open channel request,

@@ -60,7 +60,7 @@ $ docker logs lnd-testnet
 2018-05-01 02:28:01.201 [INF] LTND: Waiting for chain backend to finish sync, start_height=2546
 2018-05-01 02:28:01.201 [INF] RPCS: gRPC proxy started at 127.0.0.1:8080
 2018-05-01 02:28:08.999 [INF] LNWL: Caught up to height 10000
-2018-05-01 02:28:09.872 [INF] BTCN: Processed 10547 blocks in the last 10.23s (height 10547, 2012-05-28 05:02:32 +0000 UTC)
+2018-05-01 02:28:09.872 [INF] DCRN: Processed 10547 blocks in the last 10.23s (height 10547, 2012-05-28 05:02:32 +0000 UTC)
 ```
 
 This is a simple example, it is possible to use any command-line options necessary

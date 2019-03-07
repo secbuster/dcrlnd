@@ -129,14 +129,14 @@ func TestDecodeAmount(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		sat, err := decodeAmount(test.amount)
+		at, err := decodeAmount(test.amount)
 		if (err == nil) != test.valid {
 			t.Errorf("amount decoding test %d failed: %v", i, err)
 			return
 		}
-		if test.valid && sat != test.result {
+		if test.valid && at != test.result {
 			t.Fatalf("test %d failed decoding amount, expected %v, "+
-				"got %v", i, test.result, sat)
+				"got %v", i, test.result, at)
 		}
 	}
 }
@@ -698,7 +698,7 @@ func TestParseRouteHint(t *testing.T) {
 		base256 := make([]byte, 51)
 		copy(base256[:33], r.NodeID.SerializeCompressed())
 		binary.BigEndian.PutUint64(base256[33:41], r.ChannelID)
-		binary.BigEndian.PutUint32(base256[41:45], r.FeeBaseMAt)
+		binary.BigEndian.PutUint32(base256[41:45], r.FeeBaseMAtoms)
 		binary.BigEndian.PutUint32(base256[45:49], r.FeeProportionalMillionths)
 		binary.BigEndian.PutUint16(base256[49:51], r.CLTVExpiryDelta)
 		testSingleHopData = append(testSingleHopData, base256...)
@@ -710,7 +710,7 @@ func TestParseRouteHint(t *testing.T) {
 		base256 := make([]byte, 51)
 		copy(base256[:33], r.NodeID.SerializeCompressed())
 		binary.BigEndian.PutUint64(base256[33:41], r.ChannelID)
-		binary.BigEndian.PutUint32(base256[41:45], r.FeeBaseMAt)
+		binary.BigEndian.PutUint32(base256[41:45], r.FeeBaseMAtoms)
 		binary.BigEndian.PutUint32(base256[45:49], r.FeeProportionalMillionths)
 		binary.BigEndian.PutUint16(base256[49:51], r.CLTVExpiryDelta)
 		testDoubleHopData = append(testDoubleHopData, base256...)

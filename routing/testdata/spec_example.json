@@ -31,7 +31,7 @@
             "flags": 1,
             "expiry": 10,
             "min_htlc": 1,
-            "fee_base_mat": 100,
+            "fee_base_m_atoms": 100,
             "fee_rate": 1000,
             "capacity": 100000
         },
@@ -44,7 +44,7 @@
             "flags": 0,
             "expiry": 20,
             "min_htlc": 1,
-            "fee_base_mat": 200,
+            "fee_base_m_atoms": 200,
             "fee_rate": 2000,
             "capacity": 100000
         },
@@ -57,7 +57,7 @@
             "flags": 1,
             "expiry": 10,
             "min_htlc": 1,
-            "fee_base_mat": 100,
+            "fee_base_m_atoms": 100,
             "fee_rate": 1000,
             "capacity": 100000
         },
@@ -70,7 +70,7 @@
             "flags": 0,
             "expiry": 40,
             "min_htlc": 1,
-            "fee_base_mat": 400,
+            "fee_base_m_atoms": 400,
             "fee_rate": 4000,
             "capacity": 100000
         },
@@ -83,7 +83,7 @@
             "flags": 0,
             "expiry": 40,
             "min_htlc": 1,
-            "fee_base_mat": 400,
+            "fee_base_m_atoms": 400,
             "fee_rate": 4000,
             "capacity": 100000
         },
@@ -96,7 +96,7 @@
             "flags": 1,
             "expiry": 30,
             "min_htlc": 1,
-            "fee_base_mat": 300,
+            "fee_base_m_atoms": 300,
             "fee_rate": 3000,
             "capacity": 100000
         },
@@ -109,7 +109,7 @@
             "flags": 1,
             "expiry": 30,
             "min_htlc": 1,
-            "fee_base_mat": 300,
+            "fee_base_m_atoms": 300,
             "fee_rate": 3000,
             "capacity": 100000
         },
@@ -122,7 +122,7 @@
             "flags": 0,
             "expiry": 20,
             "min_htlc": 1,
-            "fee_base_mat": 200,
+            "fee_base_m_atoms": 200,
             "fee_rate": 2000,
             "capacity": 100000
         }

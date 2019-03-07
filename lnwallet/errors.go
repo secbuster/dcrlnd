@@ -44,8 +44,8 @@ func ErrChainMismatch(knownChain,
 func ErrFunderBalanceDust(commitFee, funderBalance,
 	minBalance int64) ReservationError {
 	return ReservationError{
-		fmt.Errorf("Funder balance too small (%v) with fee=%v sat, "+
-			"minimum=%v sat required", funderBalance,
+		fmt.Errorf("Funder balance too small (%v) with fee=%v atoms, "+
+			"minimum=%v atoms required", funderBalance,
 			commitFee, minBalance),
 	}
 }
@@ -63,8 +63,8 @@ func ErrCsvDelayTooLarge(remoteDelay, maxDelay uint16) ReservationError {
 // the remote is requiring is too small to be accepted.
 func ErrChanReserveTooSmall(reserve, dustLimit dcrutil.Amount) ReservationError {
 	return ReservationError{
-		fmt.Errorf("channel reserve of %v sat is too small, min is %v "+
-			"sat", int64(reserve), int64(dustLimit)),
+		fmt.Errorf("channel reserve of %v atoms is too small, min is %v "+
+			"atoms", int64(reserve), int64(dustLimit)),
 	}
 }
 
@@ -73,8 +73,8 @@ func ErrChanReserveTooSmall(reserve, dustLimit dcrutil.Amount) ReservationError 
 func ErrChanReserveTooLarge(reserve,
 	maxReserve dcrutil.Amount) ReservationError {
 	return ReservationError{
-		fmt.Errorf("Channel reserve is too large: %v sat, max "+
-			"is %v sat", int64(reserve), int64(maxReserve)),
+		fmt.Errorf("Channel reserve is too large: %v atoms, max "+
+			"is %v atoms", int64(reserve), int64(maxReserve)),
 	}
 }
 

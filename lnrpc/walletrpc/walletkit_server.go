@@ -300,7 +300,7 @@ func (w *WalletKit) SendOutputs(ctx context.Context,
 	// Now that we have the outputs mapped, we can request that the wallet
 	// attempt to create this transaction.
 	tx, err := w.cfg.Wallet.SendOutputs(
-		outputsToCreate, lnwallet.AtomPerKByte(req.SatPerKw),
+		outputsToCreate, lnwallet.AtomPerKByte(req.AtPerKw),
 	)
 	if err != nil {
 		return nil, err
@@ -317,7 +317,7 @@ func (w *WalletKit) SendOutputs(ctx context.Context,
 }
 
 // EstimateFee attempts to query the internal fee estimator of the wallet to
-// determine the fee (in sat/kw) to attach to a transaction in order to achieve
+// determine the fee (in atom/kw) to attach to a transaction in order to achieve
 // the confirmation target.
 func (w *WalletKit) EstimateFee(ctx context.Context,
 	req *EstimateFeeRequest) (*EstimateFeeResponse, error) {
@@ -330,7 +330,7 @@ func (w *WalletKit) EstimateFee(ctx context.Context,
 			"than 1")
 	}
 
-	satPerKw, err := w.cfg.FeeEstimator.EstimateFeePerKW(
+	atPerKw, err := w.cfg.FeeEstimator.EstimateFeePerKW(
 		uint32(req.ConfTarget),
 	)
 	if err != nil {
@@ -338,6 +338,6 @@ func (w *WalletKit) EstimateFee(ctx context.Context,
 	}
 
 	return &EstimateFeeResponse{
-		SatPerKw: int64(satPerKw),
+		atomPerKw: int64(atPerKw),
 	}, nil
 }

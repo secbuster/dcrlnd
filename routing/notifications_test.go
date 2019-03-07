@@ -77,7 +77,7 @@ func randEdgePolicy(chanID *lnwire.ShortChannelID,
 		LastUpdate:                time.Unix(int64(prand.Int31()), 0),
 		TimeLockDelta:             uint16(prand.Int63()),
 		MinHTLC:                   lnwire.MilliAtom(prand.Int31()),
-		FeeBaseMAt:                lnwire.MilliAtom(prand.Int31()),
+		FeeBaseMAtoms:                lnwire.MilliAtom(prand.Int31()),
 		FeeProportionalMillionths: lnwire.MilliAtom(prand.Int31()),
 		Node:                      node,
 	}
@@ -383,12 +383,12 @@ func TestEdgeUpdateNotification(t *testing.T) {
 		AuthProof: &channeldb.ChannelAuthProof{
 			NodeSig1Bytes:    testSig.Serialize(),
 			NodeSig2Bytes:    testSig.Serialize(),
-			BitcoinSig1Bytes: testSig.Serialize(),
-			BitcoinSig2Bytes: testSig.Serialize(),
+			DecredSig1Bytes: testSig.Serialize(),
+			DecredSig2Bytes: testSig.Serialize(),
 		},
 	}
-	copy(edge.BitcoinKey1Bytes[:], bitcoinKey1.SerializeCompressed())
-	copy(edge.BitcoinKey2Bytes[:], bitcoinKey2.SerializeCompressed())
+	copy(edge.DecredKey1Bytes[:], bitcoinKey1.SerializeCompressed())
+	copy(edge.DecredKey2Bytes[:], bitcoinKey2.SerializeCompressed())
 
 	if err := ctx.router.AddEdge(edge); err != nil {
 		t.Fatalf("unable to add edge: %v", err)
@@ -436,9 +436,9 @@ func TestEdgeUpdateNotification(t *testing.T) {
 				"expected %v, got %v", edgeAnn.MinHTLC,
 				edgeUpdate.MinHTLC)
 		}
-		if edgeUpdate.BaseFee != edgeAnn.FeeBaseMAt {
+		if edgeUpdate.BaseFee != edgeAnn.FeeBaseMAtoms {
 			t.Fatalf("base fee of edge doesn't match: "+
-				"expected %v, got %v", edgeAnn.FeeBaseMAt,
+				"expected %v, got %v", edgeAnn.FeeBaseMAtoms,
 				edgeUpdate.BaseFee)
 		}
 		if edgeUpdate.FeeRate != edgeAnn.FeeProportionalMillionths {
@@ -573,12 +573,12 @@ func TestNodeUpdateNotification(t *testing.T) {
 		AuthProof: &channeldb.ChannelAuthProof{
 			NodeSig1Bytes:    testSig.Serialize(),
 			NodeSig2Bytes:    testSig.Serialize(),
-			BitcoinSig1Bytes: testSig.Serialize(),
-			BitcoinSig2Bytes: testSig.Serialize(),
+			DecredSig1Bytes: testSig.Serialize(),
+			DecredSig2Bytes: testSig.Serialize(),
 		},
 	}
-	copy(edge.BitcoinKey1Bytes[:], bitcoinKey1.SerializeCompressed())
-	copy(edge.BitcoinKey2Bytes[:], bitcoinKey2.SerializeCompressed())
+	copy(edge.DecredKey1Bytes[:], bitcoinKey1.SerializeCompressed())
+	copy(edge.DecredKey2Bytes[:], bitcoinKey2.SerializeCompressed())
 
 	// Adding the edge will add the nodes to the graph, but with no info
 	// except the pubkey known.
@@ -761,12 +761,12 @@ func TestNotificationCancellation(t *testing.T) {
 		AuthProof: &channeldb.ChannelAuthProof{
 			NodeSig1Bytes:    testSig.Serialize(),
 			NodeSig2Bytes:    testSig.Serialize(),
-			BitcoinSig1Bytes: testSig.Serialize(),
-			BitcoinSig2Bytes: testSig.Serialize(),
+			DecredSig1Bytes: testSig.Serialize(),
+			DecredSig2Bytes: testSig.Serialize(),
 		},
 	}
-	copy(edge.BitcoinKey1Bytes[:], bitcoinKey1.SerializeCompressed())
-	copy(edge.BitcoinKey2Bytes[:], bitcoinKey2.SerializeCompressed())
+	copy(edge.DecredKey1Bytes[:], bitcoinKey1.SerializeCompressed())
+	copy(edge.DecredKey2Bytes[:], bitcoinKey2.SerializeCompressed())
 	if err := ctx.router.AddEdge(edge); err != nil {
 		t.Fatalf("unable to add edge: %v", err)
 	}
@@ -842,12 +842,12 @@ func TestChannelCloseNotification(t *testing.T) {
 		AuthProof: &channeldb.ChannelAuthProof{
 			NodeSig1Bytes:    testSig.Serialize(),
 			NodeSig2Bytes:    testSig.Serialize(),
-			BitcoinSig1Bytes: testSig.Serialize(),
-			BitcoinSig2Bytes: testSig.Serialize(),
+			DecredSig1Bytes: testSig.Serialize(),
+			DecredSig2Bytes: testSig.Serialize(),
 		},
 	}
-	copy(edge.BitcoinKey1Bytes[:], bitcoinKey1.SerializeCompressed())
-	copy(edge.BitcoinKey2Bytes[:], bitcoinKey2.SerializeCompressed())
+	copy(edge.DecredKey1Bytes[:], bitcoinKey1.SerializeCompressed())
+	copy(edge.DecredKey2Bytes[:], bitcoinKey2.SerializeCompressed())
 	if err := ctx.router.AddEdge(edge); err != nil {
 		t.Fatalf("unable to add edge: %v", err)
 	}

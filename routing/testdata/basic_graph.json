@@ -2,7 +2,7 @@
     "info": [
         "This file encodes a basic graph that resembles the following ascii graph:",
         "",
-        "                           50k satoshis       ┌──────┐                                  ",
+        "                           50k atoms       ┌──────┐                                  ",
         "                         ┌───────────────────▶│luo ji│◀─┐                               ",
         "                         │                    └──────┘  │      ┌──────┐                 ",
         "                         │                              │      | elst |                 ",
@@ -14,20 +14,20 @@
         "                    ┌────────┐                          │      │sophon│◀┐               ",
         "                    │satoshi │                          │      └──────┘ │               ",
         "                    └────────┘                          │        ▲      │               ",
-        "                         ▲                              │        |      │ 110k satoshis ",
+        "                         ▲                              │        |      │ 110k atoms ",
         "                         │          ┌───────────────────┘        |      │               ",
-        "                         │          │   100k satoshis            |      │               ",
+        "                         │          │   100k atoms            |      │               ",
         "                         │          │                            |      │               ",
         "                         │          │                   120k sat |      │  ┌────────┐   ",
         "                         └──────────┤                   (hi fee) ▼      └─▶│son goku│   ",
-        "                    10k satoshis    │                ┌────────────┐        └────────┘   ",
+        "                    10k atoms    │                ┌────────────┐        └────────┘   ",
         "                                    │                | pham nuwen |             ▲       ",
         "                                    │                └────────────┘             │       ",
         "                                    │                    ▲                      │       ",
         "                                    ▼                    | 120k sat (hi fee)    │       ",
         "                              ┌──────────┐               |                      │       ",
         "                              │ roasbeef │◀──────────────┴──────────────────────┘       ",
-        "                              └──────────┘                         100k satoshis        ",
+        "                              └──────────┘                         100k atoms        ",
         " the graph also includes a channel from roasbeef to sophon via pham nuwen"
     ],
     "nodes": [
@@ -76,7 +76,7 @@
             "flags": 1,
             "expiry": 1,
             "min_htlc": 1000,
-            "fee_base_mat": 200,
+            "fee_base_m_atoms": 200,
             "fee_rate": 0,
             "capacity": 100000
         },
@@ -88,7 +88,7 @@
             "flags": 0,
             "expiry": 1,
             "min_htlc": 1000,
-            "fee_base_mat": 200,
+            "fee_base_m_atoms": 200,
             "fee_rate": 0,
             "capacity": 100000
         },
@@ -100,7 +100,7 @@
             "flags": 1,
             "expiry": 1,
             "min_htlc": 1000,
-            "fee_base_mat": 10000,
+            "fee_base_m_atoms": 10000,
             "fee_rate": 100000,
             "capacity": 120000
         },
@@ -112,7 +112,7 @@
             "flags": 0,
             "expiry": 1,
             "min_htlc": 1000,
-            "fee_base_mat": 10000,
+            "fee_base_m_atoms": 10000,
             "fee_rate": 100000,
             "capacity": 120000
         },
@@ -124,7 +124,7 @@
             "flags": 1,
             "expiry": 1,
             "min_htlc": 1000,
-            "fee_base_mat": 10000,
+            "fee_base_m_atoms": 10000,
             "fee_rate": 100000,
             "capacity": 120000
         },
@@ -136,7 +136,7 @@
             "flags": 0,
             "expiry": 1,
             "min_htlc": 1000,
-            "fee_base_mat": 10000,
+            "fee_base_m_atoms": 10000,
             "fee_rate": 100000,
             "capacity": 120000
         },
@@ -148,7 +148,7 @@
             "flags": 1,
             "expiry": 1,
             "min_htlc": 1000,
-            "fee_base_mat": 10,
+            "fee_base_m_atoms": 10,
             "fee_rate": 1000,
             "capacity": 100000
         },
@@ -160,7 +160,7 @@
             "flags": 0,
             "expiry": 1,
             "min_htlc": 1,
-            "fee_base_mat": 10,
+            "fee_base_m_atoms": 10,
             "fee_rate": 1000,
             "capacity": 100000
         },
@@ -172,7 +172,7 @@
             "flags": 0,
             "expiry": 1,
             "min_htlc": 1,
-            "fee_base_mat": 10,
+            "fee_base_m_atoms": 10,
             "fee_rate": 1000,
             "capacity": 110000
         },
@@ -184,7 +184,7 @@
             "flags": 1,
             "expiry": 1,
             "min_htlc": 1,
-            "fee_base_mat": 10,
+            "fee_base_m_atoms": 10,
             "fee_rate": 1000,
             "capacity": 110000
         },
@@ -196,7 +196,7 @@
             "flags": 0,
             "expiry": 1,
             "min_htlc": 1,
-            "fee_base_mat": 10,
+            "fee_base_m_atoms": 10,
             "fee_rate": 1000,
             "capacity": 10000
         },
@@ -208,7 +208,7 @@
             "flags": 1,
             "expiry": 1,
             "min_htlc": 1,
-            "fee_base_mat": 10,
+            "fee_base_m_atoms": 10,
             "fee_rate": 1000,
             "capacity": 10000
         },
@@ -220,7 +220,7 @@
             "flags": 1,
             "expiry": 10,
             "min_htlc": 1,
-            "fee_base_mat": 10,
+            "fee_base_m_atoms": 10,
             "fee_rate": 1000,
             "capacity": 100000
         },
@@ -232,7 +232,7 @@
             "flags": 0,
             "expiry": 1,
             "min_htlc": 1,
-            "fee_base_mat": 10,
+            "fee_base_m_atoms": 10,
             "fee_rate": 1000,
             "capacity": 100000
         },
@@ -244,7 +244,7 @@
             "flags": 0,
             "expiry": 1,
             "min_htlc": 1,
-            "fee_base_mat": 10,
+            "fee_base_m_atoms": 10,
             "fee_rate": 1000,
             "capacity": 50000
         },
@@ -256,7 +256,7 @@
             "flags": 1,
             "expiry": 1,
             "min_htlc": 1,
-            "fee_base_mat": 10,
+            "fee_base_m_atoms": 10,
             "fee_rate": 1000,
             "capacity": 50000
         }

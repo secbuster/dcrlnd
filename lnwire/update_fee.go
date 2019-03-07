@@ -13,7 +13,7 @@ type UpdateFee struct {
 	// FeePerKw is the fee-per-kw on commit transactions that the sender of
 	// this message wants to use for this channel.
 	//
-	// TODO(halseth): make SatPerKWeight when fee estimation is moved to
+	// TODO(halseth): make AtomsPerKWeight when fee estimation is moved to
 	// own package. Currently this will cause an import cycle.
 	FeePerKw uint32
 }

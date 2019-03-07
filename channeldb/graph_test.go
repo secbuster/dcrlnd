@@ -333,18 +333,18 @@ func TestEdgeInsertionDeletion(t *testing.T) {
 		ChannelID: chanID,
 		ChainHash: key,
 		AuthProof: &ChannelAuthProof{
-			NodeSig1Bytes:    testSig.Serialize(),
-			NodeSig2Bytes:    testSig.Serialize(),
-			BitcoinSig1Bytes: testSig.Serialize(),
-			BitcoinSig2Bytes: testSig.Serialize(),
+			NodeSig1Bytes:   testSig.Serialize(),
+			NodeSig2Bytes:   testSig.Serialize(),
+			DecredSig1Bytes: testSig.Serialize(),
+			DecredSig2Bytes: testSig.Serialize(),
 		},
 		ChannelPoint: outpoint,
 		Capacity:     9000,
 	}
 	copy(edgeInfo.NodeKey1Bytes[:], node1Pub.SerializeCompressed())
 	copy(edgeInfo.NodeKey2Bytes[:], node2Pub.SerializeCompressed())
-	copy(edgeInfo.BitcoinKey1Bytes[:], node1Pub.SerializeCompressed())
-	copy(edgeInfo.BitcoinKey2Bytes[:], node2Pub.SerializeCompressed())
+	copy(edgeInfo.DecredKey1Bytes[:], node1Pub.SerializeCompressed())
+	copy(edgeInfo.DecredKey2Bytes[:], node2Pub.SerializeCompressed())
 
 	if err := graph.AddChannelEdge(&edgeInfo); err != nil {
 		t.Fatalf("unable to create channel edge: %v", err)
@@ -401,10 +401,10 @@ func createEdge(height, txIndex uint32, txPosition uint16, outPointIndex uint32,
 		ChannelID: shortChanID.ToUint64(),
 		ChainHash: key,
 		AuthProof: &ChannelAuthProof{
-			NodeSig1Bytes:    testSig.Serialize(),
-			NodeSig2Bytes:    testSig.Serialize(),
-			BitcoinSig1Bytes: testSig.Serialize(),
-			BitcoinSig2Bytes: testSig.Serialize(),
+			NodeSig1Bytes:   testSig.Serialize(),
+			NodeSig2Bytes:   testSig.Serialize(),
+			DecredSig1Bytes: testSig.Serialize(),
+			DecredSig2Bytes: testSig.Serialize(),
 		},
 		ChannelPoint: outpoint,
 		Capacity:     9000,
@@ -412,8 +412,8 @@ func createEdge(height, txIndex uint32, txPosition uint16, outPointIndex uint32,
 
 	copy(edgeInfo.NodeKey1Bytes[:], node1Pub.SerializeCompressed())
 	copy(edgeInfo.NodeKey2Bytes[:], node2Pub.SerializeCompressed())
-	copy(edgeInfo.BitcoinKey1Bytes[:], node1Pub.SerializeCompressed())
-	copy(edgeInfo.BitcoinKey2Bytes[:], node2Pub.SerializeCompressed())
+	copy(edgeInfo.DecredKey1Bytes[:], node1Pub.SerializeCompressed())
+	copy(edgeInfo.DecredKey2Bytes[:], node2Pub.SerializeCompressed())
 
 	return edgeInfo, shortChanID
 }
@@ -578,10 +578,10 @@ func assertEdgeInfoEqual(t *testing.T, e1 *ChannelEdgeInfo,
 	if !bytes.Equal(e1.NodeKey2Bytes[:], e2.NodeKey2Bytes[:]) {
 		t.Fatalf("nodekey2 doesn't match")
 	}
-	if !bytes.Equal(e1.BitcoinKey1Bytes[:], e2.BitcoinKey1Bytes[:]) {
+	if !bytes.Equal(e1.DecredKey1Bytes[:], e2.DecredKey1Bytes[:]) {
 		t.Fatalf("bitcoinkey1 doesn't match")
 	}
-	if !bytes.Equal(e1.BitcoinKey2Bytes[:], e2.BitcoinKey2Bytes[:]) {
+	if !bytes.Equal(e1.DecredKey2Bytes[:], e2.DecredKey2Bytes[:]) {
 		t.Fatalf("bitcoinkey2 doesn't match")
 	}
 
@@ -598,10 +598,10 @@ func assertEdgeInfoEqual(t *testing.T, e1 *ChannelEdgeInfo,
 	if !bytes.Equal(e1.AuthProof.NodeSig2Bytes, e2.AuthProof.NodeSig2Bytes) {
 		t.Fatalf("nodesig2 doesn't match")
 	}
-	if !bytes.Equal(e1.AuthProof.BitcoinSig1Bytes, e2.AuthProof.BitcoinSig1Bytes) {
+	if !bytes.Equal(e1.AuthProof.DecredSig1Bytes, e2.AuthProof.DecredSig1Bytes) {
 		t.Fatalf("bitcoinsig1 doesn't match")
 	}
-	if !bytes.Equal(e1.AuthProof.BitcoinSig2Bytes, e2.AuthProof.BitcoinSig2Bytes) {
+	if !bytes.Equal(e1.AuthProof.DecredSig2Bytes, e2.AuthProof.DecredSig2Bytes) {
 		t.Fatalf("bitcoinsig2 doesn't match")
 	}
 
@@ -675,10 +675,10 @@ func TestEdgeInfoUpdates(t *testing.T) {
 		ChannelID: chanID,
 		ChainHash: key,
 		AuthProof: &ChannelAuthProof{
-			NodeSig1Bytes:    testSig.Serialize(),
-			NodeSig2Bytes:    testSig.Serialize(),
-			BitcoinSig1Bytes: testSig.Serialize(),
-			BitcoinSig2Bytes: testSig.Serialize(),
+			NodeSig1Bytes:   testSig.Serialize(),
+			NodeSig2Bytes:   testSig.Serialize(),
+			DecredSig1Bytes: testSig.Serialize(),
+			DecredSig2Bytes: testSig.Serialize(),
 		},
 		ChannelPoint:    outpoint,
 		Capacity:        1000,
@@ -686,8 +686,8 @@ func TestEdgeInfoUpdates(t *testing.T) {
 	}
 	copy(edgeInfo.NodeKey1Bytes[:], firstNode.PubKeyBytes[:])
 	copy(edgeInfo.NodeKey2Bytes[:], secondNode.PubKeyBytes[:])
-	copy(edgeInfo.BitcoinKey1Bytes[:], firstNode.PubKeyBytes[:])
-	copy(edgeInfo.BitcoinKey2Bytes[:], secondNode.PubKeyBytes[:])
+	copy(edgeInfo.DecredKey1Bytes[:], firstNode.PubKeyBytes[:])
+	copy(edgeInfo.DecredKey2Bytes[:], secondNode.PubKeyBytes[:])
 	if err := graph.AddChannelEdge(edgeInfo); err != nil {
 		t.Fatalf("unable to create channel edge: %v", err)
 	}
@@ -701,7 +701,7 @@ func TestEdgeInfoUpdates(t *testing.T) {
 		Flags:                     0,
 		TimeLockDelta:             99,
 		MinHTLC:                   2342135,
-		FeeBaseMAt:                4352345,
+		FeeBaseMAtoms:             4352345,
 		FeeProportionalMillionths: 3452352,
 		Node:                      secondNode,
 		ExtraOpaqueData:           []byte("new unknown feature2"),
@@ -714,7 +714,7 @@ func TestEdgeInfoUpdates(t *testing.T) {
 		Flags:                     1,
 		TimeLockDelta:             99,
 		MinHTLC:                   2342135,
-		FeeBaseMAt:                4352345,
+		FeeBaseMAtoms:             4352345,
 		FeeProportionalMillionths: 90392423,
 		Node:                      firstNode,
 		ExtraOpaqueData:           []byte("new unknown feature1"),
@@ -793,7 +793,7 @@ func newEdgePolicy(chanID uint64, op wire.OutPoint, db *DB,
 		LastUpdate:                time.Unix(updateTime, 0),
 		TimeLockDelta:             uint16(prand.Int63()),
 		MinHTLC:                   lnwire.MilliAtom(prand.Int63()),
-		FeeBaseMAt:                lnwire.MilliAtom(prand.Int63()),
+		FeeBaseMAtoms:             lnwire.MilliAtom(prand.Int63()),
 		FeeProportionalMillionths: lnwire.MilliAtom(prand.Int63()),
 		db:                        db,
 	}
@@ -873,18 +873,18 @@ func TestGraphTraversal(t *testing.T) {
 			ChannelID: chanID,
 			ChainHash: key,
 			AuthProof: &ChannelAuthProof{
-				NodeSig1Bytes:    testSig.Serialize(),
-				NodeSig2Bytes:    testSig.Serialize(),
-				BitcoinSig1Bytes: testSig.Serialize(),
-				BitcoinSig2Bytes: testSig.Serialize(),
+				NodeSig1Bytes:   testSig.Serialize(),
+				NodeSig2Bytes:   testSig.Serialize(),
+				DecredSig1Bytes: testSig.Serialize(),
+				DecredSig2Bytes: testSig.Serialize(),
 			},
 			ChannelPoint: op,
 			Capacity:     1000,
 		}
 		copy(edgeInfo.NodeKey1Bytes[:], nodes[0].PubKeyBytes[:])
 		copy(edgeInfo.NodeKey2Bytes[:], nodes[1].PubKeyBytes[:])
-		copy(edgeInfo.BitcoinKey1Bytes[:], nodes[0].PubKeyBytes[:])
-		copy(edgeInfo.BitcoinKey2Bytes[:], nodes[1].PubKeyBytes[:])
+		copy(edgeInfo.DecredKey1Bytes[:], nodes[0].PubKeyBytes[:])
+		copy(edgeInfo.DecredKey2Bytes[:], nodes[1].PubKeyBytes[:])
 		err := graph.AddChannelEdge(&edgeInfo)
 		if err != nil {
 			t.Fatalf("unable to add node: %v", err)
@@ -1114,24 +1114,24 @@ func TestGraphPruning(t *testing.T) {
 			ChannelID: chanID,
 			ChainHash: key,
 			AuthProof: &ChannelAuthProof{
-				NodeSig1Bytes:    testSig.Serialize(),
-				NodeSig2Bytes:    testSig.Serialize(),
-				BitcoinSig1Bytes: testSig.Serialize(),
-				BitcoinSig2Bytes: testSig.Serialize(),
+				NodeSig1Bytes:   testSig.Serialize(),
+				NodeSig2Bytes:   testSig.Serialize(),
+				DecredSig1Bytes: testSig.Serialize(),
+				DecredSig2Bytes: testSig.Serialize(),
 			},
 			ChannelPoint: op,
 			Capacity:     1000,
 		}
 		copy(edgeInfo.NodeKey1Bytes[:], graphNodes[i].PubKeyBytes[:])
 		copy(edgeInfo.NodeKey2Bytes[:], graphNodes[i+1].PubKeyBytes[:])
-		copy(edgeInfo.BitcoinKey1Bytes[:], graphNodes[i].PubKeyBytes[:])
-		copy(edgeInfo.BitcoinKey2Bytes[:], graphNodes[i+1].PubKeyBytes[:])
+		copy(edgeInfo.DecredKey1Bytes[:], graphNodes[i].PubKeyBytes[:])
+		copy(edgeInfo.DecredKey2Bytes[:], graphNodes[i+1].PubKeyBytes[:])
 		if err := graph.AddChannelEdge(&edgeInfo); err != nil {
 			t.Fatalf("unable to add node: %v", err)
 		}
 
 		pkScript, err := genMultiSigP2SH(
-			edgeInfo.BitcoinKey1Bytes[:], edgeInfo.BitcoinKey2Bytes[:],
+			edgeInfo.DecredKey1Bytes[:], edgeInfo.DecredKey2Bytes[:],
 		)
 		if err != nil {
 			t.Fatalf("unable to gen multi-sig p2wsh: %v", err)
@@ -2656,9 +2656,9 @@ func compareEdgePolicies(a, b *ChannelEdgePolicy) error {
 		return fmt.Errorf("MinHTLC doesn't match: expected %v, "+
 			"got %v", a.MinHTLC, b.MinHTLC)
 	}
-	if a.FeeBaseMAt != b.FeeBaseMAt {
-		return fmt.Errorf("FeeBaseMAt doesn't match: expected %v, "+
-			"got %v", a.FeeBaseMAt, b.FeeBaseMAt)
+	if a.FeeBaseMAtoms != b.FeeBaseMAtoms {
+		return fmt.Errorf("FeeBaseMAtoms doesn't match: expected %v, "+
+			"got %v", a.FeeBaseMAtoms, b.FeeBaseMAtoms)
 	}
 	if a.FeeProportionalMillionths != b.FeeProportionalMillionths {
 		return fmt.Errorf("FeeProportionalMillionths doesn't match: "+

@@ -45,18 +45,18 @@ import (
 )
 
 const (
-	// maxDcrPaymentMAt is the maximum allowed Decred payment currently
+	// maxDcrPaymentMAtoms is the maximum allowed Decred payment currently
 	// permitted as defined in BOLT-0002.
-	maxDcrPaymentMAt = lnwire.MilliAtom(math.MaxUint32)
+	maxDcrPaymentMAtoms = lnwire.MilliAtom(math.MaxUint32)
 )
 
 var (
 	zeroHash [32]byte
 
-	// maxPaymentMAt is the maximum allowed payment currently permitted as
+	// maxPaymentMAtoms is the maximum allowed payment currently permitted as
 	// defined in BOLT-002. This value depends on which chain is active.
 	// It is set to the value under the Decred chain as default.
-	maxPaymentMAt = maxDcrPaymentMAt
+	maxPaymentMAtoms = maxDcrPaymentMAtoms
 
 	defaultAccount uint32 = udb.DefaultAccountNum
 
@@ -633,8 +633,8 @@ func (r *rpcServer) sendCoinsOnChain(paymentMap map[string]int64,
 	return &txHash, err
 }
 
-// determineFeePerKw will determine the fee in sat/kw that should be paid given
-// an estimator, a confirmation target, and a manual value for sat/byte. A value
+// determineFeePerKw will determine the fee in atom/kw that should be paid given
+// an estimator, a confirmation target, and a manual value for atom/byte. A value
 // is chosen based on the two free parameters as one, or both of them can be
 // zero.
 // TODO(decred) remove duplicated stuff
@@ -655,8 +655,8 @@ func determineFeePerKw(feeEstimator lnwallet.FeeEstimator, targetConf int32,
 
 		return feePerKB, nil
 
-	// If a manual sat/byte fee rate is set, then we'll use that directly.
-	// We'll need to convert it to sat/kw as this is what we use internally.
+	// If a manual atom/byte fee rate is set, then we'll use that directly.
+	// We'll need to convert it to atom/kw as this is what we use internally.
 	case feePerByte != 0:
 		feePerKB := lnwallet.AtomPerKByte(feePerByte * 1000)
 		if feePerKB < lnwallet.FeePerKBFloor {
@@ -682,7 +682,7 @@ func determineFeePerKw(feeEstimator lnwallet.FeeEstimator, targetConf int32,
 
 // ListUnspent returns useful information about each unspent output owned by
 // the wallet, as reported by the underlying `ListUnspentWitness`; the
-// information returned is: outpoint, amount in satoshis, address, address
+// information returned is: outpoint, amount in atoms, address, address
 // type, scriptPubKey in hex and number of confirmations.  The result is
 // filtered to contain outputs whose number of confirmations is between a
 // minimum and maximum number of confirmations specified by the user, with 0
@@ -747,7 +747,7 @@ func (r *rpcServer) ListUnspent(ctx context.Context,
 
 		utxoResp := lnrpc.Utxo{
 			Type:          addrType,
-			AmountSat:     int64(utxo.Value),
+			AmountAtoms:   int64(utxo.Value),
 			ScriptPubkey:  hex.EncodeToString(utxo.PkScript),
 			Outpoint:      outpoint,
 			Confirmations: utxo.Confirmations,
@@ -796,14 +796,14 @@ func (r *rpcServer) SendCoins(ctx context.Context,
 	// Based on the passed fee related parameters, we'll determine an
 	// appropriate fee rate for this transaction.
 	feePerKw, err := determineFeePerKw(
-		r.server.cc.feeEstimator, in.TargetConf, in.SatPerByte,
+		r.server.cc.feeEstimator, in.TargetConf, in.AtomsPerByte,
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	// TODO(decred): No weight and atoms...
-	rpcsLog.Infof("[sendcoins] addr=%v, amt=%v, sat/kw=%v", in.Addr,
+	rpcsLog.Infof("[sendcoins] addr=%v, amt=%v, atom/kw=%v", in.Addr,
 		dcrutil.Amount(in.Amount), int64(feePerKw))
 
 	paymentMap := map[string]int64{in.Addr: in.Amount}
@@ -825,13 +825,13 @@ func (r *rpcServer) SendMany(ctx context.Context,
 	// Based on the passed fee related parameters, we'll determine an
 	// appropriate fee rate for this transaction.
 	feePerKw, err := determineFeePerKw(
-		r.server.cc.feeEstimator, in.TargetConf, in.SatPerByte,
+		r.server.cc.feeEstimator, in.TargetConf, in.AtomsPerByte,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	rpcsLog.Infof("[sendmany] outputs=%v, sat/kw=%v",
+	rpcsLog.Infof("[sendmany] outputs=%v, atom/kw=%v",
 		spew.Sdump(in.AddrToAmount), int64(feePerKw))
 
 	txid, err := r.sendCoinsOnChain(in.AddrToAmount, feePerKw)
@@ -1088,7 +1088,7 @@ func (r *rpcServer) OpenChannel(in *lnrpc.OpenChannelRequest,
 
 	rpcsLog.Tracef("[openchannel] request to NodeKey(%v) "+
 		"allocation(us=%v, them=%v)", in.NodePubkeyString,
-		in.LocalFundingAmount, in.PushSat)
+		in.LocalFundingAmount, in.PushAtoms)
 
 	if !r.server.Started() {
 		return fmt.Errorf("chain backend is still syncing, server " +
@@ -1096,12 +1096,12 @@ func (r *rpcServer) OpenChannel(in *lnrpc.OpenChannelRequest,
 	}
 
 	localFundingAmt := dcrutil.Amount(in.LocalFundingAmount)
-	remoteInitialBalance := dcrutil.Amount(in.PushSat)
-	minHtlc := lnwire.MilliAtom(in.MinHtlcMsat)
+	remoteInitialBalance := dcrutil.Amount(in.PushAtoms)
+	minHtlc := lnwire.MilliAtom(in.MinHtlcMAtoms)
 	remoteCsvDelay := uint16(in.RemoteCsvDelay)
 
 	// Ensure that the initial balance of the remote party (if pushing
-	// satoshis) does not exceed the amount the local party has requested
+	// atoms) does not exceed the amount the local party has requested
 	// for funding.
 	//
 	// TODO(roasbeef): incorporate base fee?
@@ -1123,7 +1123,7 @@ func (r *rpcServer) OpenChannel(in *lnrpc.OpenChannelRequest,
 	// fees that a dust output isn't created.
 	if localFundingAmt < minChanFundingSize {
 		return fmt.Errorf("channel is too small, the minimum channel "+
-			"size is: %v SAT", int64(minChanFundingSize))
+			"size is: %v Atoms", int64(minChanFundingSize))
 	}
 
 	// Then, we'll extract the minimum number of confirmations that each
@@ -1164,13 +1164,13 @@ func (r *rpcServer) OpenChannel(in *lnrpc.OpenChannelRequest,
 	// Based on the passed fee related parameters, we'll determine an
 	// appropriate fee rate for the funding transaction.
 	feeRate, err := determineFeePerKw(
-		r.server.cc.feeEstimator, in.TargetConf, in.SatPerByte,
+		r.server.cc.feeEstimator, in.TargetConf, in.AtomsPerByte,
 	)
 	if err != nil {
 		return err
 	}
 
-	rpcsLog.Debugf("[openchannel]: using fee of %v sat/kw for funding tx",
+	rpcsLog.Debugf("[openchannel]: using fee of %v atom/kw for funding tx",
 		int64(feeRate))
 
 	// Instruct the server to trigger the necessary events to attempt to
@@ -1180,7 +1180,7 @@ func (r *rpcServer) OpenChannel(in *lnrpc.OpenChannelRequest,
 		targetPubkey:    nodePubKey,
 		chainHash:       *activeNetParams.GenesisHash,
 		localFundingAmt: localFundingAmt,
-		pushAmt:         lnwire.NewMAtFromAtoms(remoteInitialBalance),
+		pushAmt:         lnwire.NewMAtomsFromAtoms(remoteInitialBalance),
 		minHtlc:         minHtlc,
 		fundingFeePerKw: feeRate,
 		private:         in.Private,
@@ -1246,7 +1246,7 @@ func (r *rpcServer) OpenChannelSync(ctx context.Context,
 
 	rpcsLog.Tracef("[openchannel] request to NodeKey(%v) "+
 		"allocation(us=%v, them=%v)", in.NodePubkeyString,
-		in.LocalFundingAmount, in.PushSat)
+		in.LocalFundingAmount, in.PushAtoms)
 
 	// We don't allow new channels to be open while the server is still
 	// syncing, as otherwise we may not be able to obtain the relevant
@@ -1280,12 +1280,12 @@ func (r *rpcServer) OpenChannelSync(ctx context.Context,
 	}
 
 	localFundingAmt := dcrutil.Amount(in.LocalFundingAmount)
-	remoteInitialBalance := dcrutil.Amount(in.PushSat)
-	minHtlc := lnwire.MilliAtom(in.MinHtlcMsat)
+	remoteInitialBalance := dcrutil.Amount(in.PushAtoms)
+	minHtlc := lnwire.MilliAtom(in.MinHtlcMAtoms)
 	remoteCsvDelay := uint16(in.RemoteCsvDelay)
 
 	// Ensure that the initial balance of the remote party (if pushing
-	// satoshis) does not exceed the amount the local party has requested
+	// atoms) does not exceed the amount the local party has requested
 	// for funding.
 	if remoteInitialBalance >= localFundingAmt {
 		return nil, fmt.Errorf("amount pushed to remote peer for " +
@@ -1297,7 +1297,7 @@ func (r *rpcServer) OpenChannelSync(ctx context.Context,
 	// fees that a dust output isn't created.
 	if localFundingAmt < minChanFundingSize {
 		return nil, fmt.Errorf("channel is too small, the minimum channel "+
-			"size is: %v SAT", int64(minChanFundingSize))
+			"size is: %v Atoms", int64(minChanFundingSize))
 	}
 
 	// Then, we'll extract the minimum number of confirmations that each
@@ -1311,20 +1311,20 @@ func (r *rpcServer) OpenChannelSync(ctx context.Context,
 	// Based on the passed fee related parameters, we'll determine an
 	// appropriate fee rate for the funding transaction.
 	feeRate, err := determineFeePerKw(
-		r.server.cc.feeEstimator, in.TargetConf, in.SatPerByte,
+		r.server.cc.feeEstimator, in.TargetConf, in.AtomsPerByte,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	rpcsLog.Tracef("[openchannel] target sat/kw for funding tx: %v",
+	rpcsLog.Tracef("[openchannel] target atom/kw for funding tx: %v",
 		int64(feeRate))
 
 	req := &openChanReq{
 		targetPubkey:    nodepubKey,
 		chainHash:       *activeNetParams.GenesisHash,
 		localFundingAmt: localFundingAmt,
-		pushAmt:         lnwire.NewMAtFromAtoms(remoteInitialBalance),
+		pushAmt:         lnwire.NewMAtomsFromAtoms(remoteInitialBalance),
 		minHtlc:         minHtlc,
 		fundingFeePerKw: feeRate,
 		private:         in.Private,
@@ -1500,13 +1500,13 @@ func (r *rpcServer) CloseChannel(in *lnrpc.CloseChannelRequest,
 		// an appropriate fee rate for the cooperative closure
 		// transaction.
 		feeRate, err := determineFeePerKw(
-			r.server.cc.feeEstimator, in.TargetConf, in.SatPerByte,
+			r.server.cc.feeEstimator, in.TargetConf, in.AtomsPerByte,
 		)
 		if err != nil {
 			return err
 		}
 
-		rpcsLog.Debugf("Target sat/kw for closing transaction: %v",
+		rpcsLog.Debugf("Target atom/kw for closing transaction: %v",
 			int64(feeRate))
 
 		// Before we attempt the cooperative channel closure, we'll
@@ -1800,19 +1800,19 @@ func (r *rpcServer) ListPeers(ctx context.Context,
 
 	for _, serverPeer := range serverPeers {
 		var (
-			satSent int64
-			satRecv int64
+			atomsSent int64
+			atomsRecv int64
 		)
 
-		// In order to display the total number of satoshis of outbound
-		// (sent) and inbound (recv'd) satoshis that have been
+		// In order to display the total number of atoms of outbound
+		// (sent) and inbound (recv'd) atoms that have been
 		// transported through this peer, we'll sum up the sent/recv'd
 		// values for each of the active channels we have with the
 		// peer.
 		chans := serverPeer.ChannelSnapshots()
 		for _, c := range chans {
-			satSent += int64(c.TotalMAtSent.ToAtoms())
-			satRecv += int64(c.TotalMAtReceived.ToAtoms())
+			atomsSent += int64(c.TotalMAtomsSent.ToAtoms())
+			atomsRecv += int64(c.TotalMAtomsReceived.ToAtoms())
 		}
 
 		nodePub := serverPeer.addr.IdentityKey.SerializeCompressed()
@@ -1822,8 +1822,8 @@ func (r *rpcServer) ListPeers(ctx context.Context,
 			Inbound:   serverPeer.inbound,
 			BytesRecv: atomic.LoadUint64(&serverPeer.bytesReceived),
 			BytesSent: atomic.LoadUint64(&serverPeer.bytesSent),
-			SatSent:   satSent,
-			SatRecv:   satRecv,
+			AtomsSent: atomsSent,
+			AtomsRecv: atomsRecv,
 			PingTime:  serverPeer.PingTime(),
 		}
 
@@ -1868,7 +1868,7 @@ func (r *rpcServer) WalletBalance(ctx context.Context,
 }
 
 // ChannelBalance returns the total available channel flow across all open
-// channels in satoshis.
+// channels in atoms.
 func (r *rpcServer) ChannelBalance(ctx context.Context,
 	in *lnrpc.ChannelBalanceRequest) (*lnrpc.ChannelBalanceResponse, error) {
 
@@ -2267,11 +2267,11 @@ func (r *rpcServer) ListChannels(ctx context.Context,
 		localBalance := localCommit.LocalBalance
 		remoteBalance := localCommit.RemoteBalance
 
-		// As an artifact of our usage of mAT internally, either party
+		// As an artifact of our usage of milli-atoms internally, either party
 		// may end up in a state where they're holding a fractional
-		// amount of satoshis which can't be expressed within the
+		// amount of atoms which can't be expressed within the
 		// actual commitment output. Since we round down when going
-		// from mAT -> Atoms, we may at any point be adding an
+		// from milli-atoms -> Atoms, we may at any point be adding an
 		// additional Atoms to miners fees. As a result, we display a
 		// commitment fee that accounts for this externally.
 		var sumOutputs dcrutil.Amount
@@ -2281,22 +2281,22 @@ func (r *rpcServer) ListChannels(ctx context.Context,
 		externalCommitFee := dbChannel.Capacity - sumOutputs
 
 		channel := &lnrpc.Channel{
-			Active:                isActive,
-			Private:               !isPublic,
-			RemotePubkey:          nodeID,
-			ChannelPoint:          chanPoint.String(),
-			ChanId:                chanID,
-			Capacity:              int64(dbChannel.Capacity),
-			LocalBalance:          int64(localBalance.ToAtoms()),
-			RemoteBalance:         int64(remoteBalance.ToAtoms()),
-			CommitFee:             int64(externalCommitFee),
-			CommitWeight:          commitSize,
-			FeePerKw:              int64(localCommit.FeePerKw),
-			TotalSatoshisSent:     int64(dbChannel.TotalMAtSent.ToAtoms()),
-			TotalSatoshisReceived: int64(dbChannel.TotalMAtReceived.ToAtoms()),
-			NumUpdates:            localCommit.CommitHeight,
-			PendingHtlcs:          make([]*lnrpc.HTLC, len(localCommit.Htlcs)),
-			CsvDelay:              uint32(dbChannel.LocalChanCfg.CsvDelay),
+			Active:             isActive,
+			Private:            !isPublic,
+			RemotePubkey:       nodeID,
+			ChannelPoint:       chanPoint.String(),
+			ChanId:             chanID,
+			Capacity:           int64(dbChannel.Capacity),
+			LocalBalance:       int64(localBalance.ToAtoms()),
+			RemoteBalance:      int64(remoteBalance.ToAtoms()),
+			CommitFee:          int64(externalCommitFee),
+			CommitWeight:       commitSize,
+			FeePerKw:           int64(localCommit.FeePerKw),
+			TotalAtomsSent:     int64(dbChannel.TotalMAtomsSent.ToAtoms()),
+			TotalAtomsReceived: int64(dbChannel.TotalMAtomsReceived.ToAtoms()),
+			NumUpdates:         localCommit.CommitHeight,
+			PendingHtlcs:       make([]*lnrpc.HTLC, len(localCommit.Htlcs)),
+			CsvDelay:           uint32(dbChannel.LocalChanCfg.CsvDelay),
 		}
 
 		for i, htlc := range localCommit.Htlcs {
@@ -2379,7 +2379,7 @@ func calculateFeeLimit(feeLimit *lnrpc.FeeLimit,
 
 	switch feeLimit.GetLimit().(type) {
 	case *lnrpc.FeeLimit_Fixed:
-		return lnwire.NewMAtFromAtoms(
+		return lnwire.NewMAtomsFromAtoms(
 			dcrutil.Amount(feeLimit.GetFixed()),
 		)
 	case *lnrpc.FeeLimit_Percent:
@@ -2528,7 +2528,7 @@ func extractPaymentIntent(rpcPayReq *rpcPaymentRequest) (rpcPaymentIntent, error
 		}
 
 		// If the amount was not included in the invoice, then we let
-		// the payee specify the amount of satoshis they wish to send.
+		// the payee specify the amount of atoms they wish to send.
 		// We override the amount to pay with the amount provided from
 		// the payment request.
 		if payReq.MilliAt == nil {
@@ -2538,7 +2538,7 @@ func extractPaymentIntent(rpcPayReq *rpcPaymentRequest) (rpcPaymentIntent, error
 					"invoice")
 			}
 
-			payIntent.mat = lnwire.NewMAtFromAtoms(
+			payIntent.mat = lnwire.NewMAtomsFromAtoms(
 				dcrutil.Amount(rpcPayReq.Amt),
 			)
 		} else {
@@ -2581,7 +2581,7 @@ func extractPaymentIntent(rpcPayReq *rpcPaymentRequest) (rpcPaymentIntent, error
 	// Otherwise, If the payment request field was not specified
 	// (and a custom route wasn't specified), construct the payment
 	// from the other fields.
-	payIntent.mat = lnwire.NewMAtFromAtoms(
+	payIntent.mat = lnwire.NewMAtomsFromAtoms(
 		dcrutil.Amount(rpcPayReq.Amt),
 	)
 
@@ -2616,14 +2616,14 @@ func extractPaymentIntent(rpcPayReq *rpcPaymentRequest) (rpcPaymentIntent, error
 	}
 
 	// Currently, within the bootstrap phase of the network, we limit the
-	// largest payment size allotted to (2^32) - 1 mAT or 4.29 million
-	// satoshis.
-	if payIntent.mat > maxPaymentMAt {
+	// largest payment size allotted to (2^32) - 1 milli-atoms or 4.29 million
+	// atoms.
+	if payIntent.mat > maxPaymentMAtoms {
 		// In this case, we'll send an error to the caller, but
 		// continue our loop for the next payment.
 		return payIntent, fmt.Errorf("payment of %v is too large, "+
 			"max payment allowed is %v", payIntent.mat,
-			maxPaymentMAt)
+			maxPaymentMAtoms)
 
 	}
 
@@ -3004,13 +3004,13 @@ func (r *rpcServer) AddInvoice(ctx context.Context,
 	}
 
 	amt := dcrutil.Amount(invoice.Value)
-	amtMAt := lnwire.NewMAtFromAtoms(amt)
+	amtMAtoms := lnwire.NewMAtomsFromAtoms(amt)
 
 	// The value of the invoice must also not exceed the current soft-limit
 	// on the largest payment within the network.
-	if amtMAt > maxPaymentMAt {
+	if amtMAtoms > maxPaymentMAtoms {
 		return nil, fmt.Errorf("payment of %v is too large, max "+
-			"payment allowed is %v", amt, maxPaymentMAt.ToAtoms())
+			"payment allowed is %v", amt, maxPaymentMAtoms.ToAtoms())
 	}
 
 	// Next, generate the payment hash itself from the preimage. This will
@@ -3026,9 +3026,9 @@ func (r *rpcServer) AddInvoice(ctx context.Context,
 
 	// We only include the amount in the invoice if it is greater than 0.
 	// By not including the amount, we enable the creation of invoices that
-	// allow the payee to specify the amount of satoshis they wish to send.
-	if amtMAt > 0 {
-		options = append(options, zpay32.Amount(amtMAt))
+	// allow the payee to specify the amount of atoms they wish to send.
+	if amtMAtoms > 0 {
+		options = append(options, zpay32.Amount(amtMAtoms))
 	}
 
 	// If specified, add a fallback address to the payment request.
@@ -3122,7 +3122,7 @@ func (r *rpcServer) AddInvoice(ctx context.Context,
 			chanPoint := lnwire.NewChanIDFromOutPoint(
 				&channel.FundingOutpoint,
 			)
-			if amtMAt >= channel.LocalCommitment.RemoteBalance {
+			if amtMAtoms >= channel.LocalCommitment.RemoteBalance {
 				rpcsLog.Debugf("Skipping channel %v due to "+
 					"not having enough remote balance",
 					chanPoint)
@@ -3195,9 +3195,9 @@ func (r *rpcServer) AddInvoice(ctx context.Context,
 			// Finally, create the routing hint for this channel and
 			// add it to our list of route hints.
 			hint := routing.HopHint{
-				NodeID:     channel.IdentityPub,
-				ChannelID:  chanID,
-				FeeBaseMAt: uint32(remotePolicy.FeeBaseMAt),
+				NodeID:        channel.IdentityPub,
+				ChannelID:     chanID,
+				FeeBaseMAtoms: uint32(remotePolicy.FeeBaseMAtoms),
 				FeeProportionalMillionths: uint32(
 					remotePolicy.FeeProportionalMillionths,
 				),
@@ -3238,7 +3238,7 @@ func (r *rpcServer) AddInvoice(ctx context.Context,
 		Receipt:        invoice.Receipt,
 		PaymentRequest: []byte(payReqString),
 		Terms: channeldb.ContractTerm{
-			Value: amtMAt,
+			Value: amtMAtoms,
 		},
 	}
 	copy(newInvoice.Terms.PaymentPreimage[:], paymentPreimage[:])
@@ -3297,8 +3297,8 @@ func createRPCInvoice(invoice *channeldb.Invoice) (*lnrpc.Invoice, error) {
 	routeHints := createRPCRouteHints(decoded.RouteHints)
 
 	preimage := invoice.Terms.PaymentPreimage
-	satAmt := invoice.Terms.Value.ToAtoms()
-	satAmtPaid := invoice.AmtPaid.ToAtoms()
+	atomsAmt := invoice.Terms.Value.ToAtoms()
+	atomsAmtPaid := invoice.AmtPaid.ToAtoms()
 
 	isSettled := invoice.Terms.State == channeldb.ContractSettled
 
@@ -3317,7 +3317,7 @@ func createRPCInvoice(invoice *channeldb.Invoice) (*lnrpc.Invoice, error) {
 		Receipt:         invoice.Receipt[:],
 		RHash:           decoded.PaymentHash[:],
 		RPreimage:       preimage[:],
-		Value:           int64(satAmt),
+		Value:           int64(atomsAmt),
 		CreationDate:    invoice.CreationDate.Unix(),
 		SettleDate:      settleDate,
 		Settled:         isSettled,
@@ -3330,8 +3330,8 @@ func createRPCInvoice(invoice *channeldb.Invoice) (*lnrpc.Invoice, error) {
 		AddIndex:        invoice.AddIndex,
 		Private:         len(routeHints) > 0,
 		SettleIndex:     invoice.SettleIndex,
-		AmtPaidSat:      int64(satAmtPaid),
-		AmtPaidMsat:     int64(invoice.AmtPaid),
+		AmtPaidAtoms:    int64(atomsAmtPaid),
+		AmtPaidMAtoms:   int64(invoice.AmtPaid),
 		AmtPaid:         int64(invoice.AmtPaid),
 		State:           state,
 	}, nil
@@ -3352,7 +3352,7 @@ func createRPCRouteHints(routeHints [][]routing.HopHint) []*lnrpc.RouteHint {
 			hint := &lnrpc.HopHint{
 				NodeId:                    pubKey,
 				ChanId:                    hop.ChannelID,
-				FeeBaseMsat:               hop.FeeBaseMAt,
+				FeeBaseMAtoms:             hop.FeeBaseMAtoms,
 				FeeProportionalMillionths: hop.FeeProportionalMillionths,
 				CltvExpiryDelta:           uint32(hop.CLTVExpiryDelta),
 			}
@@ -3679,21 +3679,21 @@ func marshalDbEdge(edgeInfo *channeldb.ChannelEdgeInfo,
 
 	if c1 != nil {
 		edge.Node1Policy = &lnrpc.RoutingPolicy{
-			TimeLockDelta:    uint32(c1.TimeLockDelta),
-			MinHtlc:          int64(c1.MinHTLC),
-			FeeBaseMsat:      int64(c1.FeeBaseMAt),
-			FeeRateMilliMsat: int64(c1.FeeProportionalMillionths),
-			Disabled:         c1.Flags&lnwire.ChanUpdateDisabled != 0,
+			TimeLockDelta:      uint32(c1.TimeLockDelta),
+			MinHtlc:            int64(c1.MinHTLC),
+			FeeBaseMAtoms:      int64(c1.FeeBaseMAtoms),
+			FeeRateMilliMAtoms: int64(c1.FeeProportionalMillionths),
+			Disabled:           c1.Flags&lnwire.ChanUpdateDisabled != 0,
 		}
 	}
 
 	if c2 != nil {
 		edge.Node2Policy = &lnrpc.RoutingPolicy{
-			TimeLockDelta:    uint32(c2.TimeLockDelta),
-			MinHtlc:          int64(c2.MinHTLC),
-			FeeBaseMsat:      int64(c2.FeeBaseMAt),
-			FeeRateMilliMsat: int64(c2.FeeProportionalMillionths),
-			Disabled:         c2.Flags&lnwire.ChanUpdateDisabled != 0,
+			TimeLockDelta:      uint32(c2.TimeLockDelta),
+			MinHtlc:            int64(c2.MinHTLC),
+			FeeBaseMAtoms:      int64(c2.FeeBaseMAtoms),
+			FeeRateMilliMAtoms: int64(c2.FeeProportionalMillionths),
+			Disabled:           c2.Flags&lnwire.ChanUpdateDisabled != 0,
 		}
 	}
 
@@ -3790,7 +3790,7 @@ func (r *rpcServer) GetNodeInfo(ctx context.Context,
 
 // QueryRoutes attempts to query the daemons' Channel Router for a possible
 // route to a target destination capable of carrying a specific amount of
-// satoshis within the route's flow. The retuned route contains the full
+// atoms within the route's flow. The retuned route contains the full
 // details required to craft and send an HTLC, also including the necessary
 // information that should be present within the Sphinx packet encapsulated
 // within the HTLC.
@@ -3812,16 +3812,16 @@ func (r *rpcServer) QueryRoutes(ctx context.Context,
 	}
 
 	// Currently, within the bootstrap phase of the network, we limit the
-	// largest payment size allotted to (2^32) - 1 mAT or 4.29 million
-	// satoshis.
+	// largest payment size allotted to (2^32) - 1 milli-atoms or 4.29 million
+	// atoms.
 	amt := dcrutil.Amount(in.Amt)
-	amtMAt := lnwire.NewMAtFromAtoms(amt)
-	if amtMAt > maxPaymentMAt {
+	amtMAtoms := lnwire.NewMAtomsFromAtoms(amt)
+	if amtMAtoms > maxPaymentMAtoms {
 		return nil, fmt.Errorf("payment of %v is too large, max payment "+
-			"allowed is %v", amt, maxPaymentMAt.ToAtoms())
+			"allowed is %v", amt, maxPaymentMAtoms.ToAtoms())
 	}
 
-	feeLimit := calculateFeeLimit(in.FeeLimit, amtMAt)
+	feeLimit := calculateFeeLimit(in.FeeLimit, amtMAtoms)
 
 	// numRoutes will default to 10 if not specified explicitly.
 	numRoutesIn := uint32(in.NumRoutes)
@@ -3830,7 +3830,7 @@ func (r *rpcServer) QueryRoutes(ctx context.Context,
 	}
 
 	// Query the channel router for a possible path to the destination that
-	// can carry `in.Amt` satoshis _including_ the total fee required on
+	// can carry `in.Amt` atoms _including_ the total fee required on
 	// the route.
 	var (
 		routes  []*routing.Route
@@ -3838,11 +3838,11 @@ func (r *rpcServer) QueryRoutes(ctx context.Context,
 	)
 	if in.FinalCltvDelta == 0 {
 		routes, findErr = r.server.chanRouter.FindRoutes(
-			pubKey, amtMAt, feeLimit, numRoutesIn,
+			pubKey, amtMAtoms, feeLimit, numRoutesIn,
 		)
 	} else {
 		routes, findErr = r.server.chanRouter.FindRoutes(
-			pubKey, amtMAt, feeLimit, numRoutesIn,
+			pubKey, amtMAtoms, feeLimit, numRoutesIn,
 			uint16(in.FinalCltvDelta),
 		)
 	}
@@ -3874,12 +3874,12 @@ func (r *rpcServer) QueryRoutes(ctx context.Context,
 
 func (r *rpcServer) marshallRoute(route *routing.Route) *lnrpc.Route {
 	resp := &lnrpc.Route{
-		TotalTimeLock: route.TotalTimeLock,
-		TotalFees:     int64(route.TotalFees.ToAtoms()),
-		TotalFeesMsat: int64(route.TotalFees),
-		TotalAmt:      int64(route.TotalAmount.ToAtoms()),
-		TotalAmtMsat:  int64(route.TotalAmount),
-		Hops:          make([]*lnrpc.Hop, len(route.Hops)),
+		TotalTimeLock:   route.TotalTimeLock,
+		TotalFees:       int64(route.TotalFees.ToAtoms()),
+		TotalFeesMAtoms: int64(route.TotalFees),
+		TotalAmt:        int64(route.TotalAmount.ToAtoms()),
+		TotalAmtMAtoms:  int64(route.TotalAmount),
+		Hops:            make([]*lnrpc.Hop, len(route.Hops)),
 	}
 	graph := r.server.chanDB.ChannelGraph()
 	incomingAmt := route.TotalAmount
@@ -3901,13 +3901,13 @@ func (r *rpcServer) marshallRoute(route *routing.Route) *lnrpc.Route {
 		}
 
 		resp.Hops[i] = &lnrpc.Hop{
-			ChanId:           hop.ChannelID,
-			ChanCapacity:     int64(chanCapacity),
-			AmtToForward:     int64(hop.AmtToForward.ToAtoms()),
-			AmtToForwardMsat: int64(hop.AmtToForward),
-			Fee:              int64(fee.ToAtoms()),
-			FeeMsat:          int64(fee),
-			Expiry:           uint32(hop.OutgoingTimeLock),
+			ChanId:             hop.ChannelID,
+			ChanCapacity:       int64(chanCapacity),
+			AmtToForward:       int64(hop.AmtToForward.ToAtoms()),
+			AmtToForwardMAtoms: int64(hop.AmtToForward),
+			Fee:                int64(fee.ToAtoms()),
+			FeeMAtoms:          int64(fee),
+			Expiry:             uint32(hop.OutgoingTimeLock),
 			PubKey: hex.EncodeToString(
 				hop.PubKeyBytes[:]),
 		}
@@ -3943,7 +3943,7 @@ func unmarshallHopByChannelLookup(graph *channeldb.ChannelGraph, hop *lnrpc.Hop,
 
 	return &routing.Hop{
 		OutgoingTimeLock: hop.Expiry,
-		AmtToForward:     lnwire.MilliAtom(hop.AmtToForwardMsat),
+		AmtToForward:     lnwire.MilliAtom(hop.AmtToForwardMAtoms),
 		PubKeyBytes:      pubKeyBytes,
 		ChannelID:        edgeInfo.ChannelID,
 	}, nil
@@ -3963,7 +3963,7 @@ func unmarshallKnownPubkeyHop(hop *lnrpc.Hop) (*routing.Hop, error) {
 
 	return &routing.Hop{
 		OutgoingTimeLock: hop.Expiry,
-		AmtToForward:     lnwire.MilliAtom(hop.AmtToForwardMsat),
+		AmtToForward:     lnwire.MilliAtom(hop.AmtToForwardMAtoms),
 		PubKeyBytes:      pubKeyBytes,
 		ChannelID:        hop.ChanId,
 	}, nil
@@ -4011,7 +4011,7 @@ func (r *rpcServer) unmarshallRoute(rpcroute *lnrpc.Route,
 	}
 
 	route, err := routing.NewRouteFromHops(
-		lnwire.MilliAtom(rpcroute.TotalAmtMsat),
+		lnwire.MilliAtom(rpcroute.TotalAmtMAtoms),
 		rpcroute.TotalTimeLock,
 		sourceNode.PubKeyBytes,
 		hops,
@@ -4237,11 +4237,11 @@ func marshallTopologyChange(topChange *routing.TopologyChange) *lnrpc.GraphTopol
 			},
 			Capacity: int64(channelUpdate.Capacity),
 			RoutingPolicy: &lnrpc.RoutingPolicy{
-				TimeLockDelta:    uint32(channelUpdate.TimeLockDelta),
-				MinHtlc:          int64(channelUpdate.MinHTLC),
-				FeeBaseMsat:      int64(channelUpdate.BaseFee),
-				FeeRateMilliMsat: int64(channelUpdate.FeeRate),
-				Disabled:         channelUpdate.Disabled,
+				TimeLockDelta:      uint32(channelUpdate.TimeLockDelta),
+				MinHtlc:            int64(channelUpdate.MinHTLC),
+				FeeBaseMAtoms:      int64(channelUpdate.BaseFee),
+				FeeRateMilliMAtoms: int64(channelUpdate.FeeRate),
+				Disabled:           channelUpdate.Disabled,
 			},
 			AdvertisingNode: encodeKey(channelUpdate.AdvertisingNode),
 			ConnectingNode:  encodeKey(channelUpdate.ConnectingNode),
@@ -4290,15 +4290,15 @@ func (r *rpcServer) ListPayments(ctx context.Context,
 			path[i] = hex.EncodeToString(hop[:])
 		}
 
-		matValue := int64(payment.Terms.Value)
-		satValue := int64(payment.Terms.Value.ToAtoms())
+		mAtomsValue := int64(payment.Terms.Value)
+		atomsValue := int64(payment.Terms.Value.ToAtoms())
 
 		paymentHash := chainhash.HashH(payment.PaymentPreimage[:])
 		paymentsResp.Payments[i] = &lnrpc.Payment{
 			PaymentHash:     hex.EncodeToString(paymentHash[:]),
-			Value:           satValue,
-			ValueMsat:       matValue,
-			ValueSat:        satValue,
+			Value:           atomsValue,
+			ValueMAtoms:     mAtomsValue,
+			ValueAtoms:      atomsValue,
 			CreationDate:    payment.CreationDate.Unix(),
 			Path:            path,
 			Fee:             int64(payment.Fee.ToAtoms()),
@@ -4396,7 +4396,7 @@ func (r *rpcServer) DecodePayReq(ctx context.Context,
 	return &lnrpc.PayReq{
 		Destination:     hex.EncodeToString(dest),
 		PaymentHash:     hex.EncodeToString(payReq.PaymentHash[:]),
-		NumSatoshis:     amt,
+		NumAtoms:        amt,
 		Timestamp:       payReq.Timestamp.Unix(),
 		Description:     desc,
 		DescriptionHash: hex.EncodeToString(descHash[:]),
@@ -4440,18 +4440,18 @@ func (r *rpcServer) FeeReport(ctx context.Context,
 
 		// We'll compute the effective fee rate by converting from a
 		// fixed point fee rate to a floating point fee rate. The fee
-		// rate field in the database the amount of mAT charged per
-		// 1mil mAT sent, so will divide by this to get the proper fee
+		// rate field in the database the amount of milli-atoms charged per
+		// 1mil milli-atoms sent, so will divide by this to get the proper fee
 		// rate.
 		feeRateFixedPoint := edgePolicy.FeeProportionalMillionths
 		feeRate := float64(feeRateFixedPoint) / float64(feeBase)
 
 		// TODO(roasbeef): also add stats for revenue for each channel
 		feeReports = append(feeReports, &lnrpc.ChannelFeeReport{
-			ChanPoint:   chanInfo.ChannelPoint.String(),
-			BaseFeeMsat: int64(edgePolicy.FeeBaseMAt),
-			FeePerMil:   int64(feeRateFixedPoint),
-			FeeRate:     feeRate,
+			ChanPoint:     chanInfo.ChannelPoint.String(),
+			BaseFeeMAtoms: int64(edgePolicy.FeeBaseMAtoms),
+			FeePerMil:     int64(feeRateFixedPoint),
+			FeeRate:       feeRate,
 		})
 
 		return nil
@@ -4607,9 +4607,9 @@ func (r *rpcServer) UpdateChannelPolicy(ctx context.Context,
 	// gives us the fixed point, scaled by 1 million that's used within the
 	// protocol.
 	feeRateFixed := uint32(req.FeeRate * feeBase)
-	baseFeeMat := lnwire.MilliAtom(req.BaseFeeMsat)
+	baseFeeMAtoms := lnwire.MilliAtom(req.BaseFeeMAtoms)
 	feeSchema := routing.FeeSchema{
-		BaseFee: baseFeeMat,
+		BaseFee: baseFeeMAtoms,
 		FeeRate: feeRateFixed,
 	}
 
@@ -4620,7 +4620,7 @@ func (r *rpcServer) UpdateChannelPolicy(ctx context.Context,
 
 	rpcsLog.Debugf("[updatechanpolicy] updating channel policy base_fee=%v, "+
 		"rate_float=%v, rate_fixed=%v, time_lock_delta: %v, targets=%v",
-		req.BaseFeeMsat, req.FeeRate, feeRateFixed, req.TimeLockDelta,
+		req.BaseFeeMAtoms, req.FeeRate, feeRateFixed, req.TimeLockDelta,
 		spew.Sdump(targetChans))
 
 	// With the scope resolved, we'll now send this to the
@@ -4639,7 +4639,7 @@ func (r *rpcServer) UpdateChannelPolicy(ctx context.Context,
 	// We create a partially policy as the logic won't overwrite a valid
 	// sub-policy with a "nil" one.
 	p := htlcswitch.ForwardingPolicy{
-		BaseFee:       baseFeeMat,
+		BaseFee:       baseFeeMAtoms,
 		FeeRate:       lnwire.MilliAtom(feeRateFixed),
 		TimeLockDelta: req.TimeLockDelta,
 	}
@@ -4727,18 +4727,18 @@ func (r *rpcServer) ForwardingHistory(ctx context.Context,
 		LastOffsetIndex:  timeSlice.LastIndexOffset,
 	}
 	for i, event := range timeSlice.ForwardingEvents {
-		amtInSat := event.AmtIn.ToAtoms()
-		amtOutSat := event.AmtOut.ToAtoms()
-		feeMat := event.AmtIn - event.AmtOut
+		amtInAt := event.AmtIn.ToAtoms()
+		amtOutAt := event.AmtOut.ToAtoms()
+		feeMAtoms := event.AmtIn - event.AmtOut
 
 		resp.ForwardingEvents[i] = &lnrpc.ForwardingEvent{
 			Timestamp: uint64(event.Timestamp.Unix()),
 			ChanIdIn:  event.IncomingChanID.ToUint64(),
 			ChanIdOut: event.OutgoingChanID.ToUint64(),
-			AmtIn:     uint64(amtInSat),
-			AmtOut:    uint64(amtOutSat),
-			Fee:       uint64(feeMat.ToAtoms()),
-			FeeMsat:   uint64(feeMat),
+			AmtIn:     uint64(amtInAt),
+			AmtOut:    uint64(amtOutAt),
+			Fee:       uint64(feeMAtoms.ToAtoms()),
+			FeeMAtoms: uint64(feeMAtoms),
 		}
 	}
 

@@ -131,7 +131,7 @@ request_iterable = request_generator(dest=dest_bytes, amt=100)
 for payment in stub.SendPayment(request_iterable):
     print(payment)
 ```
-This example will send a payment of 100 satoshis every 2 seconds.
+This example will send a payment of 100 atoms every 2 seconds.
 
 #### Using Macaroons
 

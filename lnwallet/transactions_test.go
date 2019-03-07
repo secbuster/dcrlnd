@@ -385,7 +385,7 @@ func TestCommitmentAndHTLCTransactions(t *testing.T) {
 		LocalChanCfg: channeldb.ChannelConfig{
 			ChannelConstraints: channeldb.ChannelConstraints{
 				DustLimit:        tc.dustLimit,
-				MaxPendingAmount: lnwire.NewMAtFromAtoms(tc.fundingAmount),
+				MaxPendingAmount: lnwire.NewMAtomsFromAtoms(tc.fundingAmount),
 				MaxAcceptedHtlcs: MaxHTLCNumber,
 			},
 			CsvDelay: tc.localCsvDelay,

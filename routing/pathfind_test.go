@@ -56,10 +56,10 @@ var (
 	_, _ = testSig.S.SetString("18801056069249825825291287104931333862866033135609736119018462340006816851118", 10)
 
 	testAuthProof = channeldb.ChannelAuthProof{
-		NodeSig1Bytes:    testSig.Serialize(),
-		NodeSig2Bytes:    testSig.Serialize(),
-		BitcoinSig1Bytes: testSig.Serialize(),
-		BitcoinSig2Bytes: testSig.Serialize(),
+		NodeSig1Bytes:   testSig.Serialize(),
+		NodeSig2Bytes:   testSig.Serialize(),
+		DecredSig1Bytes: testSig.Serialize(),
+		DecredSig2Bytes: testSig.Serialize(),
 	}
 )
 
@@ -85,16 +85,16 @@ type testNode struct {
 // testChan represents the JSON version of a payment channel. This struct
 // matches the Json that's encoded under the "edges" key within the test graph.
 type testChan struct {
-	Node1        string `json:"node_1"`
-	Node2        string `json:"node_2"`
-	ChannelID    uint64 `json:"channel_id"`
-	ChannelPoint string `json:"channel_point"`
-	Flags        uint16 `json:"flags"`
-	Expiry       uint16 `json:"expiry"`
-	MinHTLC      int64  `json:"min_htlc"`
-	FeeBaseMat   int64  `json:"fee_base_mat"`
-	FeeRate      int64  `json:"fee_rate"`
-	Capacity     int64  `json:"capacity"`
+	Node1         string `json:"node_1"`
+	Node2         string `json:"node_2"`
+	ChannelID     uint64 `json:"channel_id"`
+	ChannelPoint  string `json:"channel_point"`
+	Flags         uint16 `json:"flags"`
+	Expiry        uint16 `json:"expiry"`
+	MinHTLC       int64  `json:"min_htlc"`
+	FeeBaseMAtoms int64  `json:"fee_base_m_atoms"`
+	FeeRate       int64  `json:"fee_rate"`
+	Capacity      int64  `json:"capacity"`
 }
 
 // makeTestGraph creates a new instance of a channeldb.ChannelGraph for testing
@@ -261,8 +261,8 @@ func parseTestGraph(path string) (*testGraphInstance, error) {
 
 		copy(edgeInfo.NodeKey1Bytes[:], node1Bytes)
 		copy(edgeInfo.NodeKey2Bytes[:], node2Bytes)
-		copy(edgeInfo.BitcoinKey1Bytes[:], node1Bytes)
-		copy(edgeInfo.BitcoinKey2Bytes[:], node2Bytes)
+		copy(edgeInfo.DecredKey1Bytes[:], node1Bytes)
+		copy(edgeInfo.DecredKey2Bytes[:], node2Bytes)
 
 		err = graph.AddChannelEdge(&edgeInfo)
 		if err != nil && err != channeldb.ErrEdgeAlreadyExist {
@@ -276,7 +276,7 @@ func parseTestGraph(path string) (*testGraphInstance, error) {
 			LastUpdate:                testTime,
 			TimeLockDelta:             edge.Expiry,
 			MinHTLC:                   lnwire.MilliAtom(edge.MinHTLC),
-			FeeBaseMAt:                lnwire.MilliAtom(edge.FeeBaseMat),
+			FeeBaseMAtoms:             lnwire.MilliAtom(edge.FeeBaseMAtoms),
 			FeeProportionalMillionths: lnwire.MilliAtom(edge.FeeRate),
 		}
 		if err := graph.UpdateEdgePolicy(edgePolicy); err != nil {
@@ -292,10 +292,10 @@ func parseTestGraph(path string) (*testGraphInstance, error) {
 }
 
 type testChannelPolicy struct {
-	Expiry     uint16
-	MinHTLC    lnwire.MilliAtom
-	FeeBaseMat lnwire.MilliAtom
-	FeeRate    lnwire.MilliAtom
+	Expiry        uint16
+	MinHTLC       lnwire.MilliAtom
+	FeeBaseMAtoms lnwire.MilliAtom
+	FeeRate       lnwire.MilliAtom
 }
 
 type testChannelEnd struct {
@@ -307,10 +307,10 @@ func defaultTestChannelEnd(alias string) *testChannelEnd {
 	return &testChannelEnd{
 		Alias: alias,
 		testChannelPolicy: testChannelPolicy{
-			Expiry:     144,
-			MinHTLC:    lnwire.MilliAtom(1000),
-			FeeBaseMat: lnwire.MilliAtom(1000),
-			FeeRate:    lnwire.MilliAtom(1),
+			Expiry:        144,
+			MinHTLC:       lnwire.MilliAtom(1000),
+			FeeBaseMAtoms: lnwire.MilliAtom(1000),
+			FeeRate:       lnwire.MilliAtom(1),
 		},
 	}
 }
@@ -476,8 +476,8 @@ func createTestGraphFromChannels(testChannels []*testChannel) (*testGraphInstanc
 
 		copy(edgeInfo.NodeKey1Bytes[:], node1Bytes)
 		copy(edgeInfo.NodeKey2Bytes[:], node2Bytes)
-		copy(edgeInfo.BitcoinKey1Bytes[:], node1Bytes)
-		copy(edgeInfo.BitcoinKey2Bytes[:], node2Bytes)
+		copy(edgeInfo.DecredKey1Bytes[:], node1Bytes)
+		copy(edgeInfo.DecredKey2Bytes[:], node2Bytes)
 
 		err = graph.AddChannelEdge(&edgeInfo)
 		if err != nil && err != channeldb.ErrEdgeAlreadyExist {
@@ -491,7 +491,7 @@ func createTestGraphFromChannels(testChannels []*testChannel) (*testGraphInstanc
 			LastUpdate:                testTime,
 			TimeLockDelta:             testChannel.Node1.Expiry,
 			MinHTLC:                   testChannel.Node1.MinHTLC,
-			FeeBaseMAt:                testChannel.Node1.FeeBaseMat,
+			FeeBaseMAtoms:             testChannel.Node1.FeeBaseMAtoms,
 			FeeProportionalMillionths: testChannel.Node1.FeeRate,
 		}
 		if err := graph.UpdateEdgePolicy(edgePolicy); err != nil {
@@ -505,7 +505,7 @@ func createTestGraphFromChannels(testChannels []*testChannel) (*testGraphInstanc
 			LastUpdate:                testTime,
 			TimeLockDelta:             testChannel.Node2.Expiry,
 			MinHTLC:                   testChannel.Node2.MinHTLC,
-			FeeBaseMAt:                testChannel.Node2.FeeBaseMat,
+			FeeBaseMAtoms:             testChannel.Node2.FeeBaseMAtoms,
 			FeeProportionalMillionths: testChannel.Node2.FeeRate,
 		}
 
@@ -582,7 +582,7 @@ func TestFindLowestFeePath(t *testing.T) {
 		finalHopCLTV   = 1
 	)
 
-	paymentAmt := lnwire.NewMAtFromAtoms(100)
+	paymentAmt := lnwire.NewMAtomsFromAtoms(100)
 	target := testGraphInstance.aliasMap["target"]
 	path, err := findPath(
 		&graphParams{
@@ -728,7 +728,7 @@ func testBasicGraphPathFindingCase(t *testing.T, graphInstance *testGraphInstanc
 		finalHopCLTV   = 1
 	)
 
-	paymentAmt := lnwire.NewMAtFromAtoms(test.paymentAmt)
+	paymentAmt := lnwire.NewMAtomsFromAtoms(test.paymentAmt)
 	target := graphInstance.aliasMap[test.target]
 	path, err := findPath(
 		&graphParams{
@@ -860,7 +860,7 @@ func TestPathFindingWithAdditionalEdges(t *testing.T) {
 		t.Fatalf("unable to fetch source node: %v", err)
 	}
 
-	paymentAmt := lnwire.NewMAtFromAtoms(100)
+	paymentAmt := lnwire.NewMAtomsFromAtoms(100)
 
 	// In this test, we'll test that we're able to find paths through
 	// private channels when providing them as additional edges in our path
@@ -886,7 +886,7 @@ func TestPathFindingWithAdditionalEdges(t *testing.T) {
 	songokuToDoge := &channeldb.ChannelEdgePolicy{
 		Node:                      doge,
 		ChannelID:                 1337,
-		FeeBaseMAt:                1,
+		FeeBaseMAtoms:             1,
 		FeeProportionalMillionths: 1000,
 		TimeLockDelta:             9,
 	}
@@ -937,7 +937,7 @@ func TestKShortestPathFinding(t *testing.T) {
 	// ji. Our algorithm should properly find both paths, and also rank
 	// them in order of their total "distance".
 
-	paymentAmt := lnwire.NewMAtFromAtoms(100)
+	paymentAmt := lnwire.NewMAtomsFromAtoms(100)
 	target := graph.aliasMap["luoji"]
 	paths, err := findPaths(
 		nil, graph.graph, sourceNode, target, paymentAmt, noFeeLimit, 100,
@@ -987,7 +987,7 @@ func TestNewRoute(t *testing.T) {
 		return &channeldb.ChannelEdgePolicy{
 			Node:                      &channeldb.LightningNode{},
 			FeeProportionalMillionths: feeRate,
-			FeeBaseMAt:                baseFee,
+			FeeBaseMAtoms:             baseFee,
 			TimeLockDelta:             timeLockDelta,
 		}
 	}
@@ -1257,7 +1257,7 @@ func TestNewRoutePathTooLong(t *testing.T) {
 	ignoredEdges := make(map[edgeLocator]struct{})
 	ignoredVertexes := make(map[Vertex]struct{})
 
-	paymentAmt := lnwire.NewMAtFromAtoms(100)
+	paymentAmt := lnwire.NewMAtomsFromAtoms(100)
 
 	// We start by confirming that routing a payment 20 hops away is
 	// possible. Alice should be able to find a valid route to ursula.
@@ -1366,12 +1366,12 @@ func TestPathInsufficientCapacity(t *testing.T) {
 	// an error.
 
 	// To test his we'll attempt to make a payment of 1 DCR, or 100 million
-	// satoshis. The largest channel in the basic graph is of size 100k
-	// satoshis, so we shouldn't be able to find a path to sophon even
+	// atoms. The largest channel in the basic graph is of size 100k
+	// atoms, so we shouldn't be able to find a path to sophon even
 	// though we have a 2-hop link.
 	target := graph.aliasMap["sophon"]
 
-	payAmt := lnwire.NewMAtFromAtoms(dcrutil.AtomsPerCoin)
+	payAmt := lnwire.NewMAtomsFromAtoms(dcrutil.AtomsPerCoin)
 	_, err = findPath(
 		&graphParams{
 			graph: graph.graph,
@@ -1406,8 +1406,8 @@ func TestRouteFailMinHTLC(t *testing.T) {
 	ignoredEdges := make(map[edgeLocator]struct{})
 	ignoredVertexes := make(map[Vertex]struct{})
 
-	// We'll not attempt to route an HTLC of 10 SAT from roasbeef to Son
-	// Goku. However, the min HTLC of Son Goku is 1k SAT, as a result, this
+	// We'll not attempt to route an HTLC of 10 atoms from roasbeef to Son
+	// Goku. However, the min HTLC of Son Goku is 1k Atoms, as a result, this
 	// attempt should fail.
 	target := graph.aliasMap["songoku"]
 	payAmt := lnwire.MilliAtom(10)
@@ -1451,7 +1451,7 @@ func TestRouteFailDisabledEdge(t *testing.T) {
 	// First, we'll try to route from roasbeef -> sophon. This should
 	// succeed without issue, and return a single path via phamnuwen
 	target := graph.aliasMap["sophon"]
-	payAmt := lnwire.NewMAtFromAtoms(105000)
+	payAmt := lnwire.NewMAtomsFromAtoms(105000)
 	_, err = findPath(
 		&graphParams{
 			graph: graph.graph,
@@ -1552,7 +1552,7 @@ func TestPathSourceEdgesBandwidth(t *testing.T) {
 	// succeed without issue, and return a path via songoku, as that's the
 	// cheapest path.
 	target := graph.aliasMap["sophon"]
-	payAmt := lnwire.NewMAtFromAtoms(50000)
+	payAmt := lnwire.NewMAtomsFromAtoms(50000)
 	path, err := findPath(
 		&graphParams{
 			graph: graph.graph,
@@ -1697,7 +1697,7 @@ func TestPathFindSpecExample(t *testing.T) {
 		t.Fatalf("unable to set source node: %v", err)
 	}
 
-	// Query for a route of 4,999,999 mAT to carol.
+	// Query for a route of 4,999,999 milli-atoms to carol.
 	carol := ctx.aliases["C"]
 	const amt lnwire.MilliAtom = 4999999
 	routes, err := ctx.router.FindRoutes(carol, amt, noFeeLimit, 100)

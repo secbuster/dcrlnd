@@ -151,7 +151,7 @@ func CreateTestChannels() (*LightningChannel, *LightningChannel, func(), error) 
 	aliceCfg := channeldb.ChannelConfig{
 		ChannelConstraints: channeldb.ChannelConstraints{
 			DustLimit:        aliceDustLimit,
-			MaxPendingAmount: lnwire.NewMAtFromAtoms(channelCapacity),
+			MaxPendingAmount: lnwire.NewMAtomsFromAtoms(channelCapacity),
 			ChanReserve:      channelCapacity / 100,
 			MinHTLC:          0,
 			MaxAcceptedHtlcs: MaxHTLCNumber / 2,
@@ -176,7 +176,7 @@ func CreateTestChannels() (*LightningChannel, *LightningChannel, func(), error) 
 	bobCfg := channeldb.ChannelConfig{
 		ChannelConstraints: channeldb.ChannelConstraints{
 			DustLimit:        bobDustLimit,
-			MaxPendingAmount: lnwire.NewMAtFromAtoms(channelCapacity),
+			MaxPendingAmount: lnwire.NewMAtomsFromAtoms(channelCapacity),
 			ChanReserve:      channelCapacity / 100,
 			MinHTLC:          0,
 			MaxAcceptedHtlcs: MaxHTLCNumber / 2,
@@ -251,8 +251,8 @@ func CreateTestChannels() (*LightningChannel, *LightningChannel, func(), error) 
 
 	aliceCommit := channeldb.ChannelCommitment{
 		CommitHeight:  0,
-		LocalBalance:  lnwire.NewMAtFromAtoms(channelBal - commitFee),
-		RemoteBalance: lnwire.NewMAtFromAtoms(channelBal),
+		LocalBalance:  lnwire.NewMAtomsFromAtoms(channelBal - commitFee),
+		RemoteBalance: lnwire.NewMAtomsFromAtoms(channelBal),
 		CommitFee:     commitFee,
 		FeePerKw:      dcrutil.Amount(feePerKw),
 		CommitTx:      aliceCommitTx,
@@ -260,8 +260,8 @@ func CreateTestChannels() (*LightningChannel, *LightningChannel, func(), error) 
 	}
 	bobCommit := channeldb.ChannelCommitment{
 		CommitHeight:  0,
-		LocalBalance:  lnwire.NewMAtFromAtoms(channelBal),
-		RemoteBalance: lnwire.NewMAtFromAtoms(channelBal - commitFee),
+		LocalBalance:  lnwire.NewMAtomsFromAtoms(channelBal),
+		RemoteBalance: lnwire.NewMAtomsFromAtoms(channelBal - commitFee),
 		CommitFee:     commitFee,
 		FeePerKw:      dcrutil.Amount(feePerKw),
 		CommitTx:      bobCommitTx,

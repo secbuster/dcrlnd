@@ -217,7 +217,7 @@ type config struct {
 
 	Alias       string `long:"alias" description:"The node alias. Used as a moniker by peers and intelligence services"`
 	Color       string `long:"color" description:"The color of the node in hex format (i.e. '#3399FF'). Used to customize node appearance in intelligence services"`
-	MinChanSize int64  `long:"minchansize" description:"The smallest channel size (in satoshis) that we should accept. Incoming channels smaller than this will be rejected"`
+	MinChanSize int64  `long:"minchansize" description:"The smallest channel size (in atoms) that we should accept. Incoming channels smaller than this will be rejected"`
 
 	NoChanUpdates bool `long:"nochanupdates" description:"If specified, lnd will not request real-time channel updates from connected peers. This option should be used by routing nodes to save bandwidth."`
 
@@ -248,8 +248,8 @@ func loadConfig() (*config, error) {
 		MaxLogFiles:    defaultMaxLogFiles,
 		MaxLogFileSize: defaultMaxLogFileSize,
 		Decred: &chainConfig{
-			MinHTLC:       defaultDecredMinHTLCMAt,
-			BaseFee:       defaultDecredBaseFeeMAt,
+			MinHTLC:       defaultDecredMinHTLCMAtoms,
+			BaseFee:       defaultDecredBaseFeeMAtoms,
 			FeeRate:       defaultDecredFeeRate,
 			TimeLockDelta: defaultDecredTimeLockDelta,
 			Node:          "dcrd",

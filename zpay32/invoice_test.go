@@ -20,9 +20,9 @@ import (
 )
 
 var (
-	testMilliAt24BTC    = lnwire.MilliAtom(2400000000000)
-	testMilliAt2500uBTC = lnwire.MilliAtom(250000000)
-	testMilliAt20mBTC   = lnwire.MilliAtom(2000000000)
+	testMilliAt24DCR    = lnwire.MilliAtom(2400000000000)
+	testMilliAt2500uDCR = lnwire.MilliAtom(250000000)
+	testMilliAt20mDCR   = lnwire.MilliAtom(2000000000)
 
 	testPaymentHashSlice, _ = hex.DecodeString("0001020304050607080900010203040506070809000102030405060708090102")
 
@@ -52,7 +52,7 @@ var (
 		{
 			NodeID:                    testHopHintPubkey1,
 			ChannelID:                 0x0102030405060708,
-			FeeBaseMAt:                0,
+			FeeBaseMAtoms:                0,
 			FeeProportionalMillionths: 20,
 			CLTVExpiryDelta:           3,
 		},
@@ -61,14 +61,14 @@ var (
 		{
 			NodeID:                    testHopHintPubkey1,
 			ChannelID:                 0x0102030405060708,
-			FeeBaseMAt:                1,
+			FeeBaseMAtoms:                1,
 			FeeProportionalMillionths: 20,
 			CLTVExpiryDelta:           3,
 		},
 		{
 			NodeID:                    testHopHintPubkey2,
 			ChannelID:                 0x030405060708090a,
-			FeeBaseMAt:                2,
+			FeeBaseMAtoms:                2,
 			FeeProportionalMillionths: 30,
 			CLTVExpiryDelta:           4,
 		},
@@ -155,7 +155,7 @@ func TestDecodeEncode(t *testing.T) {
 			decodedInvoice: func() *Invoice {
 				return &Invoice{
 					Net:             &chaincfg.MainNetParams,
-					MilliAt:         &testMilliAt20mBTC,
+					MilliAt:         &testMilliAt20mDCR,
 					Timestamp:       time.Unix(1496314658, 0),
 					DescriptionHash: &testDescriptionHash,
 					Destination:     testPubKey,
@@ -169,7 +169,7 @@ func TestDecodeEncode(t *testing.T) {
 			decodedInvoice: func() *Invoice {
 				return &Invoice{
 					Net:             &chaincfg.MainNetParams,
-					MilliAt:         &testMilliAt20mBTC,
+					MilliAt:         &testMilliAt20mDCR,
 					Timestamp:       time.Unix(1496314658, 0),
 					PaymentHash:     &testPaymentHash,
 					Description:     &testPleaseConsider,
@@ -185,7 +185,7 @@ func TestDecodeEncode(t *testing.T) {
 			decodedInvoice: func() *Invoice {
 				return &Invoice{
 					Net:         &chaincfg.MainNetParams,
-					MilliAt:     &testMilliAt20mBTC,
+					MilliAt:     &testMilliAt20mDCR,
 					Timestamp:   time.Unix(1496314658, 0),
 					PaymentHash: &testPaymentHash,
 					Destination: testPubKey,
@@ -199,7 +199,7 @@ func TestDecodeEncode(t *testing.T) {
 			decodedInvoice: func() *Invoice {
 				return &Invoice{
 					Net:         &chaincfg.MainNetParams,
-					MilliAt:     &testMilliAt20mBTC,
+					MilliAt:     &testMilliAt20mDCR,
 					Timestamp:   time.Unix(1496314658, 0),
 					PaymentHash: &testPaymentHash,
 					Description: &testPleaseConsider,
@@ -215,7 +215,7 @@ func TestDecodeEncode(t *testing.T) {
 			decodedInvoice: func() *Invoice {
 				return &Invoice{
 					Net:             &chaincfg.MainNetParams,
-					MilliAt:         &testMilliAt20mBTC,
+					MilliAt:         &testMilliAt20mDCR,
 					Timestamp:       time.Unix(1496314658, 0),
 					PaymentHash:     &testPaymentHash,
 					DescriptionHash: &testDescriptionHash,
@@ -231,7 +231,7 @@ func TestDecodeEncode(t *testing.T) {
 			decodedInvoice: func() *Invoice {
 				return &Invoice{
 					Net:             &chaincfg.MainNetParams,
-					MilliAt:         &testMilliAt24BTC,
+					MilliAt:         &testMilliAt24DCR,
 					Timestamp:       time.Unix(1503429093, 0),
 					PaymentHash:     &testPaymentHash,
 					Destination:     testPubKey,
@@ -287,7 +287,7 @@ func TestDecodeEncode(t *testing.T) {
 			decodedInvoice: func() *Invoice {
 				return &Invoice{
 					Net:         &chaincfg.MainNetParams,
-					MilliAt:     &testMilliAt24BTC,
+					MilliAt:     &testMilliAt24DCR,
 					Timestamp:   time.Unix(1503429093, 0),
 					PaymentHash: &testPaymentHash,
 					Destination: testPubKey,
@@ -304,7 +304,7 @@ func TestDecodeEncode(t *testing.T) {
 					&chaincfg.MainNetParams,
 					testPaymentHash,
 					time.Unix(1496314658, 0),
-					Amount(testMilliAt2500uBTC),
+					Amount(testMilliAt2500uDCR),
 					Description(testCupOfCoffee),
 					Destination(testPubKey),
 					Expiry(testExpiry60))
@@ -326,7 +326,7 @@ func TestDecodeEncode(t *testing.T) {
 					&chaincfg.MainNetParams,
 					testPaymentHash,
 					time.Unix(1496314658, 0),
-					Amount(testMilliAt2500uBTC),
+					Amount(testMilliAt2500uDCR),
 					Description(testCupOfNonsense),
 					Destination(testPubKey),
 					Expiry(testExpiry60))
@@ -346,7 +346,7 @@ func TestDecodeEncode(t *testing.T) {
 			decodedInvoice: func() *Invoice {
 				return &Invoice{
 					Net:             &chaincfg.MainNetParams,
-					MilliAt:         &testMilliAt20mBTC,
+					MilliAt:         &testMilliAt20mDCR,
 					Timestamp:       time.Unix(1496314658, 0),
 					PaymentHash:     &testPaymentHash,
 					DescriptionHash: &testDescriptionHash,
@@ -367,7 +367,7 @@ func TestDecodeEncode(t *testing.T) {
 			decodedInvoice: func() *Invoice {
 				return &Invoice{
 					Net:             &chaincfg.TestNet3Params,
-					MilliAt:         &testMilliAt20mBTC,
+					MilliAt:         &testMilliAt20mDCR,
 					Timestamp:       time.Unix(1496314658, 0),
 					PaymentHash:     &testPaymentHash,
 					DescriptionHash: &testDescriptionHash,
@@ -389,7 +389,7 @@ func TestDecodeEncode(t *testing.T) {
 			decodedInvoice: func() *Invoice {
 				return &Invoice{
 					Net:             &chaincfg.MainNetParams,
-					MilliAt:         &testMilliAt20mBTC,
+					MilliAt:         &testMilliAt20mDCR,
 					Timestamp:       time.Unix(1496314658, 0),
 					PaymentHash:     &testPaymentHash,
 					DescriptionHash: &testDescriptionHash,
@@ -412,7 +412,7 @@ func TestDecodeEncode(t *testing.T) {
 			decodedInvoice: func() *Invoice {
 				return &Invoice{
 					Net:             &chaincfg.MainNetParams,
-					MilliAt:         &testMilliAt20mBTC,
+					MilliAt:         &testMilliAt20mDCR,
 					Timestamp:       time.Unix(1496314658, 0),
 					PaymentHash:     &testPaymentHash,
 					DescriptionHash: &testDescriptionHash,
@@ -435,7 +435,7 @@ func TestDecodeEncode(t *testing.T) {
 			decodedInvoice: func() *Invoice {
 				return &Invoice{
 					Net:             &chaincfg.MainNetParams,
-					MilliAt:         &testMilliAt20mBTC,
+					MilliAt:         &testMilliAt20mDCR,
 					Timestamp:       time.Unix(1496314658, 0),
 					PaymentHash:     &testPaymentHash,
 					DescriptionHash: &testDescriptionHash,
@@ -451,7 +451,7 @@ func TestDecodeEncode(t *testing.T) {
 			},
 		},
 		{
-			// Send 2500uBTC for a cup of coffee with a custom CLTV
+			// Send 2500uDCR for a cup of coffee with a custom CLTV
 			// expiry value.
 			encodedInvoice: "lndcr2500u1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdq5xysxxatsyp3k7enxv4jscqzysnp4q0n326hr8v9zprg8gsvezcch06gfaqqhde2aj730yg0durunfhv66fxyjhqjk2p5tfgzh8ddfkc7s25nc0qefzt86v7ct6rccv6577f753juhjra927ma6cg05wpd6a2tqjgc56ttp5xygrk237apy5e5vgqq660qqy",
 			valid:          true,
@@ -460,7 +460,7 @@ func TestDecodeEncode(t *testing.T) {
 					&chaincfg.MainNetParams,
 					testPaymentHash,
 					time.Unix(1496314658, 0),
-					Amount(testMilliAt2500uBTC),
+					Amount(testMilliAt2500uDCR),
 					Description(testCupOfCoffee),
 					Destination(testPubKey),
 					CLTVExpiry(144),
@@ -476,7 +476,7 @@ func TestDecodeEncode(t *testing.T) {
 			decodedInvoice: func() *Invoice {
 				return &Invoice{
 					Net:         &chaincfg.TestNet3Params,
-					MilliAt:     &testMilliAt24BTC,
+					MilliAt:     &testMilliAt24DCR,
 					Timestamp:   time.Unix(1503429093, 0),
 					PaymentHash: &testPaymentHash,
 					Destination: testPubKey,
@@ -572,7 +572,7 @@ func TestNewInvoice(t *testing.T) {
 			newInvoice: func() (*Invoice, error) {
 				return NewInvoice(&chaincfg.MainNetParams,
 					testPaymentHash, time.Unix(1503429093, 0),
-					Amount(testMilliAt24BTC),
+					Amount(testMilliAt24DCR),
 					Description(testEmptyString),
 					Destination(testPubKey))
 			},
@@ -584,7 +584,7 @@ func TestNewInvoice(t *testing.T) {
 			newInvoice: func() (*Invoice, error) {
 				return NewInvoice(&chaincfg.MainNetParams,
 					testPaymentHash, time.Unix(1496314658, 0),
-					Amount(testMilliAt20mBTC),
+					Amount(testMilliAt20mDCR),
 					DescriptionHash(testDescriptionHash),
 					FallbackAddr(testRustyAddr),
 					RouteHint(testDoubleHop),
@@ -598,7 +598,7 @@ func TestNewInvoice(t *testing.T) {
 			newInvoice: func() (*Invoice, error) {
 				return NewInvoice(&chaincfg.SimNetParams,
 					testPaymentHash, time.Unix(1496314658, 0),
-					Amount(testMilliAt24BTC),
+					Amount(testMilliAt24DCR),
 					Description(testEmptyString),
 					Destination(testPubKey))
 			},
@@ -610,7 +610,7 @@ func TestNewInvoice(t *testing.T) {
 			newInvoice: func() (*Invoice, error) {
 				return NewInvoice(&chaincfg.RegNetParams,
 					testPaymentHash, time.Unix(1496314658, 0),
-					Amount(testMilliAt24BTC),
+					Amount(testMilliAt24DCR),
 					Description(testEmptyString),
 					Destination(testPubKey))
 			},
@@ -646,7 +646,7 @@ func compareInvoices(expected, actual *Invoice) error {
 	}
 
 	if !reflect.DeepEqual(expected.MilliAt, actual.MilliAt) {
-		return fmt.Errorf("expected milli sat %d, got %d",
+		return fmt.Errorf("expected milli atoms %d, got %d",
 			*expected.MilliAt, *actual.MilliAt)
 	}
 
@@ -743,9 +743,9 @@ func compareRouteHints(a, b []routing.HopHint) error {
 				"%d, got %d", a[i].ChannelID, b[i].ChannelID)
 		}
 
-		if a[i].FeeBaseMAt != b[i].FeeBaseMAt {
-			return fmt.Errorf("expected routeHint feeBaseMat %d, got %d",
-				a[i].FeeBaseMAt, b[i].FeeBaseMAt)
+		if a[i].FeeBaseMAtoms != b[i].FeeBaseMAtoms {
+			return fmt.Errorf("expected routeHint feeBaseMAtoms %d, got %d",
+				a[i].FeeBaseMAtoms, b[i].FeeBaseMAtoms)
 		}
 
 		if a[i].FeeProportionalMillionths != b[i].FeeProportionalMillionths {

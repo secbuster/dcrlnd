@@ -337,8 +337,8 @@ func TestPrefAttachmentSelectGreedyAllocation(t *testing.T) {
 			}
 
 			// We'll now begin our test, modeling the available
-			// wallet balance to be 5.5 BTC. We're shooting for a
-			// 50/50 allocation, and have 3 BTC in channels. As a
+			// wallet balance to be 5.5 DCR. We're shooting for a
+			// 50/50 allocation, and have 3 DCR in channels. As a
 			// result, the heuristic should try to greedily
 			// allocate funds to channels.
 			scores, err := prefAttach.NodeScores(graph, nil,
@@ -363,7 +363,7 @@ func TestPrefAttachmentSelectGreedyAllocation(t *testing.T) {
 			}
 
 			// Imagine a few channels are being opened, and there's
-			// only 0.5 BTC left. That should leave us with channel
+			// only 0.5 DCR left. That should leave us with channel
 			// candidates of that size.
 			const remBalance = dcrutil.AtomsPerCoin * 0.5
 			scores, err = prefAttach.NodeScores(graph, nil,

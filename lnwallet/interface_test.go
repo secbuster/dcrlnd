@@ -277,13 +277,12 @@ func calcStaticFee(numHTLCs int) dcrutil.Amount {
 	return feePerKB * dcrutil.Amount(commitSize) / 1000
 }
 
-// TODO(decred): Update for atomsPerOutput...
 func loadTestCredits(miner *rpctest.Harness, w *lnwallet.LightningWallet,
-	numOutputs int, btcPerOutput float64) error {
+	numOutputs int, dcrPerOutput float64) error {
 
 	// Using the mining node, spend from a coinbase output numOutputs to
-	// give us btcPerOutput with each output.
-	satoshiPerOutput, err := dcrutil.NewAmount(btcPerOutput)
+	// give us dcrPerOutput with each output.
+	atomsPerOutput, err := dcrutil.NewAmount(dcrPerOutput)
 	if err != nil {
 		return fmt.Errorf("unable to create amt: %v", err)
 	}
@@ -291,7 +290,7 @@ func loadTestCredits(miner *rpctest.Harness, w *lnwallet.LightningWallet,
 	if err != nil {
 		return err
 	}
-	expectedBalance += dcrutil.Amount(int64(satoshiPerOutput) * int64(numOutputs))
+	expectedBalance += dcrutil.Amount(int64(atomsPerOutput) * int64(numOutputs))
 	addrs := make([]dcrutil.Address, 0, numOutputs)
 	for i := 0; i < numOutputs; i++ {
 		// Grab a fresh address from the wallet to house this output.
@@ -308,7 +307,7 @@ func loadTestCredits(miner *rpctest.Harness, w *lnwallet.LightningWallet,
 		addrs = append(addrs, walletAddr)
 
 		output := &wire.TxOut{
-			Value:    int64(satoshiPerOutput),
+			Value:    int64(atomsPerOutput),
 			PkScript: script,
 			Version:  txscript.DefaultScriptVersion,
 		}
@@ -387,7 +386,7 @@ func createTestWallet(tempTestDir string, miningNode *rpctest.Harness,
 		FeeEstimator:     lnwallet.NewStaticFeeEstimator(defaultFeeRate, 0),
 		DefaultConstraints: channeldb.ChannelConstraints{
 			DustLimit:        500,
-			MaxPendingAmount: lnwire.NewMAtFromAtoms(dcrutil.AtomsPerCoin) * 100,
+			MaxPendingAmount: lnwire.NewMAtomsFromAtoms(dcrutil.AtomsPerCoin) * 100,
 			ChanReserve:      100,
 			MinHTLC:          400,
 			MaxAcceptedHtlcs: 900,
@@ -439,8 +438,8 @@ func testDualFundingReservationWorkflow(miner *rpctest.Harness,
 	// In this scenario, we'll test a dual funder reservation, with each
 	// side putting in 10 DCR.
 
-	// Alice initiates a channel funded with 5 BTC for each side, so 10 BTC
-	// total. She also generates 2 BTC in change.
+	// Alice initiates a channel funded with 5 DCR for each side, so 10 DCR
+	// total. She also generates 2 DCR in change.
 	feePerKB, err := alice.Cfg.FeeEstimator.EstimateFeePerKB(1)
 	if err != nil {
 		t.Fatalf("unable to query fee estimator: %v", err)
@@ -454,7 +453,7 @@ func testDualFundingReservationWorkflow(miner *rpctest.Harness,
 		Capacity:        fundingAmount * 2,
 		CommitFeePerKw:  feePerKB,
 		FundingFeePerKw: feePerKB,
-		PushMAt:         0,
+		PushMAtoms:      0,
 		Flags:           lnwire.FFAnnounceChannel,
 	}
 	aliceChanReservation, err := alice.InitChannelReservation(aliceReq)
@@ -464,7 +463,7 @@ func testDualFundingReservationWorkflow(miner *rpctest.Harness,
 	aliceChanReservation.SetNumConfsRequired(numReqConfs)
 	err = aliceChanReservation.CommitConstraints(
 		csvDelay, lnwallet.MaxHTLCNumber/2,
-		lnwire.NewMAtFromAtoms(fundingAmount), 1, fundingAmount/100,
+		lnwire.NewMAtomsFromAtoms(fundingAmount), 1, fundingAmount/100,
 		lnwallet.DefaultDustLimit(),
 	)
 	if err != nil {
@@ -493,7 +492,7 @@ func testDualFundingReservationWorkflow(miner *rpctest.Harness,
 		Capacity:        fundingAmount * 2,
 		CommitFeePerKw:  feePerKB,
 		FundingFeePerKw: feePerKB,
-		PushMAt:         0,
+		PushMAtoms:      0,
 		Flags:           lnwire.FFAnnounceChannel,
 	}
 	bobChanReservation, err := bob.InitChannelReservation(bobReq)
@@ -502,7 +501,7 @@ func testDualFundingReservationWorkflow(miner *rpctest.Harness,
 	}
 	err = bobChanReservation.CommitConstraints(
 		csvDelay, lnwallet.MaxHTLCNumber/2,
-		lnwire.NewMAtFromAtoms(fundingAmount), 1, fundingAmount/100,
+		lnwire.NewMAtomsFromAtoms(fundingAmount), 1, fundingAmount/100,
 		lnwallet.DefaultDustLimit(),
 	)
 	if err != nil {
@@ -640,7 +639,7 @@ func testDualFundingReservationWorkflow(miner *rpctest.Harness,
 func testFundingTransactionLockedOutputs(miner *rpctest.Harness,
 	alice, _ *lnwallet.LightningWallet, t *testing.T) {
 
-	// Create a single channel asking for 16 BTC total.
+	// Create a single channel asking for 16 DCR total.
 	fundingAmount := dcrutil.Amount(8 * 1e8)
 	// TODO(decred) Switch to fee per KB
 	feePerKB, err := alice.Cfg.FeeEstimator.EstimateFeePerKB(1)
@@ -655,7 +654,7 @@ func testFundingTransactionLockedOutputs(miner *rpctest.Harness,
 		Capacity:        fundingAmount,
 		CommitFeePerKw:  feePerKB,
 		FundingFeePerKw: feePerKB,
-		PushMAt:         0,
+		PushMAtoms:      0,
 		Flags:           lnwire.FFAnnounceChannel,
 	}
 	if _, err := alice.InitChannelReservation(req); err != nil {
@@ -677,7 +676,7 @@ func testFundingTransactionLockedOutputs(miner *rpctest.Harness,
 		Capacity:        amt,
 		CommitFeePerKw:  feePerKB,
 		FundingFeePerKw: feePerKB,
-		PushMAt:         0,
+		PushMAtoms:      0,
 		Flags:           lnwire.FFAnnounceChannel,
 	}
 	failedReservation, err := alice.InitChannelReservation(failedReq)
@@ -713,7 +712,7 @@ func testFundingCancellationNotEnoughFunds(miner *rpctest.Harness,
 		Capacity:        fundingAmount,
 		CommitFeePerKw:  feePerKB,
 		FundingFeePerKw: feePerKB,
-		PushMAt:         0,
+		PushMAtoms:      0,
 		Flags:           lnwire.FFAnnounceChannel,
 	}
 	chanReservation, err := alice.InitChannelReservation(req)
@@ -788,14 +787,14 @@ func testReservationInitiatorBalanceBelowDustCancel(miner *rpctest.Harness,
 	// We'll attempt to create a new reservation with an extremely high fee
 	// rate. This should push our balance into the negative and result in a
 	// failure to create the reservation.
-	const numBTC = 4
-	fundingAmount, err := dcrutil.NewAmount(numBTC)
+	const numDCR = 4
+	fundingAmount, err := dcrutil.NewAmount(numDCR)
 	if err != nil {
 		t.Fatalf("unable to create amt: %v", err)
 	}
 
 	feePerKw := lnwallet.AtomPerKByte(
-		numBTC * numBTC * dcrutil.AtomsPerCoin,
+		numDCR * numDCR * dcrutil.AtomsPerCoin,
 	)
 	req := &lnwallet.InitFundingReserveMsg{
 		ChainHash:       chainHash,
@@ -805,7 +804,7 @@ func testReservationInitiatorBalanceBelowDustCancel(miner *rpctest.Harness,
 		Capacity:        fundingAmount,
 		CommitFeePerKw:  feePerKw,
 		FundingFeePerKw: feePerKw,
-		PushMAt:         0,
+		PushMAtoms:      0,
 		Flags:           lnwire.FFAnnounceChannel,
 	}
 	_, err = alice.InitChannelReservation(req)
@@ -873,7 +872,7 @@ func testSingleFunderReservationWorkflow(miner *rpctest.Harness,
 	if err != nil {
 		t.Fatalf("unable to create amt: %v", err)
 	}
-	pushAmt := lnwire.NewMAtFromAtoms(dcrutil.AtomsPerCoin)
+	pushAmt := lnwire.NewMAtomsFromAtoms(dcrutil.AtomsPerCoin)
 	feePerKB, err := alice.Cfg.FeeEstimator.EstimateFeePerKB(1)
 	if err != nil {
 		t.Fatalf("unable to query fee estimator: %v", err)
@@ -886,7 +885,7 @@ func testSingleFunderReservationWorkflow(miner *rpctest.Harness,
 		Capacity:        fundingAmt,
 		CommitFeePerKw:  feePerKB,
 		FundingFeePerKw: feePerKB,
-		PushMAt:         pushAmt,
+		PushMAtoms:      pushAmt,
 		Flags:           lnwire.FFAnnounceChannel,
 	}
 	aliceChanReservation, err := alice.InitChannelReservation(aliceReq)
@@ -896,7 +895,7 @@ func testSingleFunderReservationWorkflow(miner *rpctest.Harness,
 	aliceChanReservation.SetNumConfsRequired(numReqConfs)
 	err = aliceChanReservation.CommitConstraints(
 		csvDelay, lnwallet.MaxHTLCNumber/2,
-		lnwire.NewMAtFromAtoms(fundingAmt), 1, fundingAmt/100,
+		lnwire.NewMAtomsFromAtoms(fundingAmt), 1, fundingAmt/100,
 		lnwallet.DefaultDustLimit(),
 	)
 	if err != nil {
@@ -925,7 +924,7 @@ func testSingleFunderReservationWorkflow(miner *rpctest.Harness,
 		Capacity:        fundingAmt,
 		CommitFeePerKw:  feePerKB,
 		FundingFeePerKw: feePerKB,
-		PushMAt:         pushAmt,
+		PushMAtoms:      pushAmt,
 		Flags:           lnwire.FFAnnounceChannel,
 	}
 	bobChanReservation, err := bob.InitChannelReservation(bobReq)
@@ -934,7 +933,7 @@ func testSingleFunderReservationWorkflow(miner *rpctest.Harness,
 	}
 	err = bobChanReservation.CommitConstraints(
 		csvDelay, lnwallet.MaxHTLCNumber/2,
-		lnwire.NewMAtFromAtoms(fundingAmt), 1, fundingAmt/100,
+		lnwire.NewMAtomsFromAtoms(fundingAmt), 1, fundingAmt/100,
 		lnwallet.DefaultDustLimit(),
 	)
 	if err != nil {
@@ -2131,7 +2130,7 @@ func testChangeOutputSpendConfirmation(r *rpctest.Harness,
 	// spends an output created by SendOutputs, we'll start by emptying
 	// Alice's wallet so that no other UTXOs can be picked. To do so, we'll
 	// generate an address for Bob, who will receive all the coins.
-	// Assuming a balance of 80 DCR and a transaction fee of 2500 sat/kw,
+	// Assuming a balance of 80 DCR and a transaction fee of 2500 atom/kw,
 	// we'll craft the following transaction so that Alice doesn't have any
 	// UTXOs left.
 	aliceBalance, err := alice.ConfirmedBalance(0)

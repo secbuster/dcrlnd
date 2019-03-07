@@ -1989,7 +1989,7 @@ func NewBreachRetribution(chanState *channeldb.OpenChannel, stateNum uint64,
 		remoteSignDesc *SignDescriptor
 	)
 
-	// Compute the local and remote balances in satoshis.
+	// Compute the local and remote balances in atoms.
 	localAmt := revokedSnapshot.LocalBalance.ToAtoms()
 	remoteAmt := revokedSnapshot.RemoteBalance.ToAtoms()
 
@@ -2122,13 +2122,13 @@ func NewBreachRetribution(chanState *channeldb.OpenChannel, stateNum uint64,
 	}, nil
 }
 
-// htlcTimeoutFee returns the fee in satoshis required for an HTLC timeout
+// htlcTimeoutFee returns the fee in atoms required for an HTLC timeout
 // transaction based on the current fee rate.
 func htlcTimeoutFee(feePerKB AtomPerKByte) dcrutil.Amount {
 	return feePerKB.FeeForSize(htlcTimeoutTxSize)
 }
 
-// htlcSuccessFee returns the fee in satoshis required for an HTLC success
+// htlcSuccessFee returns the fee in atoms required for an HTLC success
 // transaction based on the current fee rate.
 func htlcSuccessFee(feePerKB AtomPerKByte) dcrutil.Amount {
 	return feePerKB.FeeForSize(htlcSuccessTxSize)
@@ -2330,7 +2330,7 @@ func (lc *LightningChannel) createCommitmentTx(c *commitment,
 	// With the size known, we can now calculate the commitment fee,
 	// ensuring that we account for any dust outputs trimmed above.
 	commitFee := c.feePerKw.FeeForSize(totalCommitSize)
-	commitFeeMAt := lnwire.NewMAtFromAtoms(commitFee)
+	commitFeeMAtoms := lnwire.NewMAtomsFromAtoms(commitFee)
 
 	// Currently, within the protocol, the initiator always pays the fees.
 	// So we'll subtract the fee amount from the balance of the current
@@ -2341,13 +2341,13 @@ func (lc *LightningChannel) createCommitmentTx(c *commitment,
 		ourBalance = 0
 
 	case lc.channelState.IsInitiator:
-		ourBalance -= commitFeeMAt
+		ourBalance -= commitFeeMAtoms
 
 	case !lc.channelState.IsInitiator && commitFee > theirBalance.ToAtoms():
 		theirBalance = 0
 
 	case !lc.channelState.IsInitiator:
-		theirBalance -= commitFeeMAt
+		theirBalance -= commitFeeMAtoms
 	}
 
 	var (
@@ -2474,10 +2474,10 @@ func (lc *LightningChannel) evaluateHTLCView(view *htlcView, ourBalance,
 
 		// If we're settling an inbound HTLC, and it hasn't been
 		// processed yet, then increment our state tracking the total
-		// number of satoshis we've received within the channel.
+		// number of atoms we've received within the channel.
 		if mutateState && entry.EntryType == Settle && !remoteChain &&
 			entry.removeCommitHeightLocal == 0 {
-			lc.channelState.TotalMAtReceived += entry.Amount
+			lc.channelState.TotalMAtomsReceived += entry.Amount
 		}
 
 		addEntry := lc.remoteUpdateLog.lookupHtlc(entry.ParentIndex)
@@ -2508,11 +2508,11 @@ func (lc *LightningChannel) evaluateHTLCView(view *htlcView, ourBalance,
 
 		// If the remote party is settling one of our outbound HTLC's,
 		// and it hasn't been processed, yet, the increment our state
-		// tracking the total number of satoshis we've sent within the
+		// tracking the total number of atoms we've sent within the
 		// channel.
 		if mutateState && entry.EntryType == Settle && !remoteChain &&
 			entry.removeCommitHeightLocal == 0 {
-			lc.channelState.TotalMAtSent += entry.Amount
+			lc.channelState.TotalMAtomsSent += entry.Amount
 		}
 
 		addEntry := lc.localUpdateLog.lookupHtlc(entry.ParentIndex)
@@ -3510,10 +3510,10 @@ func (lc *LightningChannel) computeView(view *htlcView, remoteChain bool,
 	// re-applied in case fee estimation parameters have changed or the
 	// number of outstanding HTLCs has changed.
 	if lc.channelState.IsInitiator {
-		ourBalance += lnwire.NewMAtFromAtoms(
+		ourBalance += lnwire.NewMAtomsFromAtoms(
 			commitChain.tip().fee)
 	} else if !lc.channelState.IsInitiator {
-		theirBalance += lnwire.NewMAtFromAtoms(
+		theirBalance += lnwire.NewMAtomsFromAtoms(
 			commitChain.tip().fee)
 	}
 	nextHeight := commitChain.tip().height + 1
@@ -3619,11 +3619,11 @@ func (lc *LightningChannel) validateCommitmentSanity(theirLogCounter,
 	// Calculate the commitment fee, and subtract it from the initiator's
 	// balance.
 	commitFee := feePerKB.FeeForSize(commitSize)
-	commitFeeMat := lnwire.NewMAtFromAtoms(commitFee)
+	commitFeeMAtoms := lnwire.NewMAtomsFromAtoms(commitFee)
 	if lc.channelState.IsInitiator {
-		ourBalance -= commitFeeMat
+		ourBalance -= commitFeeMAtoms
 	} else {
-		theirBalance -= commitFeeMat
+		theirBalance -= commitFeeMAtoms
 	}
 
 	// As a quick sanity check, we'll ensure that if we interpret the
@@ -3640,13 +3640,13 @@ func (lc *LightningChannel) validateCommitmentSanity(theirLogCounter,
 	// If the added HTLCs will decrease the balance, make sure they won't
 	// dip the local and remote balances below the channel reserves.
 	if ourBalance < ourInitialBalance &&
-		ourBalance < lnwire.NewMAtFromAtoms(
+		ourBalance < lnwire.NewMAtomsFromAtoms(
 			lc.localChanCfg.ChanReserve) {
 		return ErrBelowChanReserve
 	}
 
 	if theirBalance < theirInitialBalance &&
-		theirBalance < lnwire.NewMAtFromAtoms(
+		theirBalance < lnwire.NewMAtomsFromAtoms(
 			lc.remoteChanCfg.ChanReserve) {
 		return ErrBelowChanReserve
 	}
@@ -5900,7 +5900,7 @@ func (lc *LightningChannel) availableBalance() (lnwire.MilliAtom, int64) {
 	// commitment fee from our available balance.
 	commitFee := feePerKB.FeeForSize(commitSize)
 	if lc.channelState.IsInitiator {
-		ourBalance -= lnwire.NewMAtFromAtoms(commitFee)
+		ourBalance -= lnwire.NewMAtomsFromAtoms(commitFee)
 	}
 
 	return ourBalance, commitSize
@@ -5923,16 +5923,16 @@ func (lc *LightningChannel) validateFeeRate(feePerKB AtomPerKByte) error {
 	// be above our reserve balance. Otherwise, we'll reject the fee
 	// update.
 	availableBalance, txSize := lc.availableBalance()
-	oldFee := lnwire.NewMAtFromAtoms(lc.localCommitChain.tip().fee)
+	oldFee := lnwire.NewMAtomsFromAtoms(lc.localCommitChain.tip().fee)
 
-	// Our base balance is the total amount of satoshis we can commit
+	// Our base balance is the total amount of atoms we can commit
 	// towards fees before factoring in the channel reserve.
 	baseBalance := availableBalance + oldFee
 
 	// Using the size of the commitment transaction if we were to create
 	// a commitment now, we'll compute our remaining balance if we apply
 	// this new fee update.
-	newFee := lnwire.NewMAtFromAtoms(
+	newFee := lnwire.NewMAtomsFromAtoms(
 		feePerKB.FeeForSize(txSize),
 	)
 
@@ -5940,7 +5940,7 @@ func (lc *LightningChannel) validateFeeRate(feePerKB AtomPerKByte) error {
 	// the fee from the last state), then we'll reject this update as it
 	// would mean we need to trim our entire output.
 	if newFee > baseBalance {
-		return fmt.Errorf("cannot apply fee_update=%v sat/kw, new fee "+
+		return fmt.Errorf("cannot apply fee_update=%v atom/kw, new fee "+
 			"of %v is greater than balance of %v", int64(feePerKB),
 			newFee, baseBalance)
 	}
@@ -5949,7 +5949,7 @@ func (lc *LightningChannel) validateFeeRate(feePerKB AtomPerKByte) error {
 	// the fee change, so we'll reject it.
 	balanceAfterFee := baseBalance - newFee
 	if balanceAfterFee.ToAtoms() < lc.channelState.LocalChanCfg.ChanReserve {
-		return fmt.Errorf("cannot apply fee_update=%v sat/kw, "+
+		return fmt.Errorf("cannot apply fee_update=%v atom/kw, "+
 			"new balance=%v would dip below channel reserve=%v",
 			int64(feePerKB),
 			balanceAfterFee.ToAtoms(),
@@ -6166,7 +6166,7 @@ func (lc *LightningChannel) IsInitiator() bool {
 }
 
 // CommitFeeRate returns the current fee rate of the commitment transaction in
-// units of sat-per-kw.
+// units of atom-per-kw.
 func (lc *LightningChannel) CommitFeeRate() AtomPerKByte {
 	lc.RLock()
 	defer lc.RUnlock()

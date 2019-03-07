@@ -76,19 +76,19 @@ type InitFundingReserveMsg struct {
 	// amount of funds the remote party contributes (if any).
 	Capacity dcrutil.Amount
 
-	// CommitFeePerKw is the starting accepted satoshis/Kw fee for the set
+	// CommitFeePerKw is the starting accepted atom/Kw fee for the set
 	// of initial commitment transactions. In order to ensure timely
 	// confirmation, it is recommended that this fee should be generous,
 	// paying some multiple of the accepted base fee rate of the network.
 	CommitFeePerKw AtomPerKByte
 
-	// FundingFeePerKw is the fee rate in sat/kw to use for the initial
+	// FundingFeePerKw is the fee rate in atom/kw to use for the initial
 	// funding transaction.
 	FundingFeePerKw AtomPerKByte
 
-	// PushMAt is the number of milli-atoms that should be pushed over
+	// PushMAtoms is the number of milli-atoms that should be pushed over
 	// the responder as part of the initial channel creation.
-	PushMAt lnwire.MilliAtom
+	PushMAtoms lnwire.MilliAtom
 
 	// Flags are the channel flags specified by the initiator in the
 	// open_channel message.
@@ -449,7 +449,7 @@ func (l *LightningWallet) handleFundingReserveRequest(req *InitFundingReserveMsg
 	id := atomic.AddUint64(&l.nextFundingID, 1)
 	reservation, err := NewChannelReservation(
 		req.Capacity, req.FundingAmount, req.CommitFeePerKw, l, id,
-		req.PushMAt, l.Cfg.NetParams.GenesisHash, req.Flags,
+		req.PushMAtoms, l.Cfg.NetParams.GenesisHash, req.Flags,
 	)
 	if err != nil {
 		req.err <- err
@@ -468,7 +468,7 @@ func (l *LightningWallet) handleFundingReserveRequest(req *InitFundingReserveMsg
 	// don't need to perform any coin selection. Otherwise, attempt to
 	// obtain enough coins to meet the required funding amount.
 	if req.FundingAmount != 0 {
-		// Coin selection is done on the basis of sat/kw, so we'll use
+		// Coin selection is done on the basis of atom/kw, so we'll use
 		// the fee rate passed in to perform coin selection.
 		err := l.selectCoinsAndChange(
 			req.FundingFeePerKw, req.FundingAmount, req.MinConfs,
@@ -1244,7 +1244,7 @@ func (l *LightningWallet) handleSingleFunderSigs(req *addSingleFunderSigsMsg) {
 }
 
 // selectCoinsAndChange performs coin selection in order to obtain witness
-// outputs which sum to at least 'numCoins' amount of satoshis. If coin
+// outputs which sum to at least 'numCoins' amount of atoms. If coin
 // selection is successful/possible, then the selected coins are available
 // within the passed contribution's inputs. If necessary, a change address will
 // also be generated.
@@ -1260,7 +1260,7 @@ func (l *LightningWallet) selectCoinsAndChange(feeRate AtomPerKByte,
 	defer l.coinSelectMtx.Unlock()
 
 	walletLog.Infof("Performing funding tx coin selection using %v "+
-		"sat/kw as fee rate", int64(feeRate))
+		"atom/kw as fee rate", int64(feeRate))
 
 	// Find all unlocked unspent witness outputs that satisfy the minimum
 	// number of confirmations required.
@@ -1356,19 +1356,19 @@ func initStateHints(commit1, commit2 *wire.MsgTx,
 // selected coins are returned in order for the caller to properly handle
 // change+fees.
 func selectInputs(amt dcrutil.Amount, coins []*Utxo) (dcrutil.Amount, []*Utxo, error) {
-	satSelected := dcrutil.Amount(0)
+	atomsSelected := dcrutil.Amount(0)
 	for i, coin := range coins {
-		satSelected += coin.Value
-		if satSelected >= amt {
-			return satSelected, coins[:i+1], nil
+		atomsSelected += coin.Value
+		if atomsSelected >= amt {
+			return atomsSelected, coins[:i+1], nil
 		}
 	}
-	return 0, nil, &ErrInsufficientFunds{amt, satSelected}
+	return 0, nil, &ErrInsufficientFunds{amt, atomsSelected}
 }
 
 // coinSelect attempts to select a sufficient amount of coins, including a
-// change output to fund amt satoshis, adhering to the specified fee rate. The
-// specified fee rate should be expressed in sat/kw for coin selection to
+// change output to fund amt atoms, adhering to the specified fee rate. The
+// specified fee rate should be expressed in atom/kw for coin selection to
 // function properly.
 func coinSelect(feeRate AtomPerKByte, amt dcrutil.Amount,
 	coins []*Utxo) ([]*Utxo, dcrutil.Amount, error) {
@@ -1377,7 +1377,7 @@ func coinSelect(feeRate AtomPerKByte, amt dcrutil.Amount,
 	for {
 		// First perform an initial round of coin selection to estimate
 		// the required fee.
-		totalSat, selectedUtxos, err := selectInputs(amtNeeded, coins)
+		totalAtoms, selectedUtxos, err := selectInputs(amtNeeded, coins)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -1403,7 +1403,7 @@ func coinSelect(feeRate AtomPerKByte, amt dcrutil.Amount,
 		// The difference between the selected amount and the amount
 		// requested will be used to pay fees, and generate a change
 		// output with the remaining.
-		overShootAmt := totalSat - amt
+		overShootAmt := totalAtoms - amt
 
 		// Based on the estimated size and fee rate, if the excess
 		// amount isn't enough to pay fees, then increase the requested

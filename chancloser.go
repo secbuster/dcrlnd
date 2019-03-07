@@ -375,7 +375,7 @@ func (c *channelCloser) ProcessCloseMsg(msg lnwire.Message) ([]lnwire.Message, b
 		// We'll compare the proposed total fee, to what we've proposed
 		// during the negotiations, if it doesn't match any of our
 		// prior offers, then we'll attempt to rachet the fee closer to
-		remoteProposedFee := closeSignedMsg.FeeSatoshis
+		remoteProposedFee := closeSignedMsg.FeeAtoms
 		if _, ok := c.priorFeeOffers[remoteProposedFee]; !ok {
 			// We'll now attempt to rachet towards a fee deemed
 			// acceptable by both parties, factoring in our ideal
@@ -500,7 +500,7 @@ func (c *channelCloser) proposeCloseSigned(fee dcrutil.Amount) (*lnwire.ClosingS
 		return nil, err
 	}
 
-	peerLog.Infof("ChannelPoint(%v): proposing fee of %v sat to close "+
+	peerLog.Infof("ChannelPoint(%v): proposing fee of %v atoms to close "+
 		"chan", c.chanPoint, int64(fee))
 
 	// We'll assemble a ClosingSigned message using this information and

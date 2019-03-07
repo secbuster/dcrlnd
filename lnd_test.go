@@ -680,8 +680,8 @@ func testOnchainFundRecovery(net *lntest.NetworkHarness, t *harnessTest) {
 			return true
 		}, 15*time.Second)
 		if err != nil {
-			t.Fatalf("expected restored node to have %d satoshis, "+
-				"instead has %d satoshis", expAmount,
+			t.Fatalf("expected restored node to have %d atoms, "+
+				"instead has %d atoms", expAmount,
 				currBalance)
 		}
 
@@ -778,7 +778,7 @@ func testBasicChannelFunding(net *lntest.NetworkHarness, t *harnessTest) {
 	pushAmt := dcrutil.Amount(100000)
 
 	// First establish a channel with a capacity of 0.5 DCR between Alice
-	// and Bob with Alice pushing 100k satoshis to Bob's side during
+	// and Bob with Alice pushing 100k atoms to Bob's side during
 	// funding. This function will block until the channel itself is fully
 	// open or an error occurs in the funding process. A series of
 	// assertions will be executed to ensure the funding process completed
@@ -1066,14 +1066,14 @@ out:
 
 // checkChannelPolicy checks that the policy matches the expected one.
 func checkChannelPolicy(policy, expectedPolicy *lnrpc.RoutingPolicy) error {
-	if policy.FeeBaseMat != expectedPolicy.FeeBaseMat {
+	if policy.FeeBaseMat != expectedPolicy.FeeBaseMAtoms {
 		return fmt.Errorf("expected base fee %v, got %v",
-			expectedPolicy.FeeBaseMat, policy.FeeBaseMat)
+			expectedPolicy.FeeBaseMAtoms, policy.FeeBaseMat)
 	}
-	if policy.FeeRateMilliMat != expectedPolicy.FeeRateMilliMat {
+	if policy.FeeRateMilliMAtoms != expectedPolicy.FeeRateMilliMAtoms {
 		return fmt.Errorf("expected fee rate %v, got %v",
-			expectedPolicy.FeeRateMilliMat,
-			policy.FeeRateMilliMat)
+			expectedPolicy.FeeRateMilliMAtoms,
+			policy.FeeRateMilliMAtoms)
 	}
 	if policy.TimeLockDelta != expectedPolicy.TimeLockDelta {
 		return fmt.Errorf("expected time lock delta %v, got %v",
@@ -1132,10 +1132,10 @@ func testUpdateChannelPolicy(net *lntest.NetworkHarness, t *harnessTest) {
 	// Alice and Bob should see each other's ChannelUpdates, advertising the
 	// default routing policies.
 	expectedPolicy := &lnrpc.RoutingPolicy{
-		FeeBaseMat:      defaultFeeBase,
-		FeeRateMilliMat: defaultFeeRate,
-		TimeLockDelta:   defaultTimeLockDelta,
-		MinHtlc:         defaultMinHtlc,
+		FeeBaseMatoms:      defaultFeeBase,
+		FeeRateMilliMatoms: defaultFeeRate,
+		TimeLockDelta:      defaultTimeLockDelta,
+		MinHtlc:            defaultMinHtlc,
 	}
 
 	for _, graphSub := range graphSubs {
@@ -1210,17 +1210,17 @@ func testUpdateChannelPolicy(net *lntest.NetworkHarness, t *harnessTest) {
 	)
 
 	expectedPolicyBob := &lnrpc.RoutingPolicy{
-		FeeBaseMat:      defaultFeeBase,
-		FeeRateMilliMat: defaultFeeRate,
-		TimeLockDelta:   defaultTimeLockDelta,
-		MinHtlc:         customMinHtlc,
+		FeeBaseMAtoms:      defaultFeeBase,
+		FeeRateMilliMAtoms: defaultFeeRate,
+		TimeLockDelta:      defaultTimeLockDelta,
+		MinHtlc:            customMinHtlc,
 	}
 
 	expectedPolicyCarol := &lnrpc.RoutingPolicy{
-		FeeBaseMat:      defaultFeeBase,
-		FeeRateMilliMat: defaultFeeRate,
-		TimeLockDelta:   defaultTimeLockDelta,
-		MinHtlc:         defaultMinHtlc,
+		FeeBaseMAtoms:      defaultFeeBase,
+		FeeRateMilliMAtoms: defaultFeeRate,
+		TimeLockDelta:      defaultTimeLockDelta,
+		MinHtlc:            defaultMinHtlc,
 	}
 
 	for _, graphSub := range graphSubs {
@@ -1289,7 +1289,7 @@ func testUpdateChannelPolicy(net *lntest.NetworkHarness, t *harnessTest) {
 
 	// Now we try to send a payment over the channel with a value too low
 	// to be accepted. First we query for a route to route a payment of
-	// 5000 mAT, as this is accepted.
+	// 5000 milli-atoms, as this is accepted.
 	payAmt = dcrutil.Amount(5)
 	routesReq := &lnrpc.QueryRoutesRequest{
 		PubKey:         carol.PubKeyStr,
@@ -1308,15 +1308,15 @@ func testUpdateChannelPolicy(net *lntest.NetworkHarness, t *harnessTest) {
 		t.Fatalf("expected to find 1 route, got %v", len(routes.Routes))
 	}
 
-	// We change the route to carry a payment of 4000 mAT instead of 5000
-	// mAT.
+	// We change the route to carry a payment of 4000 milli-atoms instead of 5000
+	// milli-atoms.
 	payAmt = dcrutil.Amount(4)
-	amtAt := int64(payAmt)
-	amtMAt := int64(lnwire.NewMAtFromAtoms(payAmt))
-	routes.Routes[0].Hops[0].AmtToForward = amtAt
-	routes.Routes[0].Hops[0].AmtToForwardMat = amtMAt
-	routes.Routes[0].Hops[1].AmtToForward = amtAt
-	routes.Routes[0].Hops[1].AmtToForwardMat = amtMAt
+	amtAtoms := int64(payAmt)
+	amtMAtoms := int64(lnwire.NewMAtomsFromAtoms(payAmt))
+	routes.Routes[0].Hops[0].AmtToForward = amtAtoms
+	routes.Routes[0].Hops[0].AmtToForwardMAtoms = amtMAtoms
+	routes.Routes[0].Hops[1].AmtToForward = amtAtoms
+	routes.Routes[0].Hops[1].AmtToForwardMAtoms = amtMAtoms
 
 	// Send the payment with the modified value.
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
@@ -1344,7 +1344,7 @@ func testUpdateChannelPolicy(net *lntest.NetworkHarness, t *harnessTest) {
 	// Expected as part of the error message.
 	substrs := []string{
 		"AmountBelowMinimum",
-		"HtlcMinimumMat: (lnwire.MilliAtom) 5000 mAT",
+		"HtlcMinimumMat: (lnwire.MilliAtom) 5000 milli-atoms",
 	}
 	for _, s := range substrs {
 		if !strings.Contains(sendResp.PaymentError, s) {
@@ -1355,12 +1355,12 @@ func testUpdateChannelPolicy(net *lntest.NetworkHarness, t *harnessTest) {
 
 	// Make sure sending using the original value succeeds.
 	payAmt = dcrutil.Amount(5)
-	amtAt = int64(payAmt)
-	amtMAt = int64(lnwire.NewMAtFromAtoms(payAmt))
-	routes.Routes[0].Hops[0].AmtToForward = amtAt
-	routes.Routes[0].Hops[0].AmtToForwardMat = amtMAt
-	routes.Routes[0].Hops[1].AmtToForward = amtAt
-	routes.Routes[0].Hops[1].AmtToForwardMat = amtMAt
+	amtAtoms = int64(payAmt)
+	amtMAtoms = int64(lnwire.NewMAtomsFromAtoms(payAmt))
+	routes.Routes[0].Hops[0].AmtToForward = amtAtoms
+	routes.Routes[0].Hops[0].AmtToForwardMat = amtMAtoms
+	routes.Routes[0].Hops[1].AmtToForward = amtAtoms
+	routes.Routes[0].Hops[1].AmtToForwardMat = amtMAtoms
 
 	sendReq = &lnrpc.SendToRouteRequest{
 		PaymentHash: resp.RHash,
@@ -2989,7 +2989,7 @@ func testChannelForceClosure(net *lntest.NetworkHarness, t *harnessTest) {
 func testSphinxReplayPersistence(net *lntest.NetworkHarness, t *harnessTest) {
 	ctxb := context.Background()
 
-	// Open a channel with 100k satoshis between Carol and Dave with Carol being
+	// Open a channel with 100k atoms between Carol and Dave with Carol being
 	// the sole funder of the channel.
 	chanAmt := dcrutil.Amount(100000)
 
@@ -3042,7 +3042,7 @@ func testSphinxReplayPersistence(net *lntest.NetworkHarness, t *harnessTest) {
 		}
 		carolSatoshisSent := carolListChannels.Channels[0].TotalSatoshisSent
 		if carolSatoshisSent != int64(amt) {
-			t.Fatalf("Carol's satoshis sent is incorrect got %v, expected %v",
+			t.Fatalf("Carol's atoms sent is incorrect got %v, expected %v",
 				carolSatoshisSent, amt)
 		}
 
@@ -3053,13 +3053,13 @@ func testSphinxReplayPersistence(net *lntest.NetworkHarness, t *harnessTest) {
 		}
 		daveSatoshisReceived := daveListChannels.Channels[0].TotalSatoshisReceived
 		if daveSatoshisReceived != int64(amt) {
-			t.Fatalf("Dave's satoshis received is incorrect got %v, expected %v",
+			t.Fatalf("Dave's atoms received is incorrect got %v, expected %v",
 				daveSatoshisReceived, amt)
 		}
 	}
 
 	// Now that the channel is open, create an invoice for Dave which
-	// expects a payment of 1000 satoshis from Carol paid via a particular
+	// expects a payment of 1000 atoms from Carol paid via a particular
 	// preimage.
 	const paymentAmt = 1000
 	preimage := bytes.Repeat([]byte("A"), 32)
@@ -3167,7 +3167,7 @@ func testSphinxReplayPersistence(net *lntest.NetworkHarness, t *harnessTest) {
 func testSingleHopInvoice(net *lntest.NetworkHarness, t *harnessTest) {
 	ctxb := context.Background()
 
-	// Open a channel with 100k satoshis between Alice and Bob with Alice being
+	// Open a channel with 100k atoms between Alice and Bob with Alice being
 	// the sole funder of the channel.
 	ctxt, _ := context.WithTimeout(ctxb, channelOpenTimeout)
 	chanAmt := dcrutil.Amount(300000)
@@ -3189,7 +3189,7 @@ func testSingleHopInvoice(net *lntest.NetworkHarness, t *harnessTest) {
 		}
 		aliceSatoshisSent := aliceListChannels.Channels[0].TotalSatoshisSent
 		if aliceSatoshisSent != int64(amt) {
-			t.Fatalf("Alice's satoshis sent is incorrect got %v, expected %v",
+			t.Fatalf("Alice's atoms sent is incorrect got %v, expected %v",
 				aliceSatoshisSent, amt)
 		}
 
@@ -3200,13 +3200,13 @@ func testSingleHopInvoice(net *lntest.NetworkHarness, t *harnessTest) {
 		}
 		bobSatoshisReceived := bobListChannels.Channels[0].TotalSatoshisReceived
 		if bobSatoshisReceived != int64(amt) {
-			t.Fatalf("Bob's satoshis received is incorrect got %v, expected %v",
+			t.Fatalf("Bob's atoms received is incorrect got %v, expected %v",
 				bobSatoshisReceived, amt)
 		}
 	}
 
 	// Now that the channel is open, create an invoice for Bob which
-	// expects a payment of 20000 satoshis from Alice paid via a particular
+	// expects a payment of 20000 atoms from Alice paid via a particular
 	// preimage.
 	const paymentAmt = 20000
 	preimage := bytes.Repeat([]byte("A"), 32)
@@ -3332,7 +3332,7 @@ func testListPayments(net *lntest.NetworkHarness, t *harnessTest) {
 			len(paymentsRespInit.Payments), 0)
 	}
 
-	// Open a channel with 100k satoshis between Alice and Bob with Alice
+	// Open a channel with 100k atoms between Alice and Bob with Alice
 	// being the sole funder of the channel.
 	chanAmt := dcrutil.Amount(100000)
 	ctxt, _ = context.WithTimeout(ctxb, channelOpenTimeout)
@@ -3344,7 +3344,7 @@ func testListPayments(net *lntest.NetworkHarness, t *harnessTest) {
 	)
 
 	// Now that the channel is open, create an invoice for Bob which
-	// expects a payment of 20000 satoshis from Alice paid via a particular
+	// expects a payment of 20000 atoms from Alice paid via a particular
 	// preimage.
 	const paymentAmt = 20000
 	preimage := bytes.Repeat([]byte("B"), 32)
@@ -3526,14 +3526,14 @@ func updateChannelPolicy(t *harnessTest, node *lntest.HarnessNode,
 	ctxb := context.Background()
 
 	expectedPolicy := &lnrpc.RoutingPolicy{
-		FeeBaseMat:      baseFee,
-		FeeRateMilliMat: feeRate,
-		TimeLockDelta:   timeLockDelta,
-		MinHtlc:         1000, // default value
+		FeeBaseMAtoms:      baseFee,
+		FeeRateMilliMAtoms: feeRate,
+		TimeLockDelta:      timeLockDelta,
+		MinHtlc:            1000, // default value
 	}
 
 	updateFeeReq := &lnrpc.PolicyUpdateRequest{
-		BaseFeeMat:    baseFee,
+		BaseFeeMAtoms: baseFee,
 		FeeRate:       float64(feeRate) / testFeeBase,
 		TimeLockDelta: timeLockDelta,
 		Scope: &lnrpc.PolicyUpdateRequest_ChanPoint{
@@ -3565,7 +3565,7 @@ func testMultiHopPayments(net *lntest.NetworkHarness, t *harnessTest) {
 	const chanAmt = dcrutil.Amount(100000)
 	var networkChans []*lnrpc.ChannelPoint
 
-	// Open a channel with 100k satoshis between Alice and Bob with Alice
+	// Open a channel with 100k atoms between Alice and Bob with Alice
 	// being the sole funder of the channel.
 	ctxt, _ := context.WithTimeout(ctxb, channelOpenTimeout)
 	chanPointAlice := openChannelAndAssert(
@@ -3700,7 +3700,7 @@ func testMultiHopPayments(net *lntest.NetworkHarness, t *harnessTest) {
 	}
 
 	// Create 5 invoices for Bob, which expect a payment from Carol for 1k
-	// satoshis with a different preimage each time.
+	// atoms with a different preimage each time.
 	const numPayments = 5
 	const paymentAmt = 1000
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
@@ -3744,19 +3744,19 @@ func testMultiHopPayments(net *lntest.NetworkHarness, t *harnessTest) {
 		t.Fatalf("unable to send payments: %v", err)
 	}
 
-	// When asserting the amount of satoshis moved, we'll factor in the
+	// When asserting the amount of atoms moved, we'll factor in the
 	// default base fee, as we didn't modify the fee structure when
 	// creating the seed nodes in the network.
 	const baseFee = 1
 
 	// At this point all the channels within our proto network should be
-	// shifted by 5k satoshis in the direction of Bob, the sink within the
+	// shifted by 5k atoms in the direction of Bob, the sink within the
 	// payment flow generated above. The order of asserts corresponds to
 	// increasing of time is needed to embed the HTLC in commitment
 	// transaction, in channel Carol->David->Alice->Bob, order is Bob,
 	// Alice, David, Carol.
 
-	// The final node bob expects to get paid five times 1000 sat.
+	// The final node bob expects to get paid five times 1000 atoms.
 	expectedAmountPaidAtoB := int64(5 * 1000)
 
 	assertAmountPaid(t, "Alice(local) => Bob(remote)", net.Bob,
@@ -3764,8 +3764,8 @@ func testMultiHopPayments(net *lntest.NetworkHarness, t *harnessTest) {
 	assertAmountPaid(t, "Alice(local) => Bob(remote)", net.Alice,
 		aliceFundPoint, expectedAmountPaidAtoB, int64(0))
 
-	// To forward a payment of 1000 sat, Alice is charging a fee of
-	// 1 sat + 10% = 101 sat.
+	// To forward a payment of 1000 atoms, Alice is charging a fee of
+	// 1 atoms + 10% = 101 atoms.
 	const expectedFeeAlice = 5 * 101
 
 	// Dave needs to pay what Alice pays plus Alice's fee.
@@ -3776,8 +3776,8 @@ func testMultiHopPayments(net *lntest.NetworkHarness, t *harnessTest) {
 	assertAmountPaid(t, "Dave(local) => Alice(remote)", dave,
 		daveFundPoint, expectedAmountPaidDtoA, int64(0))
 
-	// To forward a payment of 1101 sat, Dave is charging a fee of
-	// 5 sat + 15% = 170.15 sat. This is rounded down in rpcserver to 170.
+	// To forward a payment of 1101 atoms, Dave is charging a fee of
+	// 5  atoms + 15% = 170.15 atoms. This is rounded down in rpcserver to 170.
 	const expectedFeeDave = 5 * 170
 
 	// Carol needs to pay what Dave pays plus Dave's fee.
@@ -3793,7 +3793,7 @@ func testMultiHopPayments(net *lntest.NetworkHarness, t *harnessTest) {
 	// was properly updated.
 
 	// First, check that the FeeReport response shows the proper fees
-	// accrued over each time range. Dave should've earned 170 satoshi for
+	// accrued over each time range. Dave should've earned 170 atoms for
 	// each of the forwarded payments.
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
 	feeReport, err := dave.FeeReport(ctxt, &lnrpc.FeeReportRequest{})
@@ -3829,7 +3829,7 @@ func testMultiHopPayments(net *lntest.NetworkHarness, t *harnessTest) {
 	}
 	expectedForwardingFee := uint64(expectedFeeDave / numPayments)
 	for _, event := range fwdingHistory.ForwardingEvents {
-		// Each event should show a fee of 170 satoshi.
+		// Each event should show a fee of 170 atoms.
 		if event.Fee != expectedForwardingFee {
 			t.Fatalf("fee mismatch:  expected %v, got %v",
 				expectedForwardingFee, event.Fee)
@@ -3856,7 +3856,7 @@ func testSingleHopSendToRoute(net *lntest.NetworkHarness, t *harnessTest) {
 	const chanAmt = dcrutil.Amount(100000)
 	var networkChans []*lnrpc.ChannelPoint
 
-	// Open a channel with 100k satoshis between Alice and Bob with Alice
+	// Open a channel with 100k atoms between Alice and Bob with Alice
 	// being the sole funder of the channel.
 	ctxt, _ := context.WithTimeout(ctxb, channelOpenTimeout)
 	chanPointAlice := openChannelAndAssert(
@@ -3926,7 +3926,7 @@ func testSingleHopSendToRoute(net *lntest.NetworkHarness, t *harnessTest) {
 	}
 
 	// Create 5 invoices for Bob, which expect a payment from Alice for 1k
-	// satoshis with a different preimage each time.
+	// atoms with a different preimage each time.
 	const numPayments = 5
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
 	_, rHashes, _, err := createPayReqs(
@@ -3977,7 +3977,7 @@ func testSingleHopSendToRoute(net *lntest.NetworkHarness, t *harnessTest) {
 	}
 
 	// At this point all the channels within our proto network should be
-	// shifted by 5k satoshis in the direction of Bob, the sink within the
+	// shifted by 5k atoms in the direction of Bob, the sink within the
 	// payment flow generated above. The order of asserts corresponds to
 	// increasing of time is needed to embed the HTLC in commitment
 	// transaction, in channel Alice->Bob, order is Bob and then Alice.
@@ -4002,7 +4002,7 @@ func testMultiHopSendToRoute(net *lntest.NetworkHarness, t *harnessTest) {
 	const chanAmt = dcrutil.Amount(100000)
 	var networkChans []*lnrpc.ChannelPoint
 
-	// Open a channel with 100k satoshis between Alice and Bob with Alice
+	// Open a channel with 100k atoms between Alice and Bob with Alice
 	// being the sole funder of the channel.
 	ctxt, _ := context.WithTimeout(ctxb, channelOpenTimeout)
 	chanPointAlice := openChannelAndAssert(
@@ -4027,7 +4027,7 @@ func testMultiHopSendToRoute(net *lntest.NetworkHarness, t *harnessTest) {
 	}
 
 	// Create Carol and establish a channel from Bob. Bob is the sole funder
-	// of the channel with 100k satoshis. The network topology should look like:
+	// of the channel with 100k atoms. The network topology should look like:
 	// Alice -> Bob -> Carol
 	carol, err := net.NewNode("Carol", nil)
 	if err != nil {
@@ -4111,7 +4111,7 @@ func testMultiHopSendToRoute(net *lntest.NetworkHarness, t *harnessTest) {
 	}
 
 	// Create 5 invoices for Carol, which expect a payment from Alice for 1k
-	// satoshis with a different preimage each time.
+	// atoms with a different preimage each time.
 	const numPayments = 5
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
 	_, rHashes, _, err := createPayReqs(
@@ -4161,13 +4161,13 @@ func testMultiHopSendToRoute(net *lntest.NetworkHarness, t *harnessTest) {
 		}
 	}
 
-	// When asserting the amount of satoshis moved, we'll factor in the
+	// When asserting the amount of atoms moved, we'll factor in the
 	// default base fee, as we didn't modify the fee structure when
 	// creating the seed nodes in the network.
 	const baseFee = 1
 
 	// At this point all the channels within our proto network should be
-	// shifted by 5k satoshis in the direction of Carol, the sink within the
+	// shifted by 5k atoms in the direction of Carol, the sink within the
 	// payment flow generated above. The order of asserts corresponds to
 	// increasing of time is needed to embed the HTLC in commitment
 	// transaction, in channel Alice->Bob->Carol, order is Carol, Bob,
@@ -4195,7 +4195,7 @@ func testSendToRouteErrorPropagation(net *lntest.NetworkHarness, t *harnessTest)
 
 	const chanAmt = dcrutil.Amount(100000)
 
-	// Open a channel with 100k satoshis between Alice and Bob with Alice
+	// Open a channel with 100k atoms between Alice and Bob with Alice
 	// being the sole funder of the channel.
 	ctxt, _ := context.WithTimeout(ctxb, channelOpenTimeout)
 	chanPointAlice := openChannelAndAssert(
@@ -4274,7 +4274,7 @@ func testSendToRouteErrorPropagation(net *lntest.NetworkHarness, t *harnessTest)
 	}
 
 	// Create 1 invoices for Bob, which expect a payment from Alice for 1k
-	// satoshis
+	// atoms
 	const paymentAmt = 1000
 
 	invoice := &lnrpc.Invoice{
@@ -4450,7 +4450,7 @@ func testPrivateChannels(net *lntest.NetworkHarness, t *harnessTest) {
 	//
 	// where the 100k channel between Carol and Alice is private.
 
-	// Open a channel with 200k satoshis between Alice and Bob.
+	// Open a channel with 200k atoms between Alice and Bob.
 	ctxt, _ := context.WithTimeout(ctxb, channelOpenTimeout)
 	chanPointAlice := openChannelAndAssert(
 		ctxt, t, net, net.Alice, net.Bob,
@@ -4635,7 +4635,7 @@ func testPrivateChannels(net *lntest.NetworkHarness, t *harnessTest) {
 	// We check this by sending payments from Carol to Bob, that
 	// collectively would deplete at least one of Carol's channels.
 
-	// Create 2 invoices for Bob, each of 70k satoshis. Since each of
+	// Create 2 invoices for Bob, each of 70k atoms. Since each of
 	// Carol's channels is of size 100k, these payments cannot succeed
 	// by only using one of the channels.
 	const numPayments = 2
@@ -4657,12 +4657,12 @@ func testPrivateChannels(net *lntest.NetworkHarness, t *harnessTest) {
 		t.Fatalf("unable to send payments: %v", err)
 	}
 
-	// When asserting the amount of satoshis moved, we'll factor in the
+	// When asserting the amount of atoms moved, we'll factor in the
 	// default base fee, as we didn't modify the fee structure when
 	// creating the seed nodes in the network.
 	const baseFee = 1
 
-	// Bob should have received 140k satoshis from Alice.
+	// Bob should have received 140k atoms from Alice.
 	assertAmountPaid(t, "Alice(local) => Bob(remote)", net.Bob,
 		aliceFundPoint, int64(0), 2*paymentAmt)
 
@@ -5176,7 +5176,7 @@ func testMultiHopOverPrivateChannels(net *lntest.NetworkHarness, t *harnessTest)
 
 	// Now that all the channels are set up according to the topology from
 	// above, we can proceed to test payments. We'll create an invoice for
-	// Dave of 20k satoshis and pay it with Alice. Since there is no public
+	// Dave of 20k atoms and pay it with Alice. Since there is no public
 	// route from Alice to Dave, we'll need to use the private channel
 	// between Carol and Dave as a routing hint encoded in the invoice.
 	const paymentAmt = 20000
@@ -5202,32 +5202,32 @@ func testMultiHopOverPrivateChannels(net *lntest.NetworkHarness, t *harnessTest)
 		t.Fatalf("unable to send payments from alice to dave: %v", err)
 	}
 
-	// When asserting the amount of satoshis moved, we'll factor in the
+	// When asserting the amount of atoms moved, we'll factor in the
 	// default base fee, as we didn't modify the fee structure when opening
 	// the channels.
 	const baseFee = 1
 
-	// Dave should have received 20k satoshis from Carol.
+	// Dave should have received 20k atoms from Carol.
 	assertAmountPaid(t, "Carol(local) [private=>] Dave(remote)",
 		dave, carolFundPoint, 0, paymentAmt)
 
-	// Carol should have sent 20k satoshis to Dave.
+	// Carol should have sent 20k atoms to Dave.
 	assertAmountPaid(t, "Carol(local) [private=>] Dave(remote)",
 		carol, carolFundPoint, paymentAmt, 0)
 
-	// Carol should have received 20k satoshis + fee for one hop from Bob.
+	// Carol should have received 20k atoms + fee for one hop from Bob.
 	assertAmountPaid(t, "Bob(local) => Carol(remote)",
 		carol, bobFundPoint, 0, paymentAmt+baseFee)
 
-	// Bob should have sent 20k satoshis + fee for one hop to Carol.
+	// Bob should have sent 20k atoms + fee for one hop to Carol.
 	assertAmountPaid(t, "Bob(local) => Carol(remote)",
 		net.Bob, bobFundPoint, paymentAmt+baseFee, 0)
 
-	// Bob should have received 20k satoshis + fee for two hops from Alice.
+	// Bob should have received 20k atoms + fee for two hops from Alice.
 	assertAmountPaid(t, "Alice(local) [private=>] Bob(remote)", net.Bob,
 		aliceFundPoint, 0, paymentAmt+baseFee*2)
 
-	// Alice should have sent 20k satoshis + fee for two hops to Bob.
+	// Alice should have sent 20k atoms + fee for two hops to Bob.
 	assertAmountPaid(t, "Alice(local) [private=>] Bob(remote)", net.Alice,
 		aliceFundPoint, paymentAmt+baseFee*2, 0)
 
@@ -5246,7 +5246,7 @@ func testInvoiceSubscriptions(net *lntest.NetworkHarness, t *harnessTest) {
 
 	const chanAmt = dcrutil.Amount(500000)
 
-	// Open a channel with 500k satoshis between Alice and Bob with Alice
+	// Open a channel with 500k atoms between Alice and Bob with Alice
 	// being the sole funder of the channel.
 	ctxt, _ := context.WithTimeout(ctxb, channelOpenTimeout)
 	chanPoint := openChannelAndAssert(
@@ -5256,7 +5256,7 @@ func testInvoiceSubscriptions(net *lntest.NetworkHarness, t *harnessTest) {
 		},
 	)
 
-	// Next create a new invoice for Bob requesting 1k satoshis.
+	// Next create a new invoice for Bob requesting 1k atoms.
 	// TODO(roasbeef): make global list of invoices for each node to re-use
 	// and avoid collisions
 	const paymentAmt = 1000
@@ -6206,7 +6206,7 @@ func testRevokedCloseRetribution(net *lntest.NetworkHarness, t *harnessTest) {
 	}
 
 	// Next query for Bob's channel state, as we sent 3 payments of 10k
-	// satoshis each, Bob should now see his balance as being 30k satoshis.
+	// atoms each, Bob should now see his balance as being 30k atoms.
 	var bobChan *lnrpc.Channel
 	var predErr error
 	err = lntest.WaitPredicate(func() bool {
@@ -6469,7 +6469,7 @@ func testRevokedCloseRetributionZeroValueRemoteOutput(net *lntest.NetworkHarness
 	}
 
 	// Next query for Carol's channel state, as we sent 0 payments, Carol
-	// should now see her balance as being 0 satoshis.
+	// should now see her balance as being 0 atoms.
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
 	carolChan, err := getChanInfo(ctxt, carol)
 	if err != nil {
@@ -6692,7 +6692,7 @@ func testRevokedCloseRetributionRemoteHodl(net *lntest.NetworkHarness,
 
 	// In order to test Dave's response to an uncooperative channel closure
 	// by Carol, we'll first open up a channel between them with a
-	// maxDecredFundingAmount (2^24) satoshis value.
+	// maxDecredFundingAmount (2^24) atoms value.
 	ctxt, _ = context.WithTimeout(ctxb, channelOpenTimeout)
 	chanPoint := openChannelAndAssert(
 		ctxt, t, net, dave, carol,
@@ -6786,8 +6786,8 @@ func testRevokedCloseRetributionRemoteHodl(net *lntest.NetworkHarness,
 	}
 
 	// Next query for Carol's channel state, as we sent 3 payments of 10k
-	// satoshis each, however Carol should now see her balance as being
-	// equal to the push amount in satoshis since she has not settled.
+	// atoms each, however Carol should now see her balance as being
+	// equal to the push amount in atoms since she has not settled.
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
 	carolChan, err := getChanInfo(ctxt, carol)
 	if err != nil {
@@ -7192,8 +7192,8 @@ func testDataLossProtection(net *lntest.NetworkHarness, t *harnessTest) {
 		}
 
 		// Next query for the node's channel state, as we sent 3
-		// payments of 10k satoshis each, it should now see his balance
-		// as being 30k satoshis.
+		// payments of 10k atoms each, it should now see his balance
+		// as being 30k atoms.
 		var nodeChan *lnrpc.Channel
 		var predErr error
 		err = lntest.WaitPredicate(func() bool {
@@ -7704,7 +7704,7 @@ out:
 	sendReq = &lnrpc.SendRequest{
 		PaymentHashString: hex.EncodeToString(carolInvoice.RHash),
 		DestString:        hex.EncodeToString(carol.PubKey[:]),
-		Amt:               1000, // 10k satoshis are expected.
+		Amt:               1000, // 10k atoms are expected.
 	}
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
 	resp, err = net.Alice.SendPaymentSync(ctxt, sendReq)
@@ -7712,7 +7712,7 @@ out:
 		t.Fatalf("unable to send payment: %v", err)
 	}
 
-	// The payment should fail with an error since we sent 1k satoshis isn't of
+	// The payment should fail with an error since we sent 1k atoms isn't of
 	// 10k as was requested.
 	if resp.PaymentError == "" {
 		t.Fatalf("payment should have been rejected due to wrong " +
@@ -7740,7 +7740,7 @@ out:
 	}
 
 	// To do so, we'll push most of the funds in the channel over to
-	// Alice's side, leaving on 10k satoshis of available balance for bob.
+	// Alice's side, leaving on 10k atoms of available balance for bob.
 	// There's a max payment amount, so we'll have to do this
 	// incrementally.
 	chanReserve := int64(chanAmt / 100)
@@ -7750,7 +7750,7 @@ out:
 		// We'll send in chunks of the max payment amount. If we're
 		// about to send too much, then we'll only send the amount
 		// remaining.
-		toSend := int64(maxPaymentMAt.ToAtoms())
+		toSend := int64(maxPaymentMAtoms.ToAtoms())
 		if toSend+amtSent > amtToSend {
 			toSend = amtToSend - amtSent
 		}
@@ -7778,9 +7778,9 @@ out:
 		amtSent += toSend
 	}
 
-	// At this point, Alice has 50mil satoshis on her side of the channel,
+	// At this point, Alice has 50mil atoms on her side of the channel,
 	// but Bob only has 10k available on his side of the channel. So a
-	// payment from Alice to Carol worth 100k satoshis should fail.
+	// payment from Alice to Carol worth 100k atoms should fail.
 	invoiceReq = &lnrpc.Invoice{
 		Value: 100000,
 	}
@@ -10458,7 +10458,7 @@ func testSwitchCircuitPersistence(net *lntest.NetworkHarness, t *harnessTest) {
 	const pushAmt = dcrutil.Amount(900000)
 	var networkChans []*lnrpc.ChannelPoint
 
-	// Open a channel with 100k satoshis between Alice and Bob with Alice
+	// Open a channel with 100k atoms between Alice and Bob with Alice
 	// being the sole funder of the channel.
 	ctxt, _ := context.WithTimeout(ctxb, channelOpenTimeout)
 	chanPointAlice := openChannelAndAssert(
@@ -10597,7 +10597,7 @@ func testSwitchCircuitPersistence(net *lntest.NetworkHarness, t *harnessTest) {
 	}
 
 	// Create 5 invoices for Carol, which expect a payment from Bob for 1k
-	// satoshis with a different preimage each time.
+	// atoms with a different preimage each time.
 	const numPayments = 5
 	const paymentAmt = 1000
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
@@ -10711,13 +10711,13 @@ func testSwitchCircuitPersistence(net *lntest.NetworkHarness, t *harnessTest) {
 		t.Fatalf("htlc mismatch: %v", predErr)
 	}
 
-	// When asserting the amount of satoshis moved, we'll factor in the
+	// When asserting the amount of atoms moved, we'll factor in the
 	// default base fee, as we didn't modify the fee structure when
 	// creating the seed nodes in the network.
 	const baseFee = 1
 
 	// At this point all the channels within our proto network should be
-	// shifted by 5k satoshis in the direction of Carol, the sink within the
+	// shifted by 5k atoms in the direction of Carol, the sink within the
 	// payment flow generated above. The order of asserts corresponds to
 	// increasing of time is needed to embed the HTLC in commitment
 	// transaction, in channel Bob->Alice->David->Carol, order is Carol,
@@ -10798,7 +10798,7 @@ func testSwitchOfflineDelivery(net *lntest.NetworkHarness, t *harnessTest) {
 	const pushAmt = dcrutil.Amount(900000)
 	var networkChans []*lnrpc.ChannelPoint
 
-	// Open a channel with 100k satoshis between Alice and Bob with Alice
+	// Open a channel with 100k atoms between Alice and Bob with Alice
 	// being the sole funder of the channel.
 	ctxt, _ := context.WithTimeout(ctxb, channelOpenTimeout)
 	chanPointAlice := openChannelAndAssert(
@@ -10937,7 +10937,7 @@ func testSwitchOfflineDelivery(net *lntest.NetworkHarness, t *harnessTest) {
 	}
 
 	// Create 5 invoices for Carol, which expect a payment from Bob for 1k
-	// satoshis with a different preimage each time.
+	// atoms with a different preimage each time.
 	const numPayments = 5
 	const paymentAmt = 1000
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
@@ -11057,13 +11057,13 @@ func testSwitchOfflineDelivery(net *lntest.NetworkHarness, t *harnessTest) {
 		t.Fatalf("htlc mismatch: %v", predErr)
 	}
 
-	// When asserting the amount of satoshis moved, we'll factor in the
+	// When asserting the amount of atoms moved, we'll factor in the
 	// default base fee, as we didn't modify the fee structure when
 	// creating the seed nodes in the network.
 	const baseFee = 1
 
 	// At this point all the channels within our proto network should be
-	// shifted by 5k satoshis in the direction of Carol, the sink within the
+	// shifted by 5k atoms in the direction of Carol, the sink within the
 	// payment flow generated above. The order of asserts corresponds to
 	// increasing of time is needed to embed the HTLC in commitment
 	// transaction, in channel Bob->Alice->David->Carol, order is Carol,
@@ -11145,7 +11145,7 @@ func testSwitchOfflineDeliveryPersistence(net *lntest.NetworkHarness, t *harness
 	const pushAmt = dcrutil.Amount(900000)
 	var networkChans []*lnrpc.ChannelPoint
 
-	// Open a channel with 100k satoshis between Alice and Bob with Alice
+	// Open a channel with 100k atoms between Alice and Bob with Alice
 	// being the sole funder of the channel.
 	ctxt, _ := context.WithTimeout(ctxb, channelOpenTimeout)
 	chanPointAlice := openChannelAndAssert(
@@ -11285,7 +11285,7 @@ func testSwitchOfflineDeliveryPersistence(net *lntest.NetworkHarness, t *harness
 	}
 
 	// Create 5 invoices for Carol, which expect a payment from Bob for 1k
-	// satoshis with a different preimage each time.
+	// atoms with a different preimage each time.
 	const numPayments = 5
 	const paymentAmt = 1000
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
@@ -11402,13 +11402,13 @@ func testSwitchOfflineDeliveryPersistence(net *lntest.NetworkHarness, t *harness
 		t.Fatalf("htlc mismatch: %v", predErr)
 	}
 
-	// When asserting the amount of satoshis moved, we'll factor in the
+	// When asserting the amount of atoms moved, we'll factor in the
 	// default base fee, as we didn't modify the fee structure when
 	// creating the seed nodes in the network.
 	const baseFee = 1
 
 	// At this point all the channels within our proto network should be
-	// shifted by 5k satoshis in the direction of Carol, the sink within the
+	// shifted by 5k atoms in the direction of Carol, the sink within the
 	// payment flow generated above. The order of asserts corresponds to
 	// increasing of time is needed to embed the HTLC in commitment
 	// transaction, in channel Bob->Alice->David->Carol, order is Carol,
@@ -11499,7 +11499,7 @@ func testSwitchOfflineDeliveryOutgoingOffline(
 	const pushAmt = dcrutil.Amount(900000)
 	var networkChans []*lnrpc.ChannelPoint
 
-	// Open a channel with 100k satoshis between Alice and Bob with Alice
+	// Open a channel with 100k atoms between Alice and Bob with Alice
 	// being the sole funder of the channel.
 	ctxt, _ := context.WithTimeout(ctxb, channelOpenTimeout)
 	chanPointAlice := openChannelAndAssert(
@@ -11636,7 +11636,7 @@ func testSwitchOfflineDeliveryOutgoingOffline(
 	}
 
 	// Create 5 invoices for Carol, which expect a payment from Bob for 1k
-	// satoshis with a different preimage each time.
+	// atoms with a different preimage each time.
 	const numPayments = 5
 	const paymentAmt = 1000
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
@@ -11717,7 +11717,7 @@ func testSwitchOfflineDeliveryOutgoingOffline(
 
 	// Now check that the total amount was transferred from Dave to Carol.
 	// The amount transferred should be exactly equal to the invoice total
-	// payment amount, 5k satsohis.
+	// payment amount, 5k atomssohis.
 	const amountPaid = int64(5000)
 	assertAmountPaid(t, "Dave(local) => Carol(remote)", carol,
 		carolFundPoint, int64(0), amountPaid)
@@ -11760,13 +11760,13 @@ func testSwitchOfflineDeliveryOutgoingOffline(
 		t.Fatalf("htlc mismatch: %v", predErr)
 	}
 
-	// When asserting the amount of satoshis moved, we'll factor in the
+	// When asserting the amount of atoms moved, we'll factor in the
 	// default base fee, as we didn't modify the fee structure when
 	// creating the seed nodes in the network.
 	const baseFee = 1
 
 	// At this point, all channels (minus Carol, who is shutdown) should
-	// show a shift of 5k satoshis towards Carol.  The order of asserts
+	// show a shift of 5k atoms towards Carol.  The order of asserts
 	// corresponds to increasing of time is needed to embed the HTLC in
 	// commitment transaction, in channel Bob->Alice->David, order is David,
 	// Alice, Bob.
@@ -11901,79 +11901,79 @@ func testQueryRoutes(net *lntest.NetworkHarness, t *harnessTest) {
 		t.Fatalf("unable to get route: %v", err)
 	}
 
-	const mAt = 1000
-	feePerHopMAt := computeFee(1000, 1, paymentAmt*mAt)
+	const mAtoms = 1000
+	feePerHopMAtoms := computeFee(1000, 1, paymentAmt*mAtoms)
 
 	for i, route := range routesRes.Routes {
-		expectedTotalFeesMAt :=
-			lnwire.MilliAtom(len(route.Hops)-1) * feePerHopMAt
-		expectedTotalAmtMAt := (paymentAmt * mAt) + expectedTotalFeesMAt
+		expectedTotalFeesMAtoms :=
+			lnwire.MilliAtom(len(route.Hops)-1) * feePerHopMAtoms
+		expectedTotalAmtMAtoms := (paymentAmt * mAtoms) + expectedTotalFeesMAtoms
 
-		if route.TotalFees != route.TotalFeesMat/mAt {
-			t.Fatalf("route %v: total fees %v (mAt) does not "+
-				"round down to %v (sat)",
-				i, route.TotalFeesMat, route.TotalFees)
+		if route.TotalFees != route.TotalFeesMAtoms/mAtoms {
+			t.Fatalf("route %v: total fees %v (mAtoms) does not "+
+				"round down to %v (atoms)",
+				i, route.TotalFeesMAtoms, route.TotalFees)
 		}
-		if route.TotalFeesMat != int64(expectedTotalFeesMAt) {
-			t.Fatalf("route %v: total fees in mAt expected %v got %v",
-				i, expectedTotalFeesMAt, route.TotalFeesMat)
+		if route.TotalFeesMAtoms != int64(expectedTotalFeesMAtoms) {
+			t.Fatalf("route %v: total fees in mAtoms expected %v got %v",
+				i, expectedTotalFeesMAtoms, route.TotalFeesMAtoms)
 		}
 
-		if route.TotalAmt != route.TotalAmtMat/mAt {
-			t.Fatalf("route %v: total amt %v (mAt) does not "+
-				"round down to %v (sat)",
-				i, route.TotalAmtMat, route.TotalAmt)
+		if route.TotalAmt != route.TotalAmtMAtoms/mAtoms {
+			t.Fatalf("route %v: total amt %v (mAtoms) does not "+
+				"round down to %v (atoms)",
+				i, route.TotalAmtMAtoms, route.TotalAmt)
 		}
-		if route.TotalAmtMat != int64(expectedTotalAmtMAt) {
-			t.Fatalf("route %v: total amt in mAt expected %v got %v",
-				i, expectedTotalAmtMAt, route.TotalAmtMat)
+		if route.TotalAmtMAtoms != int64(expectedTotalAmtMAtoms) {
+			t.Fatalf("route %v: total amt in mAtoms expected %v got %v",
+				i, expectedTotalAmtMAtoms, route.TotalAmtMAtoms)
 		}
 
 		// For all hops except the last, we check that fee equals feePerHop
 		// and amount to forward deducts feePerHop on each hop.
-		expectedAmtToForwardMAt := expectedTotalAmtMAt
+		expectedAmtToForwardMAtoms := expectedTotalAmtMAtoms
 		for j, hop := range route.Hops[:len(route.Hops)-1] {
-			expectedAmtToForwardMAt -= feePerHopMAt
+			expectedAmtToForwardMAtoms -= feePerHopMAtoms
 
-			if hop.Fee != hop.FeeMat/mAt {
-				t.Fatalf("route %v hop %v: fee %v (mAt) does not "+
-					"round down to %v (sat)",
-					i, j, hop.FeeMat, hop.Fee)
+			if hop.Fee != hop.FeeMAtoms/mAtoms {
+				t.Fatalf("route %v hop %v: fee %v (mAtoms) does not "+
+					"round down to %v (atoms)",
+					i, j, hop.FeeMAtoms, hop.Fee)
 			}
-			if hop.FeeMat != int64(feePerHopMAt) {
-				t.Fatalf("route %v hop %v: fee in mAt expected %v got %v",
-					i, j, feePerHopMAt, hop.FeeMat)
+			if hop.FeeMAtoms != int64(feePerHopMAtoms) {
+				t.Fatalf("route %v hop %v: fee in mAtoms expected %v got %v",
+					i, j, feePerHopMAtoms, hop.FeeMAtoms)
 			}
 
-			if hop.AmtToForward != hop.AmtToForwardMat/mAt {
-				t.Fatalf("route %v hop %v: amt to forward %v (mAt) does not "+
-					"round down to %v (sat)",
-					i, j, hop.AmtToForwardMat, hop.AmtToForward)
+			if hop.AmtToForward != hop.AmtToForwardMAtoms/mAtoms {
+				t.Fatalf("route %v hop %v: amt to forward %v (mAtoms) does not "+
+					"round down to %v (atoms)",
+					i, j, hop.AmtToForwardMAtoms, hop.AmtToForward)
 			}
-			if hop.AmtToForwardMat != int64(expectedAmtToForwardMAt) {
-				t.Fatalf("route %v hop %v: amt to forward in mAt "+
+			if hop.AmtToForwardMAtoms != int64(expectedAmtToForwardMAtoms) {
+				t.Fatalf("route %v hop %v: amt to forward in mAtoms "+
 					"expected %v got %v",
-					i, j, expectedAmtToForwardMAt, hop.AmtToForwardMat)
+					i, j, expectedAmtToForwardMAtoms, hop.AmtToForwardMAtoms)
 			}
 		}
 		// Last hop should have zero fee and amount to forward should equal
 		// payment amount.
 		hop := route.Hops[len(route.Hops)-1]
 
-		if hop.Fee != 0 || hop.FeeMat != 0 {
-			t.Fatalf("route %v hop %v: fee expected 0 got %v (sat) %v (mAt)",
-				i, len(route.Hops)-1, hop.Fee, hop.FeeMat)
+		if hop.Fee != 0 || hop.FeeMAtoms != 0 {
+			t.Fatalf("route %v hop %v: fee expected 0 got %v (atoms) %v (mAtoms)",
+				i, len(route.Hops)-1, hop.Fee, hop.FeeMAtoms)
 		}
 
-		if hop.AmtToForward != hop.AmtToForwardMat/mAt {
-			t.Fatalf("route %v hop %v: amt to forward %v (mAt) does not "+
-				"round down to %v (sat)",
-				i, len(route.Hops)-1, hop.AmtToForwardMat, hop.AmtToForward)
+		if hop.AmtToForward != hop.AmtToForwardMAtoms/mAtoms {
+			t.Fatalf("route %v hop %v: amt to forward %v (mAtoms) does not "+
+				"round down to %v (atoms)",
+				i, len(route.Hops)-1, hop.AmtToForwardMAtoms, hop.AmtToForward)
 		}
-		if hop.AmtToForwardMat != paymentAmt*mAt {
-			t.Fatalf("route %v hop %v: amt to forward in mAt "+
+		if hop.AmtToForwardMAtoms != paymentAmt*mAtoms {
+			t.Fatalf("route %v hop %v: amt to forward in mAtoms "+
 				"expected %v got %v",
-				i, len(route.Hops)-1, paymentAmt*mAt, hop.AmtToForwardMat)
+				i, len(route.Hops)-1, paymentAmt*mAtoms, hop.AmtToForwardMAtoms)
 		}
 	}
 
@@ -12002,7 +12002,7 @@ func testRouteFeeCutoff(net *lntest.NetworkHarness, t *harnessTest) {
 	//
 	// Alice will attempt to send payments to Dave that should not incur a
 	// fee greater than the fee limit expressed as a percentage of the
-	// amount and as a fixed amount of satoshis.
+	// amount and as a fixed amount of atoms.
 	const chanAmt = dcrutil.Amount(100000)
 
 	// Open a channel between Alice and Bob.
@@ -12115,14 +12115,14 @@ func testRouteFeeCutoff(net *lntest.NetworkHarness, t *harnessTest) {
 	timeLockDelta := uint32(144)
 
 	expectedPolicy := &lnrpc.RoutingPolicy{
-		FeeBaseMat:      baseFee,
-		FeeRateMilliMat: testFeeBase * feeRate,
-		TimeLockDelta:   timeLockDelta,
-		MinHtlc:         1000, // default value
+		FeeBaseMAtoms:      baseFee,
+		FeeRateMilliMAtoms: testFeeBase * feeRate,
+		TimeLockDelta:      timeLockDelta,
+		MinHtlc:            1000, // default value
 	}
 
 	updateFeeReq := &lnrpc.PolicyUpdateRequest{
-		BaseFeeMat:    baseFee,
+		BaseFeeMAtoms: baseFee,
 		FeeRate:       float64(feeRate),
 		TimeLockDelta: timeLockDelta,
 		Scope: &lnrpc.PolicyUpdateRequest_ChanPoint{
@@ -12190,7 +12190,7 @@ func testRouteFeeCutoff(net *lntest.NetworkHarness, t *harnessTest) {
 
 	// We'll be attempting to send two payments from Alice to Dave. One will
 	// have a fee cutoff expressed as a percentage of the amount and the
-	// other will have it expressed as a fixed amount of satoshis.
+	// other will have it expressed as a fixed amount of atoms.
 	const paymentAmt = 100
 	carolFee := computeFee(lnwire.MilliAtom(baseFee), 1, paymentAmt)
 
@@ -12362,11 +12362,11 @@ func testSendUpdateDisableChannel(net *lntest.NetworkHarness, t *harnessTest) {
 	// We should expect to see a channel update with the default routing
 	// policy, except that it should indicate the channel is disabled.
 	expectedPolicy := &lnrpc.RoutingPolicy{
-		FeeBaseMat:      int64(defaultDecredBaseFeeMAt),
-		FeeRateMilliMat: int64(defaultDecredFeeRate),
-		TimeLockDelta:   defaultDecredTimeLockDelta,
-		MinHtlc:         1000, // default value
-		Disabled:        true,
+		FeeBaseMAtoms:      int64(defaultDecredBaseFeeMAtoms),
+		FeeRateMilliMAtoms: int64(defaultDecredFeeRate),
+		TimeLockDelta:      defaultDecredTimeLockDelta,
+		MinHtlc:            1000, // default value
+		Disabled:           true,
 	}
 
 	// Let Carol go offline. Since Eve has an inactive timeout of 2s, we

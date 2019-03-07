@@ -21,23 +21,22 @@ type ClosingSigned struct {
 	// ChannelID serves to identify which channel is to be closed.
 	ChannelID ChannelID
 
-	// TODO(decred): Satoshi -> Atoms
-	// FeeSatoshis is the total fee in atoms that the party to the
+	// FeeAtoms is the total fee in atoms that the party to the
 	// channel would like to propose for the close transaction.
-	FeeSatoshis dcrutil.Amount
+	FeeAtoms dcrutil.Amount
 
 	// Signature is for the proposed channel close transaction.
 	Signature Sig
 }
 
 // NewClosingSigned creates a new empty ClosingSigned message.
-func NewClosingSigned(cid ChannelID, fs dcrutil.Amount,
+func NewClosingSigned(cid ChannelID, fa dcrutil.Amount,
 	sig Sig) *ClosingSigned {
 
 	return &ClosingSigned{
-		ChannelID:   cid,
-		FeeSatoshis: fs,
-		Signature:   sig,
+		ChannelID: cid,
+		FeeAtoms:  fa,
+		Signature: sig,
 	}
 }
 
@@ -50,7 +49,7 @@ var _ Message = (*ClosingSigned)(nil)
 //
 // This is part of the lnwire.Message interface.
 func (c *ClosingSigned) Decode(r io.Reader, pver uint32) error {
-	return ReadElements(r, &c.ChannelID, &c.FeeSatoshis, &c.Signature)
+	return ReadElements(r, &c.ChannelID, &c.FeeAtoms, &c.Signature)
 }
 
 // Encode serializes the target ClosingSigned into the passed io.Writer
@@ -58,7 +57,7 @@ func (c *ClosingSigned) Decode(r io.Reader, pver uint32) error {
 //
 // This is part of the lnwire.Message interface.
 func (c *ClosingSigned) Encode(w io.Writer, pver uint32) error {
-	return WriteElements(w, c.ChannelID, c.FeeSatoshis, c.Signature)
+	return WriteElements(w, c.ChannelID, c.FeeAtoms, c.Signature)
 }
 
 // MsgType returns the integer uniquely identifying this message type on the
@@ -79,7 +78,7 @@ func (c *ClosingSigned) MaxPayloadLength(uint32) uint32 {
 	// ChannelID - 32 bytes
 	length += 32
 
-	// FeeSatoshis - 8 bytes
+	// FeeAtoms - 8 bytes
 	length += 8
 
 	// Signature - 64 bytes

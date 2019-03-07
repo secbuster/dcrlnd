@@ -202,7 +202,7 @@ service Lightning {
 
     /** lncli: `channelbalance`
     ChannelBalance returns the total funds available across all open channels
-    in satoshis.
+    in atoms.
     */
     rpc ChannelBalance (ChannelBalanceRequest) returns (ChannelBalanceResponse) {
         option (google.api.http) = {
@@ -223,7 +223,7 @@ service Lightning {
     /** lncli: `sendcoins`
     SendCoins executes a request to send coins to a particular address. Unlike
     SendMany, this RPC call only allows creating a single output at a time. If
-    neither target_conf, or sat_per_byte are set, then the internal wallet will
+    neither target_conf, or atoms_per_byte are set, then the internal wallet will
     consult its fee model to determine a fee for the default confirmation
     target.
     */
@@ -253,7 +253,7 @@ service Lightning {
 
     /** lncli: `sendmany`
     SendMany handles a request for a transaction that creates multiple specified
-    outputs in parallel. If neither target_conf, or sat_per_byte are set, then
+    outputs in parallel. If neither target_conf, or atoms_per_byte are set, then
     the internal wallet will consult its fee model to determine a fee for the
     default confirmation target.
     */
@@ -585,7 +585,7 @@ service Lightning {
     /** lncli: `queryroutes`
     QueryRoutes attempts to query the daemon's Channel Router for a possible
     route to a target destination capable of carrying a specific amount of
-    satoshis. The retuned route contains the full details required to craft and
+    atoms. The retuned route contains the full details required to craft and
     send an HTLC, also including the necessary information that should be
     present within the Sphinx packet encapsulated within the HTLC.
     */
@@ -677,8 +677,8 @@ message Utxo {
 	/// The address
 	string address = 2 [json_name = "address"];
 
-	/// The value of the unspent coin in satoshis
-	int64 amount_sat = 3 [json_name = "amount_sat"];
+	/// The value of the unspent coin in atoms
+	int64 amount_atoms = 3 [json_name = "amount_atoms"];
 
 	/// The scriptpubkey in hex
 	string script_pubkey = 4 [json_name = "script_pubkey"];
@@ -696,7 +696,7 @@ message Transaction {
     /// The transaction hash
     string tx_hash = 1 [ json_name = "tx_hash" ];
 
-    /// The transaction amount, denominated in satoshis
+    /// The transaction amount, denominated in atoms
     int64 amount = 2 [ json_name = "amount" ];
 
     /// The number of confirmations
@@ -726,7 +726,7 @@ message TransactionDetails {
 
 message FeeLimit {
     oneof limit {
-        /// The fee limit expressed as a fixed amount of satoshis.
+        /// The fee limit expressed as a fixed amount of atoms.
         int64 fixed = 1;
 
         /// The fee limit expressed as a percentage of the payment amount.
@@ -741,7 +741,7 @@ message SendRequest {
     /// The hex-encoded identity pubkey of the payment recipient
     string dest_string = 2;
 
-    /// Number of satoshis to send.
+    /// Number of atoms to send.
     int64 amt = 3;
 
     /// The hash to use within the payment's HTLC
@@ -764,7 +764,7 @@ message SendRequest {
     int32 final_cltv_delta = 7;
 
     /**
-    The maximum number of satoshis that will be paid as a fee of the payment.
+    The maximum number of atoms that will be paid as a fee of the payment.
     This value can be represented either as a percentage of the amount being
     sent, or as a fixed amount of the maximum fee the user is willing the pay to
     send the payment.
@@ -817,8 +817,8 @@ message SendManyRequest {
     /// The target number of blocks that this transaction should be confirmed by.
     int32 target_conf = 3;
 
-    /// A manual fee rate set in sat/byte that should be used when crafting the transaction.
-    int64 sat_per_byte = 5;
+    /// A manual fee rate set in atom/byte that should be used when crafting the transaction.
+    int64 atoms_per_byte = 5;
 }
 message SendManyResponse {
     /// The id of the transaction
@@ -829,14 +829,14 @@ message SendCoinsRequest {
     /// The address to send coins to 
     string addr = 1;
 
-    /// The amount in satoshis to send
+    /// The amount in atoms to send
     int64 amount = 2;
 
     /// The target number of blocks that this transaction should be confirmed by.
     int32 target_conf = 3;
 
-    /// A manual fee rate set in sat/byte that should be used when crafting the transaction.
-    int64 sat_per_byte = 5;
+    /// A manual fee rate set in atom/byte that should be used when crafting the transaction.
+    int64 atoms_per_byte = 5;
 }
 message SendCoinsResponse {
     /// The transaction ID of the transaction
@@ -971,7 +971,7 @@ message Channel {
     int64 commit_weight = 9 [json_name = "commit_weight"];
 
     /**
-    The required number of satoshis per kilo-weight that the requester will pay
+    The required number of atoms per kilo-weight that the requester will pay
     at all times, for both the funding transaction and commitment transaction.
     This value can later be updated once the channel is open.
     */
@@ -981,14 +981,14 @@ message Channel {
     int64 unsettled_balance = 11 [json_name = "unsettled_balance"];
 
     /**
-    The total number of satoshis we've sent within this channel.
+    The total number of atoms we've sent within this channel.
     */
-    int64 total_satoshis_sent = 12 [json_name = "total_satoshis_sent"];
+    int64 total_atoms_sent = 12 [json_name = "total_atoms_sent"];
 
     /**
-    The total number of satoshis we've received within this channel.
+    The total number of atoms we've received within this channel.
     */
-    int64 total_satoshis_received = 13 [json_name = "total_satoshis_received"];
+    int64 total_atoms_received = 13 [json_name = "total_atoms_received"];
 
     /**
     The total number of updates conducted within this channel.
@@ -1090,11 +1090,11 @@ message Peer {
     /// Bytes of data transmitted from this peer
     uint64 bytes_recv = 5 [json_name = "bytes_recv"];
 
-    /// Satoshis sent to this peer
-    int64 sat_sent = 6 [json_name = "sat_sent"];
+    /// Atoms sent to this peer
+    int64 atoms_sent = 6 [json_name = "atoms_sent"];
 
-    /// Satoshis received from this peer
-    int64 sat_recv = 7 [json_name = "sat_recv"];
+    /// Atoms received from this peer
+    int64 atoms_recv = 7 [json_name = "atoms_recv"];
 
     /// A channel is inbound if the counterparty initiated the channel
     bool inbound = 8 [json_name = "inbound"];
@@ -1201,8 +1201,8 @@ message CloseChannelRequest {
     /// The target number of blocks that the closure transaction should be confirmed by.
     int32 target_conf = 3;
 
-    /// A manual fee rate set in sat/byte that should be used when crafting the closure transaction.
-    int64 sat_per_byte = 4;
+    /// A manual fee rate set in atom/byte that should be used when crafting the closure transaction.
+    int64 atoms_per_byte = 4;
 }
 
 message CloseStatusUpdate {
@@ -1224,23 +1224,23 @@ message OpenChannelRequest {
     /// The hex encoded pubkey of the node to open a channel with
     string node_pubkey_string = 3 [json_name = "node_pubkey_string"];
 
-    /// The number of satoshis the wallet should commit to the channel
+    /// The number of atoms the wallet should commit to the channel
     int64 local_funding_amount = 4 [json_name = "local_funding_amount"];
 
-    /// The number of satoshis to push to the remote side as part of the initial commitment state
-    int64 push_sat = 5 [json_name = "push_sat"];
+    /// The number of atoms to push to the remote side as part of the initial commitment state
+    int64 push_atoms = 5 [json_name = "push_atoms"];
 
     /// The target number of blocks that the funding transaction should be confirmed by.
     int32 target_conf = 6;
 
-    /// A manual fee rate set in sat/byte that should be used when crafting the funding transaction.
-    int64 sat_per_byte = 7;
+    /// A manual fee rate set in atom/byte that should be used when crafting the funding transaction.
+    int64 atoms_per_byte = 7;
 
     /// Whether this channel should be private, not announced to the greater network.
     bool private = 8 [json_name = "private"];
 
     /// The minimum value in MilliAtom we will require for incoming HTLCs on the channel.
-    int64 min_htlc_msat = 9 [json_name = "min_htlc_msat"];
+    int64 min_htlc_m_atoms = 9 [json_name = "min_htlc_m_atoms"];
 
     /// The delay we require on the remote's commitment transaction. If this is not set, it will be scaled automatically with the channel size.
     uint32 remote_csv_delay = 10 [json_name = "remote_csv_delay"];
@@ -1315,7 +1315,7 @@ message PendingChannelsResponse {
         int64 commit_weight = 5 [ json_name = "commit_weight" ];
 
         /**
-        The required number of satoshis per kilo-weight that the requester will
+        The required number of atoms per kilo-weight that the requester will
         pay at all times, for both the funding transaction and commitment
         transaction. This value can later be updated once the channel is open.
         */
@@ -1326,7 +1326,7 @@ message PendingChannelsResponse {
         /// The pending channel waiting for closing tx to confirm
         PendingChannel channel = 1;
 
-        /// The balance in satoshis encumbered in this channel
+        /// The balance in atoms encumbered in this channel
         int64 limbo_balance = 2 [ json_name = "limbo_balance" ];
     }
 
@@ -1345,7 +1345,7 @@ message PendingChannelsResponse {
         /// The transaction id of the closing transaction
         string closing_txid = 2 [ json_name = "closing_txid" ];
 
-        /// The balance in satoshis encumbered in this pending channel
+        /// The balance in atoms encumbered in this pending channel
         int64 limbo_balance = 3 [ json_name = "limbo_balance" ];
 
         /// The height at which funds can be sweeped into the wallet
@@ -1364,7 +1364,7 @@ message PendingChannelsResponse {
         repeated PendingHTLC pending_htlcs = 8 [ json_name = "pending_htlcs" ];
     }
 
-    /// The balance in satoshis encumbered in pending channels
+    /// The balance in atoms encumbered in pending channels
     int64 total_limbo_balance = 1 [ json_name = "total_limbo_balance" ];
 
     /// Channels pending opening
@@ -1396,10 +1396,10 @@ message WalletBalanceResponse {
 message ChannelBalanceRequest {
 }
 message ChannelBalanceResponse {
-    /// Sum of channels balances denominated in satoshis
+    /// Sum of channels balances denominated in atoms
     int64 balance = 1 [json_name = "balance"];
 
-    /// Sum of channels pending balances denominated in satoshis
+    /// Sum of channels pending balances denominated in atoms
     int64 pending_open_balance = 2 [json_name = "pending_open_balance"];
 }
 
@@ -1407,7 +1407,7 @@ message QueryRoutesRequest {
     /// The 33-byte hex-encoded public key for the payment destination
     string pub_key = 1;
 
-    /// The amount to send expressed in satoshis
+    /// The amount to send expressed in atoms
     int64 amt = 2;
 
     /// The max number of routes to return.
@@ -1417,7 +1417,7 @@ message QueryRoutesRequest {
     int32 final_cltv_delta = 4;
 
     /**
-    The maximum number of satoshis that will be paid as a fee of the payment.
+    The maximum number of atoms that will be paid as a fee of the payment.
     This value can be represented either as a percentage of the amount being
     sent, or as a fixed amount of the maximum fee the user is willing the pay to
     send the payment.
@@ -1439,8 +1439,8 @@ message Hop {
     int64 amt_to_forward = 3 [json_name = "amt_to_forward", deprecated = true];
     int64 fee = 4 [json_name = "fee", deprecated = true];
     uint32 expiry = 5 [json_name = "expiry"];
-    int64 amt_to_forward_msat = 6 [json_name = "amt_to_forward_msat"];
-    int64 fee_msat = 7 [json_name = "fee_msat"];
+    int64 amt_to_forward_m_atoms = 6 [json_name = "amt_to_forward_m_atoms"];
+    int64 fee_m_atoms = 7 [json_name = "fee_m_atoms"];
 
     /**
     An optional public key of the hop. If the public key is given, the payment
@@ -1477,7 +1477,7 @@ message Route {
     The total amount of funds required to complete a payment over this route.
     This value includes the cumulative fees at each hop. As a result, the HTLC
     extended to the first-hop in the route will need to have at least this many
-    satoshis, otherwise the route will fail at an intermediate node due to an
+    atoms, otherwise the route will fail at an intermediate node due to an
     insufficient amount of fees.
     */
     int64 total_amt = 3 [json_name = "total_amt", deprecated = true];
@@ -1490,12 +1490,12 @@ message Route {
     /**
     The total fees in MilliAtoms.
     */
-    int64 total_fees_msat = 5 [json_name = "total_fees_msat"];
+    int64 total_fees_m_atoms = 5 [json_name = "total_fees_m_atoms"];
     
     /**
     The total amount in MilliAtoms.
     */
-    int64 total_amt_msat = 6 [json_name = "total_amt_msat"];
+    int64 total_amt_m_atoms = 6 [json_name = "total_amt_m_atoms"];
 }
 
 message NodeInfoRequest {
@@ -1539,8 +1539,8 @@ message NodeAddress {
 message RoutingPolicy {
     uint32 time_lock_delta = 1 [json_name = "time_lock_delta"];
     int64 min_htlc = 2 [json_name = "min_htlc"];
-    int64 fee_base_msat = 3 [json_name = "fee_base_msat"];
-    int64 fee_rate_milli_msat = 4 [json_name = "fee_rate_milli_msat"];
+    int64 fee_base_m_atoms = 3 [json_name = "fee_base_m_atoms"];
+    int64 fee_rate_milli_m_atoms = 4 [json_name = "fee_rate_milli_m_atoms"];
     bool disabled = 5 [json_name = "disabled"];
 }
 
@@ -1671,11 +1671,11 @@ message HopHint {
     uint64 chan_id = 2 [json_name = "chan_id"];
 
     /// The base fee of the channel denominated in MilliAtoms.
-    uint32 fee_base_msat = 3 [json_name = "fee_base_msat"];
+    uint32 fee_base_m_atoms = 3 [json_name = "fee_base_m_atoms"];
 
     /**
-    The fee rate of the channel for sending one satoshi across it denominated in
-    millionths of a satoshi.
+    The fee rate of the channel for sending one atom across it denominated in
+    millionths of a atom.
     */
     uint32 fee_proportional_millionths = 4 [json_name = "fee_proportional_millionths"];
 
@@ -1714,7 +1714,7 @@ message Invoice {
     /// The hash of the preimage
     bytes r_hash = 4 [json_name = "r_hash"];
 
-    /// The value of this invoice in satoshis
+    /// The value of this invoice in atoms
     int64 value = 5 [json_name = "value"];
 
     /// Whether this invoice has been fulfilled
@@ -1774,18 +1774,18 @@ message Invoice {
     */
     uint64 settle_index = 17 [json_name = "settle_index"];
 
-    /// Deprecated, use amt_paid_sat or amt_paid_msat.
+    /// Deprecated, use amt_paid_atoms or amt_paid_m_atoms.
     int64 amt_paid = 18 [json_name = "amt_paid", deprecated = true];
 
     /**
-    The amount that was accepted for this invoice, in satoshis. This will ONLY
+    The amount that was accepted for this invoice, in atoms. This will ONLY
     be set if this invoice has been settled. We provide this field as if the
     invoice was created with a zero value, then we need to record what amount
     was ultimately accepted. Additionally, it's possible that the sender paid
     MORE that was specified in the original invoice. So we'll record that here
     as well.
     */
-    int64 amt_paid_sat = 19 [json_name = "amt_paid_sat"];
+    int64 amt_paid_atoms = 19 [json_name = "amt_paid_atoms"];
 
     /**
     The amount that was accepted for this invoice, in MilliAtoms. This will
@@ -1795,7 +1795,7 @@ message Invoice {
     paid MORE that was specified in the original invoice. So we'll record that
     here as well.
     */
-    int64 amt_paid_msat = 20 [json_name = "amt_paid_msat"];
+    int64 amt_paid_m_atoms = 20 [json_name = "amt_paid_m_atoms"];
 
     enum InvoiceState {
         OPEN = 0;
@@ -1899,7 +1899,7 @@ message Payment {
     /// The payment hash
     string payment_hash = 1 [json_name = "payment_hash"];
 
-    /// Deprecated, use value_sat or value_msat.
+    /// Deprecated, use value_atoms or value_m_atoms.
     int64 value = 2 [json_name = "value", deprecated = true];
 
     /// The date of this payment
@@ -1908,17 +1908,17 @@ message Payment {
     /// The path this payment took
     repeated string path = 4 [ json_name = "path" ];
 
-    /// The fee paid for this payment in satoshis
+    /// The fee paid for this payment in atoms
     int64 fee = 5 [json_name = "fee"];
 
     /// The payment preimage
     string payment_preimage = 6 [json_name = "payment_preimage"];
 
-    /// The value of the payment in satoshis
-    int64 value_sat = 7 [json_name = "value_sat"];
+    /// The value of the payment in atoms
+    int64 value_atoms = 7 [json_name = "value_atoms"];
 
     /// The value of the payment in milli-atoms
-    int64 value_msat = 8 [json_name = "value_msat"];
+    int64 value_m_atoms = 8 [json_name = "value_m_atoms"];
 }
 
 message ListPaymentsRequest {
@@ -1958,7 +1958,7 @@ message PayReqString {
 message PayReq {
     string destination = 1 [json_name = "destination"];
     string payment_hash = 2 [json_name = "payment_hash"];
-    int64 num_satoshis = 3 [json_name = "num_satoshis"];
+    int64 num_atoms = 3 [json_name = "num_atoms"];
     int64 timestamp = 4 [json_name = "timestamp"];
     int64 expiry = 5 [json_name = "expiry"];
     string description = 6 [json_name = "description"];
@@ -1974,9 +1974,9 @@ message ChannelFeeReport {
     string chan_point = 1 [json_name = "channel_point"];
 
     /// The base fee charged regardless of the number of milli-atoms sent.
-    int64 base_fee_msat = 2 [json_name = "base_fee_msat"];
+    int64 base_fee_m_atoms = 2 [json_name = "base_fee_m_atoms"];
 
-    /// The amount charged per milli-atoms transferred expressed in millionths of a satoshi.
+    /// The amount charged per milli-atoms transferred expressed in millionths of a atom.
     int64 fee_per_mil = 3 [json_name = "fee_per_mil"];
 
     /// The effective fee rate in milli-atoms. Computed by dividing the fee_per_mil value by 1 million.
@@ -1986,13 +1986,13 @@ message FeeReportResponse {
     /// An array of channel fee reports which describes the current fee schedule for each channel.
     repeated ChannelFeeReport channel_fees = 1 [json_name = "channel_fees"];
 
-    /// The total amount of fee revenue (in satoshis) the switch has collected over the past 24 hrs.
+    /// The total amount of fee revenue (in atoms) the switch has collected over the past 24 hrs.
     uint64 day_fee_sum = 2 [json_name = "day_fee_sum"];
 
-    /// The total amount of fee revenue (in satoshis) the switch has collected over the past 1 week.
+    /// The total amount of fee revenue (in atoms) the switch has collected over the past 1 week.
     uint64 week_fee_sum = 3 [json_name = "week_fee_sum"];
 
-    /// The total amount of fee revenue (in satoshis) the switch has collected over the past 1 month.
+    /// The total amount of fee revenue (in atoms) the switch has collected over the past 1 month.
     uint64 month_fee_sum = 4 [json_name = "month_fee_sum"];
 }
 
@@ -2006,7 +2006,7 @@ message PolicyUpdateRequest {
     }
 
     /// The base fee charged regardless of the number of milli-atoms sent.
-    int64 base_fee_msat = 3 [json_name = "base_fee_msat"];
+    int64 base_fee_m_atoms = 3 [json_name = "base_fee_m_atoms"];
 
     /// The effective fee rate in milli-atoms. The precision of this value goes up to 6 decimal places, so 1e-6.
     double fee_rate = 4 [json_name = "fee_rate"];
@@ -2040,17 +2040,17 @@ message ForwardingEvent {
     /// The outgoing channel ID that carried the preimage that completed the circuit.
     uint64 chan_id_out = 4 [json_name = "chan_id_out"];
 
-    /// The total amount (in satoshis) of the incoming HTLC that created half the circuit.
+    /// The total amount (in atoms) of the incoming HTLC that created half the circuit.
     uint64 amt_in = 5 [json_name = "amt_in"];
 
-    /// The total amount (in satoshis) of the outgoing HTLC that created the second half of the circuit.
+    /// The total amount (in atoms) of the outgoing HTLC that created the second half of the circuit.
     uint64 amt_out = 6 [json_name = "amt_out"];
 
-    /// The total fee (in satoshis) that this payment circuit carried.
+    /// The total fee (in atoms) that this payment circuit carried.
     uint64 fee = 7 [json_name = "fee"];
 
     /// The total fee (in milli-atoms) that this payment circuit carried.
-    uint64 fee_msat = 8 [json_name = "fee_msat"];
+    uint64 fee_m_atoms = 8 [json_name = "fee_m_atoms"];
 
     // TODO(roasbeef): add settlement latency?
     //  * use FPE on the chan id?

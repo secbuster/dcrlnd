@@ -127,8 +127,8 @@ alice$ lncli --network=simnet listpeers
             "address": "172.19.0.4:9735",
             "bytes_sent": "357",
             "bytes_recv": "357",
-            "sat_sent": "0",
-            "sat_recv": "0",
+            "atoms_sent": "0",
+            "atoms_recv": "0",
             "inbound": true,
             "ping_time": "0"
         }
@@ -144,8 +144,8 @@ bob$ lncli --network=simnet listpeers
             "address": "172.19.0.3:51932",
             "bytes_sent": "357",
             "bytes_recv": "357",
-            "sat_sent": "0",
-            "sat_recv": "0",
+            "atoms_sent": "0",
+            "atoms_recv": "0",
             "inbound": false,
             "ping_time": "0"
         }
@@ -177,8 +177,8 @@ alice$ lncli --network=simnet listchannels
             "commit_weight": "600",
             "fee_per_kw": "12000",
             "unsettled_balance": "0",
-            "total_satoshis_sent": "0",
-            "total_satoshis_received": "0",
+            "total_atoms_sent": "0",
+            "total_atoms_received": "0",
             "num_updates": "0",
              "pending_htlcs": [
             ],
@@ -228,8 +228,8 @@ alice$ lncli --network=simnet listchannels
             "commit_weight": "724",
             "fee_per_kw": "12000",
             "unsettled_balance": "0",
-            "total_satoshis_sent": "10000",
-            "total_satoshis_received": "0",
+            "total_atoms_sent": "10000",
+            "total_atoms_received": "0",
             "num_updates": "2",
             "pending_htlcs": [
             ],

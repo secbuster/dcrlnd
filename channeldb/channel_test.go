@@ -214,8 +214,8 @@ func createTestChannelState(cdb *DB) (*OpenChannel, error) {
 		Capacity:         dcrutil.Amount(10000),
 		LocalChanCfg:     localCfg,
 		RemoteChanCfg:    remoteCfg,
-		TotalMAtSent:     8,
-		TotalMAtReceived: 2,
+		TotalMAtomsSent:     8,
+		TotalMAtomsReceived: 2,
 		LocalCommitment: ChannelCommitment{
 			CommitHeight:  0,
 			LocalBalance:  lnwire.MilliAtom(9000),
@@ -486,7 +486,7 @@ func TestChannelStateTransition(t *testing.T) {
 				LogIndex: 1,
 				UpdateMsg: &lnwire.UpdateAddHTLC{
 					ID:     1,
-					Amount: lnwire.NewMAtFromAtoms(100),
+					Amount: lnwire.NewMAtomsFromAtoms(100),
 					Expiry: 25,
 				},
 			},
@@ -494,7 +494,7 @@ func TestChannelStateTransition(t *testing.T) {
 				LogIndex: 2,
 				UpdateMsg: &lnwire.UpdateAddHTLC{
 					ID:     2,
-					Amount: lnwire.NewMAtFromAtoms(200),
+					Amount: lnwire.NewMAtomsFromAtoms(200),
 					Expiry: 50,
 				},
 			},

@@ -954,7 +954,7 @@ func initBreachedState(t *testing.T) (*breachArbiter,
 	}
 
 	// Send one HTLC to Bob and perform a state transition to lock it in.
-	htlcAmount := lnwire.NewMAtFromAtoms(20000)
+	htlcAmount := lnwire.NewMAtomsFromAtoms(20000)
 	htlc, _ := createHTLC(0, htlcAmount)
 	if _, err := alice.AddHTLC(htlc, nil); err != nil {
 		t.Fatalf("alice unable to add htlc: %v", err)
@@ -1495,8 +1495,8 @@ func createInitChannels(revocationWindow int) (*lnwallet.LightningChannel, *lnwa
 	// TODO(roasbeef): need to factor in commit fee?
 	aliceCommit := channeldb.ChannelCommitment{
 		CommitHeight:  0,
-		LocalBalance:  lnwire.NewMAtFromAtoms(channelBal - initiatorFee),
-		RemoteBalance: lnwire.NewMAtFromAtoms(channelBal),
+		LocalBalance:  lnwire.NewMAtomsFromAtoms(channelBal - initiatorFee),
+		RemoteBalance: lnwire.NewMAtomsFromAtoms(channelBal),
 		FeePerKw:      dcrutil.Amount(feePerKB),
 		CommitFee:     8688,
 		CommitTx:      aliceCommitTx,
@@ -1504,8 +1504,8 @@ func createInitChannels(revocationWindow int) (*lnwallet.LightningChannel, *lnwa
 	}
 	bobCommit := channeldb.ChannelCommitment{
 		CommitHeight:  0,
-		LocalBalance:  lnwire.NewMAtFromAtoms(channelBal),
-		RemoteBalance: lnwire.NewMAtFromAtoms(channelBal - initiatorFee),
+		LocalBalance:  lnwire.NewMAtomsFromAtoms(channelBal),
+		RemoteBalance: lnwire.NewMAtomsFromAtoms(channelBal - initiatorFee),
 		FeePerKw:      dcrutil.Amount(feePerKB),
 		CommitFee:     8688,
 		CommitTx:      bobCommitTx,

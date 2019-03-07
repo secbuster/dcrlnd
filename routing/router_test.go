@@ -96,7 +96,7 @@ func createTestCtxFromGraphInstance(startingHeight uint32, graphInstance *testGr
 		ChannelPruneExpiry: time.Hour * 24,
 		GraphPruneInterval: time.Hour * 2,
 		QueryBandwidth: func(e *channeldb.ChannelEdgeInfo) lnwire.MilliAtom {
-			return lnwire.NewMAtFromAtoms(e.Capacity)
+			return lnwire.NewMAtomsFromAtoms(e.Capacity)
 		},
 	})
 	if err != nil {
@@ -180,7 +180,7 @@ func TestFindRoutesFeeSorting(t *testing.T) {
 	// selection.
 
 	// Execute a query for all possible routes between roasbeef and luo ji.
-	paymentAmt := lnwire.NewMAtFromAtoms(100)
+	paymentAmt := lnwire.NewMAtomsFromAtoms(100)
 	target := ctx.aliases["luoji"]
 	routes, err := ctx.router.FindRoutes(
 		target, paymentAmt, noFeeLimit, defaultNumRoutes,
@@ -231,15 +231,15 @@ func TestFindRoutesWithFeeLimit(t *testing.T) {
 	defer cleanUp()
 
 	// This test will attempt to find routes from roasbeef to sophon for 100
-	// satoshis with a fee limit of 10 satoshis. There are two routes from
+	// atoms with a fee limit of 10 atoms. There are two routes from
 	// roasbeef to sophon:
 	//	1. roasbeef -> songoku -> sophon
 	//	2. roasbeef -> phamnuwen -> sophon
 	// The second route violates our fee limit, so we should only expect to
 	// see the first route.
 	target := ctx.aliases["sophon"]
-	paymentAmt := lnwire.NewMAtFromAtoms(100)
-	feeLimit := lnwire.NewMAtFromAtoms(10)
+	paymentAmt := lnwire.NewMAtomsFromAtoms(100)
+	feeLimit := lnwire.NewMAtomsFromAtoms(10)
 
 	routes, err := ctx.router.FindRoutes(
 		target, paymentAmt, feeLimit, defaultNumRoutes,
@@ -286,9 +286,9 @@ func TestSendPaymentRouteFailureFallback(t *testing.T) {
 	defer cleanUp()
 
 	// Craft a LightningPayment struct that'll send a payment from roasbeef
-	// to luo ji for 1000 satoshis, with a maximum of 1000 satoshis in fees.
+	// to luo ji for 1000 atoms, with a maximum of 1000 atoms in fees.
 	var payHash [32]byte
-	paymentAmt := lnwire.NewMAtFromAtoms(1000)
+	paymentAmt := lnwire.NewMAtomsFromAtoms(1000)
 	payment := LightningPayment{
 		Target:      ctx.aliases["luoji"],
 		Amount:      paymentAmt,
@@ -304,7 +304,7 @@ func TestSendPaymentRouteFailureFallback(t *testing.T) {
 	// We'll modify the SendToSwitch method that's been set within the
 	// router's configuration to ignore the path that has luo ji as the
 	// first hop. This should force the router to instead take the
-	// available two hop path (through satoshi).
+	// available two hop path (through atoms).
 	ctx.router.cfg.SendToSwitch = func(firstHop lnwire.ShortChannelID,
 		_ *lnwire.UpdateAddHTLC, _ *sphinx.Circuit) ([32]byte, error) {
 
@@ -525,9 +525,9 @@ func TestSendPaymentErrorRepeatedFeeInsufficient(t *testing.T) {
 	defer cleanUp()
 
 	// Craft a LightningPayment struct that'll send a payment from roasbeef
-	// to luo ji for 100 satoshis.
+	// to luo ji for 100 atoms.
 	var payHash [32]byte
-	amt := lnwire.NewMAtFromAtoms(1000)
+	amt := lnwire.NewMAtomsFromAtoms(1000)
 	payment := LightningPayment{
 		Target:      ctx.aliases["sophon"],
 		Amount:      amt,
@@ -552,8 +552,8 @@ func TestSendPaymentErrorRepeatedFeeInsufficient(t *testing.T) {
 		Timestamp:      uint32(edgeUpateToFail.LastUpdate.Unix()),
 		Flags:          edgeUpateToFail.Flags,
 		TimeLockDelta:  edgeUpateToFail.TimeLockDelta,
-		HtlcMinimumMAt: edgeUpateToFail.MinHTLC,
-		BaseFee:        uint32(edgeUpateToFail.FeeBaseMAt),
+		HtlcMinimumMAtoms: edgeUpateToFail.MinHTLC,
+		BaseFee:        uint32(edgeUpateToFail.FeeBaseMAtoms),
 		FeeRate:        uint32(edgeUpateToFail.FeeProportionalMillionths),
 	}
 
@@ -629,9 +629,9 @@ func TestSendPaymentErrorNonFinalTimeLockErrors(t *testing.T) {
 	defer cleanUp()
 
 	// Craft a LightningPayment struct that'll send a payment from roasbeef
-	// to sophon for 1k satoshis.
+	// to sophon for 1k atoms.
 	var payHash [32]byte
-	amt := lnwire.NewMAtFromAtoms(1000)
+	amt := lnwire.NewMAtomsFromAtoms(1000)
 	payment := LightningPayment{
 		Target:      ctx.aliases["sophon"],
 		Amount:      amt,
@@ -658,8 +658,8 @@ func TestSendPaymentErrorNonFinalTimeLockErrors(t *testing.T) {
 		Timestamp:      uint32(edgeUpateToFail.LastUpdate.Unix()),
 		Flags:          edgeUpateToFail.Flags,
 		TimeLockDelta:  edgeUpateToFail.TimeLockDelta,
-		HtlcMinimumMAt: edgeUpateToFail.MinHTLC,
-		BaseFee:        uint32(edgeUpateToFail.FeeBaseMAt),
+		HtlcMinimumMAtoms: edgeUpateToFail.MinHTLC,
+		BaseFee:        uint32(edgeUpateToFail.FeeBaseMAtoms),
 		FeeRate:        uint32(edgeUpateToFail.FeeProportionalMillionths),
 	}
 
@@ -764,9 +764,9 @@ func TestSendPaymentErrorPathPruning(t *testing.T) {
 	defer cleanUp()
 
 	// Craft a LightningPayment struct that'll send a payment from roasbeef
-	// to luo ji for 1000 satoshis, with a maximum of 1000 satoshis in fees.
+	// to luo ji for 1000 atoms, with a maximum of 1000 atoms in fees.
 	var payHash [32]byte
-	paymentAmt := lnwire.NewMAtFromAtoms(1000)
+	paymentAmt := lnwire.NewMAtomsFromAtoms(1000)
 	payment := LightningPayment{
 		Target:      ctx.aliases["luoji"],
 		Amount:      paymentAmt,
@@ -794,7 +794,7 @@ func TestSendPaymentErrorPathPruning(t *testing.T) {
 	// with an UnknownNextPeer.
 	//
 	// TODO(roasbeef): filtering should be intelligent enough so just not
-	// go through satoshi at all at this point.
+	// go through atom at all at this point.
 	ctx.router.cfg.SendToSwitch = func(firstHop lnwire.ShortChannelID,
 		_ *lnwire.UpdateAddHTLC, _ *sphinx.Circuit) ([32]byte, error) {
 
@@ -972,8 +972,8 @@ func TestAddProof(t *testing.T) {
 		NodeKey2Bytes: node2.PubKeyBytes,
 		AuthProof:     nil,
 	}
-	copy(edge.BitcoinKey1Bytes[:], bitcoinKey1.SerializeCompressed())
-	copy(edge.BitcoinKey2Bytes[:], bitcoinKey2.SerializeCompressed())
+	copy(edge.DecredKey1Bytes[:], bitcoinKey1.SerializeCompressed())
+	copy(edge.DecredKey2Bytes[:], bitcoinKey2.SerializeCompressed())
 
 	if err := ctx.router.AddEdge(edge); err != nil {
 		t.Fatalf("unable to add edge: %v", err)
@@ -1078,8 +1078,8 @@ func TestAddEdgeUnknownVertexes(t *testing.T) {
 		ChannelID:        chanID.ToUint64(),
 		NodeKey1Bytes:    pub1,
 		NodeKey2Bytes:    pub2,
-		BitcoinKey1Bytes: pub1,
-		BitcoinKey2Bytes: pub2,
+		DecredKey1Bytes: pub1,
+		DecredKey2Bytes: pub2,
 		AuthProof:        nil,
 	}
 	if err := ctx.router.AddEdge(edge); err != nil {
@@ -1095,7 +1095,7 @@ func TestAddEdgeUnknownVertexes(t *testing.T) {
 		LastUpdate:                testTime,
 		TimeLockDelta:             10,
 		MinHTLC:                   1,
-		FeeBaseMAt:                10,
+		FeeBaseMAtoms:                10,
 		FeeProportionalMillionths: 10000,
 	}
 	edgePolicy.Flags = 0
@@ -1111,7 +1111,7 @@ func TestAddEdgeUnknownVertexes(t *testing.T) {
 		LastUpdate:                testTime,
 		TimeLockDelta:             10,
 		MinHTLC:                   1,
-		FeeBaseMAt:                10,
+		FeeBaseMAtoms:                10,
 		FeeProportionalMillionths: 10000,
 	}
 	edgePolicy.Flags = 1
@@ -1178,8 +1178,8 @@ func TestAddEdgeUnknownVertexes(t *testing.T) {
 	}
 	copy(edge.NodeKey1Bytes[:], node1Bytes)
 	copy(edge.NodeKey2Bytes[:], node2Bytes)
-	copy(edge.BitcoinKey1Bytes[:], node1Bytes)
-	copy(edge.BitcoinKey2Bytes[:], node2Bytes)
+	copy(edge.DecredKey1Bytes[:], node1Bytes)
+	copy(edge.DecredKey2Bytes[:], node2Bytes)
 
 	if err := ctx.router.AddEdge(edge); err != nil {
 		t.Fatalf("unable to add edge to the channel graph: %v.", err)
@@ -1191,7 +1191,7 @@ func TestAddEdgeUnknownVertexes(t *testing.T) {
 		LastUpdate:                testTime,
 		TimeLockDelta:             10,
 		MinHTLC:                   1,
-		FeeBaseMAt:                10,
+		FeeBaseMAtoms:                10,
 		FeeProportionalMillionths: 10000,
 	}
 	edgePolicy.Flags = 0
@@ -1206,7 +1206,7 @@ func TestAddEdgeUnknownVertexes(t *testing.T) {
 		LastUpdate:                testTime,
 		TimeLockDelta:             10,
 		MinHTLC:                   1,
-		FeeBaseMAt:                10,
+		FeeBaseMAtoms:                10,
 		FeeProportionalMillionths: 10000,
 	}
 	edgePolicy.Flags = 1
@@ -1216,7 +1216,7 @@ func TestAddEdgeUnknownVertexes(t *testing.T) {
 	}
 
 	// We should now be able to find two routes to node 2.
-	paymentAmt := lnwire.NewMAtFromAtoms(100)
+	paymentAmt := lnwire.NewMAtomsFromAtoms(100)
 	targetNode := priv2.PubKey()
 	routes, err := ctx.router.FindRoutes(
 		targetNode, paymentAmt, noFeeLimit, defaultNumRoutes,
@@ -1392,12 +1392,12 @@ func TestWakeUpOnStaleBranch(t *testing.T) {
 		AuthProof: &channeldb.ChannelAuthProof{
 			NodeSig1Bytes:    testSig.Serialize(),
 			NodeSig2Bytes:    testSig.Serialize(),
-			BitcoinSig1Bytes: testSig.Serialize(),
-			BitcoinSig2Bytes: testSig.Serialize(),
+			DecredSig1Bytes: testSig.Serialize(),
+			DecredSig2Bytes: testSig.Serialize(),
 		},
 	}
-	copy(edge1.BitcoinKey1Bytes[:], bitcoinKey1.SerializeCompressed())
-	copy(edge1.BitcoinKey2Bytes[:], bitcoinKey2.SerializeCompressed())
+	copy(edge1.DecredKey1Bytes[:], bitcoinKey1.SerializeCompressed())
+	copy(edge1.DecredKey2Bytes[:], bitcoinKey2.SerializeCompressed())
 
 	if err := ctx.router.AddEdge(edge1); err != nil {
 		t.Fatalf("unable to add edge: %v", err)
@@ -1410,12 +1410,12 @@ func TestWakeUpOnStaleBranch(t *testing.T) {
 		AuthProof: &channeldb.ChannelAuthProof{
 			NodeSig1Bytes:    testSig.Serialize(),
 			NodeSig2Bytes:    testSig.Serialize(),
-			BitcoinSig1Bytes: testSig.Serialize(),
-			BitcoinSig2Bytes: testSig.Serialize(),
+			DecredSig1Bytes: testSig.Serialize(),
+			DecredSig2Bytes: testSig.Serialize(),
 		},
 	}
-	copy(edge2.BitcoinKey1Bytes[:], bitcoinKey1.SerializeCompressed())
-	copy(edge2.BitcoinKey2Bytes[:], bitcoinKey2.SerializeCompressed())
+	copy(edge2.DecredKey1Bytes[:], bitcoinKey1.SerializeCompressed())
+	copy(edge2.DecredKey2Bytes[:], bitcoinKey2.SerializeCompressed())
 
 	if err := ctx.router.AddEdge(edge2); err != nil {
 		t.Fatalf("unable to add edge: %v", err)
@@ -1591,17 +1591,17 @@ func TestDisconnectedBlocks(t *testing.T) {
 		ChannelID:        chanID1,
 		NodeKey1Bytes:    node1.PubKeyBytes,
 		NodeKey2Bytes:    node2.PubKeyBytes,
-		BitcoinKey1Bytes: node1.PubKeyBytes,
-		BitcoinKey2Bytes: node2.PubKeyBytes,
+		DecredKey1Bytes: node1.PubKeyBytes,
+		DecredKey2Bytes: node2.PubKeyBytes,
 		AuthProof: &channeldb.ChannelAuthProof{
 			NodeSig1Bytes:    testSig.Serialize(),
 			NodeSig2Bytes:    testSig.Serialize(),
-			BitcoinSig1Bytes: testSig.Serialize(),
-			BitcoinSig2Bytes: testSig.Serialize(),
+			DecredSig1Bytes: testSig.Serialize(),
+			DecredSig2Bytes: testSig.Serialize(),
 		},
 	}
-	copy(edge1.BitcoinKey1Bytes[:], bitcoinKey1.SerializeCompressed())
-	copy(edge1.BitcoinKey2Bytes[:], bitcoinKey2.SerializeCompressed())
+	copy(edge1.DecredKey1Bytes[:], bitcoinKey1.SerializeCompressed())
+	copy(edge1.DecredKey2Bytes[:], bitcoinKey2.SerializeCompressed())
 
 	if err := ctx.router.AddEdge(edge1); err != nil {
 		t.Fatalf("unable to add edge: %v", err)
@@ -1611,17 +1611,17 @@ func TestDisconnectedBlocks(t *testing.T) {
 		ChannelID:        chanID2,
 		NodeKey1Bytes:    node1.PubKeyBytes,
 		NodeKey2Bytes:    node2.PubKeyBytes,
-		BitcoinKey1Bytes: node1.PubKeyBytes,
-		BitcoinKey2Bytes: node2.PubKeyBytes,
+		DecredKey1Bytes: node1.PubKeyBytes,
+		DecredKey2Bytes: node2.PubKeyBytes,
 		AuthProof: &channeldb.ChannelAuthProof{
 			NodeSig1Bytes:    testSig.Serialize(),
 			NodeSig2Bytes:    testSig.Serialize(),
-			BitcoinSig1Bytes: testSig.Serialize(),
-			BitcoinSig2Bytes: testSig.Serialize(),
+			DecredSig1Bytes: testSig.Serialize(),
+			DecredSig2Bytes: testSig.Serialize(),
 		},
 	}
-	copy(edge2.BitcoinKey1Bytes[:], bitcoinKey1.SerializeCompressed())
-	copy(edge2.BitcoinKey2Bytes[:], bitcoinKey2.SerializeCompressed())
+	copy(edge2.DecredKey1Bytes[:], bitcoinKey1.SerializeCompressed())
+	copy(edge2.DecredKey2Bytes[:], bitcoinKey2.SerializeCompressed())
 
 	if err := ctx.router.AddEdge(edge2); err != nil {
 		t.Fatalf("unable to add edge: %v", err)
@@ -1738,12 +1738,12 @@ func TestRouterChansClosedOfflinePruneGraph(t *testing.T) {
 		AuthProof: &channeldb.ChannelAuthProof{
 			NodeSig1Bytes:    testSig.Serialize(),
 			NodeSig2Bytes:    testSig.Serialize(),
-			BitcoinSig1Bytes: testSig.Serialize(),
-			BitcoinSig2Bytes: testSig.Serialize(),
+			DecredSig1Bytes: testSig.Serialize(),
+			DecredSig2Bytes: testSig.Serialize(),
 		},
 	}
-	copy(edge1.BitcoinKey1Bytes[:], bitcoinKey1.SerializeCompressed())
-	copy(edge1.BitcoinKey2Bytes[:], bitcoinKey2.SerializeCompressed())
+	copy(edge1.DecredKey1Bytes[:], bitcoinKey1.SerializeCompressed())
+	copy(edge1.DecredKey2Bytes[:], bitcoinKey2.SerializeCompressed())
 	if err := ctx.router.AddEdge(edge1); err != nil {
 		t.Fatalf("unable to add edge: %v", err)
 	}
@@ -1937,8 +1937,8 @@ func TestIsStaleNode(t *testing.T) {
 		ChannelID:        chanID.ToUint64(),
 		NodeKey1Bytes:    pub1,
 		NodeKey2Bytes:    pub2,
-		BitcoinKey1Bytes: pub1,
-		BitcoinKey2Bytes: pub2,
+		DecredKey1Bytes: pub1,
+		DecredKey2Bytes: pub2,
 		AuthProof:        nil,
 	}
 	if err := ctx.router.AddEdge(edge); err != nil {
@@ -2019,8 +2019,8 @@ func TestIsKnownEdge(t *testing.T) {
 		ChannelID:        chanID.ToUint64(),
 		NodeKey1Bytes:    pub1,
 		NodeKey2Bytes:    pub2,
-		BitcoinKey1Bytes: pub1,
-		BitcoinKey2Bytes: pub2,
+		DecredKey1Bytes: pub1,
+		DecredKey2Bytes: pub2,
 		AuthProof:        nil,
 	}
 	if err := ctx.router.AddEdge(edge); err != nil {
@@ -2082,8 +2082,8 @@ func TestIsStaleEdgePolicy(t *testing.T) {
 		ChannelID:        chanID.ToUint64(),
 		NodeKey1Bytes:    pub1,
 		NodeKey2Bytes:    pub2,
-		BitcoinKey1Bytes: pub1,
-		BitcoinKey2Bytes: pub2,
+		DecredKey1Bytes: pub1,
+		DecredKey2Bytes: pub2,
 		AuthProof:        nil,
 	}
 	if err := ctx.router.AddEdge(edge); err != nil {
@@ -2097,7 +2097,7 @@ func TestIsStaleEdgePolicy(t *testing.T) {
 		LastUpdate:                updateTimeStamp,
 		TimeLockDelta:             10,
 		MinHTLC:                   1,
-		FeeBaseMAt:                10,
+		FeeBaseMAtoms:                10,
 		FeeProportionalMillionths: 10000,
 	}
 	edgePolicy.Flags = 0
@@ -2111,7 +2111,7 @@ func TestIsStaleEdgePolicy(t *testing.T) {
 		LastUpdate:                updateTimeStamp,
 		TimeLockDelta:             10,
 		MinHTLC:                   1,
-		FeeBaseMAt:                10,
+		FeeBaseMAtoms:                10,
 		FeeProportionalMillionths: 10000,
 	}
 	edgePolicy.Flags = 1

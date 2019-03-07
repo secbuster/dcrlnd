@@ -265,7 +265,7 @@ type ChannelCommitment struct {
 	// lifetime. This field may be updated during normal operation of the
 	// channel as on-chain conditions change.
 	//
-	// TODO(halseth): make this SatPerKWeight. Cannot be done atm because
+	// TODO(halseth): make this AtomsPerKWeight. Cannot be done atm because
 	// this will cause the import cycle lnwallet<->channeldb. Fee
 	// estimation stuff should be in its own package.
 	FeePerKw dcrutil.Amount
@@ -392,13 +392,13 @@ type OpenChannel struct {
 	// Capacity is the total capacity of this channel.
 	Capacity dcrutil.Amount
 
-	// TotalMAtSent is the total number of milli-atoms we've sent
+	// TotalMAtomsSent is the total number of milli-atoms we've sent
 	// within this channel.
-	TotalMAtSent lnwire.MilliAtom
+	TotalMAtomsSent lnwire.MilliAtom
 
-	// TotalMAtReceived is the total number of milli-atoms we've
+	// TotalMAtomsReceived is the total number of milli-atoms we've
 	// received within this channel.
-	TotalMAtReceived lnwire.MilliAtom
+	TotalMAtomsReceived lnwire.MilliAtom
 
 	// LocalChanCfg is the channel configuration for the local node.
 	LocalChanCfg ChannelConfig
@@ -1941,13 +1941,13 @@ type ChannelSnapshot struct {
 	// Capacity is the total capacity of the channel.
 	Capacity dcrutil.Amount
 
-	// TotalMAtSent is the total number of milli-atoms we've sent
+	// TotalMAtomsSent is the total number of milli-atoms we've sent
 	// within this channel.
-	TotalMAtSent lnwire.MilliAtom
+	TotalMAtomsSent lnwire.MilliAtom
 
-	// TotalMAtReceived is the total number of milli-atoms we've
+	// TotalMAtomsReceived is the total number of milli-atoms we've
 	// received within this channel.
-	TotalMAtReceived lnwire.MilliAtom
+	TotalMAtomsReceived lnwire.MilliAtom
 
 	// ChannelCommitment is the current up-to-date commitment for the
 	// target channel.
@@ -1963,12 +1963,12 @@ func (c *OpenChannel) Snapshot() *ChannelSnapshot {
 
 	localCommit := c.LocalCommitment
 	snapshot := &ChannelSnapshot{
-		RemoteIdentity:   *c.IdentityPub,
-		ChannelPoint:     c.FundingOutpoint,
-		Capacity:         c.Capacity,
-		TotalMAtSent:     c.TotalMAtSent,
-		TotalMAtReceived: c.TotalMAtReceived,
-		ChainHash:        c.ChainHash,
+		RemoteIdentity:      *c.IdentityPub,
+		ChannelPoint:        c.FundingOutpoint,
+		Capacity:            c.Capacity,
+		TotalMAtomsSent:     c.TotalMAtomsSent,
+		TotalMAtomsReceived: c.TotalMAtomsReceived,
+		ChainHash:           c.ChainHash,
 		ChannelCommitment: ChannelCommitment{
 			LocalBalance:  localCommit.LocalBalance,
 			RemoteBalance: localCommit.RemoteBalance,
@@ -2224,8 +2224,8 @@ func putChanInfo(chanBucket *bolt.Bucket, channel *OpenChannel) error {
 		channel.ShortChannelID, channel.IsPending, channel.IsInitiator,
 		channel.chanStatus, channel.FundingBroadcastHeight,
 		channel.NumConfsRequired, channel.ChannelFlags,
-		channel.IdentityPub, channel.Capacity, channel.TotalMAtSent,
-		channel.TotalMAtReceived,
+		channel.IdentityPub, channel.Capacity, channel.TotalMAtomsSent,
+		channel.TotalMAtomsReceived,
 	); err != nil {
 		return err
 	}
@@ -2334,8 +2334,8 @@ func fetchChanInfo(chanBucket *bolt.Bucket, channel *OpenChannel) error {
 		&channel.ShortChannelID, &channel.IsPending, &channel.IsInitiator,
 		&channel.chanStatus, &channel.FundingBroadcastHeight,
 		&channel.NumConfsRequired, &channel.ChannelFlags,
-		&channel.IdentityPub, &channel.Capacity, &channel.TotalMAtSent,
-		&channel.TotalMAtReceived,
+		&channel.IdentityPub, &channel.Capacity, &channel.TotalMAtomsSent,
+		&channel.TotalMAtomsReceived,
 	); err != nil {
 		return err
 	}

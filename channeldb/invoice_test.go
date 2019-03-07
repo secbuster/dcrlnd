@@ -65,7 +65,7 @@ func TestInvoiceWorkflow(t *testing.T) {
 	fakeInvoice.Receipt = []byte("receipt")
 	fakeInvoice.PaymentRequest = []byte("")
 	copy(fakeInvoice.Terms.PaymentPreimage[:], rev[:])
-	fakeInvoice.Terms.Value = lnwire.NewMAtFromAtoms(10000)
+	fakeInvoice.Terms.Value = lnwire.NewMAtomsFromAtoms(10000)
 
 	// Add the invoice to the database, this should succeed as there aren't
 	// any existing invoices within the database with the same payment
@@ -140,7 +140,7 @@ func TestInvoiceWorkflow(t *testing.T) {
 
 	// Add 10 random invoices.
 	const numInvoices = 10
-	amt := lnwire.NewMAtFromAtoms(1000)
+	amt := lnwire.NewMAtomsFromAtoms(1000)
 	invoices := make([]*Invoice, numInvoices+1)
 	invoices[0] = &dbInvoice2
 	for i := 1; i < len(invoices)-1; i++ {
@@ -190,7 +190,7 @@ func TestInvoiceAddTimeSeries(t *testing.T) {
 	// We'll start off by creating 20 random invoices, and inserting them
 	// into the database.
 	const numInvoices = 20
-	amt := lnwire.NewMAtFromAtoms(1000)
+	amt := lnwire.NewMAtomsFromAtoms(1000)
 	invoices := make([]Invoice, numInvoices)
 	for i := 0; i < len(invoices); i++ {
 		invoice, err := randInvoice(amt)
@@ -328,7 +328,7 @@ func TestDuplicateSettleInvoice(t *testing.T) {
 	}
 
 	// We'll start out by creating an invoice and writing it to the DB.
-	amt := lnwire.NewMAtFromAtoms(1000)
+	amt := lnwire.NewMAtomsFromAtoms(1000)
 	invoice, err := randInvoice(amt)
 	if err != nil {
 		t.Fatalf("unable to create invoice: %v", err)

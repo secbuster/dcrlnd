@@ -1765,7 +1765,7 @@ func TestLocalPaymentNoForwardingEvents(t *testing.T) {
 	}
 
 	// We'll now craft and send a payment from Alice to Bob.
-	amount := lnwire.NewMAtFromAtoms(dcrutil.AtomsPerCoin)
+	amount := lnwire.NewMAtomsFromAtoms(dcrutil.AtomsPerCoin)
 	htlcAmt, totalTimelock, hops := generateHops(
 		amount, testStartingHeight, n.firstBobChannelLink,
 	)
@@ -1826,10 +1826,10 @@ func TestMultiHopPaymentForwardingEvents(t *testing.T) {
 		t.Fatalf("unable to start three hop network: %v", err)
 	}
 
-	// We'll make now 10 payments, of 100k satoshis each from Alice to
+	// We'll make now 10 payments, of 100k atoms each from Alice to
 	// Carol via Bob.
 	const numPayments = 10
-	finalAmt := lnwire.NewMAtFromAtoms(100000)
+	finalAmt := lnwire.NewMAtomsFromAtoms(100000)
 	htlcAmt, totalTimelock, hops := generateHops(
 		finalAmt, testStartingHeight, n.firstBobChannelLink,
 		n.carolChannelLink,

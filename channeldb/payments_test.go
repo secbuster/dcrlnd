@@ -23,7 +23,7 @@ func makeFakePayment() *OutgoingPayment {
 	}
 
 	copy(fakeInvoice.Terms.PaymentPreimage[:], rev[:])
-	fakeInvoice.Terms.Value = lnwire.NewMAtFromAtoms(10000)
+	fakeInvoice.Terms.Value = lnwire.NewMAtomsFromAtoms(10000)
 
 	fakePath := make([][33]byte, 3)
 	for i := 0; i < 3; i++ {

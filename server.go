@@ -543,7 +543,7 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB, cc *chainControl,
 			if !bytes.Equal(edge.NodeKey1Bytes[:], selfNode.PubKeyBytes[:]) &&
 				!bytes.Equal(edge.NodeKey2Bytes[:], selfNode.PubKeyBytes[:]) {
 
-				return lnwire.NewMAtFromAtoms(edge.Capacity)
+				return lnwire.NewMAtomsFromAtoms(edge.Capacity)
 			}
 
 			cid := lnwire.NewChanIDFromOutPoint(&edge.ChannelPoint)
@@ -833,8 +833,8 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB, cc *chainControl,
 			minConf := uint64(3)
 			maxConf := uint64(6)
 			maxChannelSize := uint64(
-				lnwire.NewMAtFromAtoms(maxFundingAmount))
-			stake := lnwire.NewMAtFromAtoms(chanAmt) + pushAmt
+				lnwire.NewMAtomsFromAtoms(maxFundingAmount))
+			stake := lnwire.NewMAtomsFromAtoms(chanAmt) + pushAmt
 			conf := maxConf * uint64(stake) / maxChannelSize
 			if conf < minConf {
 				conf = minConf
@@ -908,8 +908,8 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB, cc *chainControl,
 			// By default, we'll allow the remote peer to fully
 			// utilize the full bandwidth of the channel, minus our
 			// required reserve.
-			reserve := lnwire.NewMAtFromAtoms(chanAmt / 100)
-			return lnwire.NewMAtFromAtoms(chanAmt) - reserve
+			reserve := lnwire.NewMAtomsFromAtoms(chanAmt / 100)
+			return lnwire.NewMAtomsFromAtoms(chanAmt) - reserve
 		},
 		RequiredRemoteMaxHTLCs: func(chanAmt dcrutil.Amount) uint16 {
 			// By default, we'll permit them to utilize the full
@@ -3066,8 +3066,8 @@ func createChannelUpdate(info *channeldb.ChannelEdgeInfo,
 		Timestamp:       uint32(policy.LastUpdate.Unix()),
 		Flags:           policy.Flags,
 		TimeLockDelta:   policy.TimeLockDelta,
-		HtlcMinimumMAt:  policy.MinHTLC,
-		BaseFee:         uint32(policy.FeeBaseMAt),
+		HtlcMinimumMAtoms:  policy.MinHTLC,
+		BaseFee:         uint32(policy.FeeBaseMAtoms),
 		FeeRate:         uint32(policy.FeeProportionalMillionths),
 		ExtraOpaqueData: policy.ExtraOpaqueData,
 	}

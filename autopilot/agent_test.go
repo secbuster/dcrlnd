@@ -222,7 +222,7 @@ func TestAgentChannelOpenSignal(t *testing.T) {
 	}
 
 	// Next we'll signal a new channel being opened by the backing LN node,
-	// with a capacity of 1 BTC.
+	// with a capacity of 1 DCR.
 	newChan := Channel{
 		ChanID:   randChanID(),
 		Capacity: dcrutil.AtomsPerCoin,
@@ -235,7 +235,7 @@ func TestAgentChannelOpenSignal(t *testing.T) {
 	case constraints.moreChansResps <- moreChansResp{0, 0}:
 		// At this point, the local state of the agent should
 		// have also been updated to reflect that the LN node
-		// now has an additional channel with one BTC.
+		// now has an additional channel with one DCR.
 		if _, ok := agent.chanState[newChan.ChanID]; !ok {
 			t.Fatalf("internal channel state wasn't updated")
 		}
@@ -353,7 +353,7 @@ func TestAgentChannelFailureSignal(t *testing.T) {
 	defer close(quit)
 
 	// First ensure the agent will attempt to open a new channel. Return
-	// that we need more channels, and have 5BTC to use.
+	// that we need more channels, and have 5 DCR to use.
 	select {
 	case constraints.moreChansResps <- moreChansResp{1, 5 * dcrutil.AtomsPerCoin}:
 	case <-time.After(time.Second * 10):
@@ -540,7 +540,7 @@ func TestAgentBalanceUpdate(t *testing.T) {
 	}
 	memGraph, _, _ := newMemChanGraph()
 
-	// The wallet will start with 2 BTC available.
+	// The wallet will start with 2 DCR available.
 	var walletBalanceMtx sync.Mutex
 	walletBalance := dcrutil.Amount(dcrutil.AtomsPerCoin * 2)
 
@@ -595,7 +595,7 @@ func TestAgentBalanceUpdate(t *testing.T) {
 	}
 
 	// Next we'll send a new balance update signal to the agent, adding 5
-	// BTC to the amount of available funds.
+	// DCR to the amount of available funds.
 	walletBalanceMtx.Lock()
 	walletBalance += dcrutil.AtomsPerCoin * 5
 	walletBalanceMtx.Unlock()
@@ -608,7 +608,7 @@ func TestAgentBalanceUpdate(t *testing.T) {
 	case constraints.moreChansResps <- moreChansResp{0, 0}:
 		// At this point, the local state of the agent should
 		// have also been updated to reflect that the LN node
-		// now has an additional 5BTC available.
+		// now has an additional 5 DCR available.
 		if agent.totalBalance != walletBalance {
 			t.Fatalf("expected %v wallet balance "+
 				"instead have %v", agent.totalBalance,
@@ -660,7 +660,7 @@ func TestAgentImmediateAttach(t *testing.T) {
 	}
 	memGraph, _, _ := newMemChanGraph()
 
-	// The wallet will start with 10 BTC available.
+	// The wallet will start with 10 DCR available.
 	const walletBalance = dcrutil.AtomsPerCoin * 10
 
 	// With the dependencies we created, we can now create the initial
@@ -726,7 +726,7 @@ func TestAgentImmediateAttach(t *testing.T) {
 	select {
 
 	// We'll send over a response indicating that it should
-	// establish more channels, and give it a budget of 5 BTC to do
+	// establish more channels, and give it a budget of 5 DCR to do
 	// so.
 	case constraints.moreChansResps <- moreChansResp{
 		numMore: numChans,
@@ -800,7 +800,7 @@ func TestAgentPrivateChannels(t *testing.T) {
 	}
 	memGraph, _, _ := newMemChanGraph()
 
-	// The wallet will start with 10 BTC available.
+	// The wallet will start with 10 DCR available.
 	const walletBalance = dcrutil.AtomsPerCoin * 10
 
 	// With the dependencies we created, we can now create the initial
@@ -862,7 +862,7 @@ func TestAgentPrivateChannels(t *testing.T) {
 	// method on the passed heuristic. So we'll provide it with a response
 	// that will kick off the main loop.  We'll send over a response
 	// indicating that it should establish more channels, and give it a
-	// budget of 5 BTC to do so.
+	// budget of 5 DCR to do so.
 	resp := moreChansResp{
 		numMore: numChans,
 		amt:     5 * dcrutil.AtomsPerCoin,
@@ -924,7 +924,7 @@ func TestAgentPendingChannelState(t *testing.T) {
 	}
 	memGraph, _, _ := newMemChanGraph()
 
-	// The wallet will start with 6 BTC available.
+	// The wallet will start with 6 DCR available.
 	var walletBalanceMtx sync.Mutex
 	walletBalance := dcrutil.Amount(dcrutil.AtomsPerCoin * 6)
 
@@ -983,9 +983,9 @@ func TestAgentPendingChannelState(t *testing.T) {
 	}
 
 	// Once again, we'll start by telling the agent as part of its first
-	// query, that it needs more channels and has 3 BTC available for
+	// query, that it needs more channels and has 3 DCR available for
 	// attachment.  We'll send over a response indicating that it should
-	// establish more channels, and give it a budget of 1 BTC to do so.
+	// establish more channels, and give it a budget of 1 DCR to do so.
 	select {
 	case constraints.moreChansResps <- moreChansResp{
 		numMore: 1,
@@ -1111,7 +1111,7 @@ func TestAgentPendingOpenChannel(t *testing.T) {
 	}
 	memGraph, _, _ := newMemChanGraph()
 
-	// The wallet will start with 6 BTC available.
+	// The wallet will start with 6 DCR available.
 	const walletBalance = dcrutil.AtomsPerCoin * 6
 
 	// With the dependencies we created, we can now create the initial
@@ -1206,7 +1206,7 @@ func TestAgentOnNodeUpdates(t *testing.T) {
 	}
 	memGraph, _, _ := newMemChanGraph()
 
-	// The wallet will start with 6 BTC available.
+	// The wallet will start with 6 DCR available.
 	const walletBalance = dcrutil.AtomsPerCoin * 6
 
 	// With the dependencies we created, we can now create the initial
@@ -1320,7 +1320,7 @@ func TestAgentSkipPendingConns(t *testing.T) {
 	}
 	memGraph, _, _ := newMemChanGraph()
 
-	// The wallet will start with 6 BTC available.
+	// The wallet will start with 6 DCR available.
 	const walletBalance = dcrutil.AtomsPerCoin * 6
 
 	connect := make(chan chan error)

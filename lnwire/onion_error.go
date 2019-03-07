@@ -605,8 +605,8 @@ func (f *FailTemporaryChannelFailure) Encode(w io.Writer, pver uint32) error {
 //
 // NOTE: May only be returned by the intermediate nodes in the path.
 type FailAmountBelowMinimum struct {
-	// HtlcMat is the wrong amount of the incoming HTLC.
-	HtlcMat MilliAtom
+	// HtlcMAtoms is the wrong amount of the incoming HTLC.
+	HtlcMAtoms MilliAtom
 
 	// Update is used to update information about state of the channel
 	// which caused the failure.
@@ -614,11 +614,11 @@ type FailAmountBelowMinimum struct {
 }
 
 // NewAmountBelowMinimum creates new instance of the FailAmountBelowMinimum.
-func NewAmountBelowMinimum(htlcMat MilliAtom,
+func NewAmountBelowMinimum(htlcMAtoms MilliAtom,
 	update ChannelUpdate) *FailAmountBelowMinimum {
 
 	return &FailAmountBelowMinimum{
-		HtlcMat: htlcMat,
+		HtlcMAtoms: htlcMAtoms,
 		Update:  update,
 	}
 }
@@ -634,7 +634,7 @@ func (f *FailAmountBelowMinimum) Code() FailCode {
 //
 // NOTE: Implements the error interface.
 func (f FailAmountBelowMinimum) Error() string {
-	return fmt.Sprintf("AmountBelowMinimum(amt=%v, update=%v", f.HtlcMat,
+	return fmt.Sprintf("AmountBelowMinimum(amt=%v, update=%v", f.HtlcMAtoms,
 		spew.Sdump(f.Update))
 }
 
@@ -642,7 +642,7 @@ func (f FailAmountBelowMinimum) Error() string {
 //
 // NOTE: Part of the Serializable interface.
 func (f *FailAmountBelowMinimum) Decode(r io.Reader, pver uint32) error {
-	if err := ReadElement(r, &f.HtlcMat); err != nil {
+	if err := ReadElement(r, &f.HtlcMAtoms); err != nil {
 		return err
 	}
 
@@ -661,7 +661,7 @@ func (f *FailAmountBelowMinimum) Decode(r io.Reader, pver uint32) error {
 //
 // NOTE: Part of the Serializable interface.
 func (f *FailAmountBelowMinimum) Encode(w io.Writer, pver uint32) error {
-	if err := WriteElement(w, f.HtlcMat); err != nil {
+	if err := WriteElement(w, f.HtlcMAtoms); err != nil {
 		return err
 	}
 
@@ -679,8 +679,8 @@ func (f *FailAmountBelowMinimum) Encode(w io.Writer, pver uint32) error {
 //
 // NOTE: May only be returned by intermediate nodes.
 type FailFeeInsufficient struct {
-	// HtlcMat is the wrong amount of the incoming HTLC.
-	HtlcMat MilliAtom
+	// HtlcMAtoms is the wrong amount of the incoming HTLC.
+	HtlcMAtoms MilliAtom
 
 	// Update is used to update information about state of the channel
 	// which caused the failure.
@@ -688,10 +688,10 @@ type FailFeeInsufficient struct {
 }
 
 // NewFeeInsufficient creates new instance of the FailFeeInsufficient.
-func NewFeeInsufficient(htlcMat MilliAtom,
+func NewFeeInsufficient(htlcMAtoms MilliAtom,
 	update ChannelUpdate) *FailFeeInsufficient {
 	return &FailFeeInsufficient{
-		HtlcMat: htlcMat,
+		HtlcMAtoms: htlcMAtoms,
 		Update:  update,
 	}
 }
@@ -707,7 +707,7 @@ func (f *FailFeeInsufficient) Code() FailCode {
 //
 // NOTE: Implements the error interface.
 func (f FailFeeInsufficient) Error() string {
-	return fmt.Sprintf("FeeInsufficient(htlc_amt==%v, update=%v", f.HtlcMat,
+	return fmt.Sprintf("FeeInsufficient(htlc_amt==%v, update=%v", f.HtlcMAtoms,
 		spew.Sdump(f.Update))
 }
 
@@ -715,7 +715,7 @@ func (f FailFeeInsufficient) Error() string {
 //
 // NOTE: Part of the Serializable interface.
 func (f *FailFeeInsufficient) Decode(r io.Reader, pver uint32) error {
-	if err := ReadElement(r, &f.HtlcMat); err != nil {
+	if err := ReadElement(r, &f.HtlcMAtoms); err != nil {
 		return err
 	}
 
@@ -734,7 +734,7 @@ func (f *FailFeeInsufficient) Decode(r io.Reader, pver uint32) error {
 //
 // NOTE: Part of the Serializable interface.
 func (f *FailFeeInsufficient) Encode(w io.Writer, pver uint32) error {
-	if err := WriteElement(w, f.HtlcMat); err != nil {
+	if err := WriteElement(w, f.HtlcMAtoms); err != nil {
 		return err
 	}
 

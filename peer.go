@@ -460,7 +460,7 @@ func (p *peer) loadActiveChannels(chans []*channeldb.OpenChannel) error {
 		if selfPolicy != nil {
 			forwardingPolicy = &htlcswitch.ForwardingPolicy{
 				MinHTLC:       selfPolicy.MinHTLC,
-				BaseFee:       selfPolicy.FeeBaseMAt,
+				BaseFee:       selfPolicy.FeeBaseMAtoms,
 				FeeRate:       selfPolicy.FeeProportionalMillionths,
 				TimeLockDelta: uint32(selfPolicy.TimeLockDelta),
 			}
@@ -1195,8 +1195,8 @@ func messageSummary(msg lnwire.Message) string {
 			msg.Address[:])
 
 	case *lnwire.ClosingSigned:
-		return fmt.Sprintf("chan_id=%v, fee_sat=%v", msg.ChannelID,
-			msg.FeeSatoshis)
+		return fmt.Sprintf("chan_id=%v, fee_atoms=%v", msg.ChannelID,
+			msg.FeeAtoms)
 
 	case *lnwire.UpdateAddHTLC:
 		return fmt.Sprintf("chan_id=%v, id=%v, amt=%v, expiry=%v, hash=%x",
@@ -1253,7 +1253,7 @@ func messageSummary(msg lnwire.Message) string {
 		return ""
 
 	case *lnwire.UpdateFee:
-		return fmt.Sprintf("chan_id=%v, fee_update_sat=%v",
+		return fmt.Sprintf("chan_id=%v, fee_update_at=%v",
 			msg.ChanID, int64(msg.FeePerKw))
 
 	case *lnwire.ChannelReestablish:

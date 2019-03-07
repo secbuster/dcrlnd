@@ -63,16 +63,16 @@ type ChannelUpdate struct {
 	// to this node.
 	TimeLockDelta uint16
 
-	// HtlcMinimumMAt is the minimum HTLC value which will be accepted.
-	HtlcMinimumMAt MilliAtom
+	// HtlcMinimumMAtoms is the minimum HTLC value which will be accepted.
+	HtlcMinimumMAtoms MilliAtom
 
 	// BaseFee is the base fee that must be used for incoming HTLC's to
 	// this particular channel. This value will be tacked onto the required
 	// for a payment independent of the size of the payment.
 	BaseFee uint32
 
-	// FeeRate is the fee rate that will be charged per millionth of a
-	// satoshi.
+	// FeeRate is the fee rate that will be charged per millionth of an
+	// atom.
 	FeeRate uint32
 
 	// ExtraOpaqueData is the set of data that was appended to this
@@ -100,7 +100,7 @@ func (a *ChannelUpdate) Decode(r io.Reader, pver uint32) error {
 		&a.Timestamp,
 		&a.Flags,
 		&a.TimeLockDelta,
-		&a.HtlcMinimumMAt,
+		&a.HtlcMinimumMAtoms,
 		&a.BaseFee,
 		&a.FeeRate,
 	)
@@ -135,7 +135,7 @@ func (a *ChannelUpdate) Encode(w io.Writer, pver uint32) error {
 		a.Timestamp,
 		a.Flags,
 		a.TimeLockDelta,
-		a.HtlcMinimumMAt,
+		a.HtlcMinimumMAtoms,
 		a.BaseFee,
 		a.FeeRate,
 		a.ExtraOpaqueData,
@@ -170,7 +170,7 @@ func (a *ChannelUpdate) DataToSign() ([]byte, error) {
 		a.Timestamp,
 		a.Flags,
 		a.TimeLockDelta,
-		a.HtlcMinimumMAt,
+		a.HtlcMinimumMAtoms,
 		a.BaseFee,
 		a.FeeRate,
 		a.ExtraOpaqueData,

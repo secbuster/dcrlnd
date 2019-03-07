@@ -21,8 +21,8 @@ func TestWaitingProofStore(t *testing.T) {
 	defer cleanup()
 
 	proof1 := NewWaitingProof(true, &lnwire.AnnounceSignatures{
-		NodeSignature:    wireSig,
-		BitcoinSignature: wireSig,
+		NodeSignature:   wireSig,
+		DecredSignature: wireSig,
 	})
 
 	store, err := NewWaitingProofStore(db)

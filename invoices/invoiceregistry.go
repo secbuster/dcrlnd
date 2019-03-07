@@ -270,7 +270,7 @@ func (i *InvoiceRegistry) AddDebugInvoice(amt dcrutil.Amount, preimage chainhash
 	invoice := &channeldb.Invoice{
 		CreationDate: time.Now(),
 		Terms: channeldb.ContractTerm{
-			Value:           lnwire.NewMAtFromAtoms(amt),
+			Value:           lnwire.NewMAtomsFromAtoms(amt),
 			PaymentPreimage: preimage,
 		},
 	}

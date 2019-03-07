@@ -20,10 +20,10 @@ type ChannelAnnouncement struct {
 	NodeSig2 Sig
 
 	// This signatures are used by nodes in order to create cross
-	// references between node's channel and node. Requiring the bitcoin
+	// references between node's channel and node. Requiring the decred
 	// signatures proves they control the channel.
-	BitcoinSig1 Sig
-	BitcoinSig2 Sig
+	DecredSig1 Sig
+	DecredSig2 Sig
 
 	// Features is the feature vector that encodes the features supported
 	// by the target node. This field can be used to signal the type of the
@@ -47,8 +47,8 @@ type ChannelAnnouncement struct {
 
 	// Public keys which corresponds to the keys which was declared in
 	// multisig funding transaction output.
-	BitcoinKey1 [33]byte
-	BitcoinKey2 [33]byte
+	DecredKey1 [33]byte
+	DecredKey2 [33]byte
 
 	// ExtraOpaqueData is the set of data that was appended to this
 	// message, some of which we may not actually know how to iterate or
@@ -71,15 +71,15 @@ func (a *ChannelAnnouncement) Decode(r io.Reader, pver uint32) error {
 	err := ReadElements(r,
 		&a.NodeSig1,
 		&a.NodeSig2,
-		&a.BitcoinSig1,
-		&a.BitcoinSig2,
+		&a.DecredSig1,
+		&a.DecredSig2,
 		&a.Features,
 		a.ChainHash[:],
 		&a.ShortChannelID,
 		&a.NodeID1,
 		&a.NodeID2,
-		&a.BitcoinKey1,
-		&a.BitcoinKey2,
+		&a.DecredKey1,
+		&a.DecredKey2,
 	)
 	if err != nil {
 		return err
@@ -108,15 +108,15 @@ func (a *ChannelAnnouncement) Encode(w io.Writer, pver uint32) error {
 	return WriteElements(w,
 		a.NodeSig1,
 		a.NodeSig2,
-		a.BitcoinSig1,
-		a.BitcoinSig2,
+		a.DecredSig1,
+		a.DecredSig2,
 		a.Features,
 		a.ChainHash[:],
 		a.ShortChannelID,
 		a.NodeID1,
 		a.NodeID2,
-		a.BitcoinKey1,
-		a.BitcoinKey2,
+		a.DecredKey1,
+		a.DecredKey2,
 		a.ExtraOpaqueData,
 	)
 }
@@ -148,8 +148,8 @@ func (a *ChannelAnnouncement) DataToSign() ([]byte, error) {
 		a.ShortChannelID,
 		a.NodeID1,
 		a.NodeID2,
-		a.BitcoinKey1,
-		a.BitcoinKey2,
+		a.DecredKey1,
+		a.DecredKey2,
 		a.ExtraOpaqueData,
 	)
 	if err != nil {

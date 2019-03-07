@@ -1424,7 +1424,7 @@ func (d *AuthenticatedGossiper) processChanPolicyUpdate(
 
 		// Now that we know we should update this channel, we'll update
 		// its set of policies.
-		edge.FeeBaseMAt = policyUpdate.newSchema.BaseFee
+		edge.FeeBaseMAtoms = policyUpdate.newSchema.BaseFee
 		edge.FeeProportionalMillionths = lnwire.MilliAtom(
 			policyUpdate.newSchema.FeeRate,
 		)
@@ -1721,8 +1721,8 @@ func (d *AuthenticatedGossiper) processNetworkAnnouncement(
 			proof = &channeldb.ChannelAuthProof{
 				NodeSig1Bytes:    msg.NodeSig1.ToSignatureBytes(),
 				NodeSig2Bytes:    msg.NodeSig2.ToSignatureBytes(),
-				BitcoinSig1Bytes: msg.BitcoinSig1.ToSignatureBytes(),
-				BitcoinSig2Bytes: msg.BitcoinSig2.ToSignatureBytes(),
+				DecredSig1Bytes: msg.DecredSig1.ToSignatureBytes(),
+				DecredSig2Bytes: msg.DecredSig2.ToSignatureBytes(),
 			}
 		}
 
@@ -1740,8 +1740,8 @@ func (d *AuthenticatedGossiper) processNetworkAnnouncement(
 			ChainHash:        msg.ChainHash,
 			NodeKey1Bytes:    msg.NodeID1,
 			NodeKey2Bytes:    msg.NodeID2,
-			BitcoinKey1Bytes: msg.BitcoinKey1,
-			BitcoinKey2Bytes: msg.BitcoinKey2,
+			DecredKey1Bytes: msg.DecredKey1,
+			DecredKey2Bytes: msg.DecredKey2,
 			AuthProof:        proof,
 			Features:         featureBuf.Bytes(),
 			ExtraOpaqueData:  msg.ExtraOpaqueData,
@@ -2011,8 +2011,8 @@ func (d *AuthenticatedGossiper) processNetworkAnnouncement(
 			LastUpdate:                timestamp,
 			Flags:                     msg.Flags,
 			TimeLockDelta:             msg.TimeLockDelta,
-			MinHTLC:                   msg.HtlcMinimumMAt,
-			FeeBaseMAt:                lnwire.MilliAtom(msg.BaseFee),
+			MinHTLC:                   msg.HtlcMinimumMAtoms,
+			FeeBaseMAtoms:                lnwire.MilliAtom(msg.BaseFee),
 			FeeProportionalMillionths: lnwire.MilliAtom(msg.FeeRate),
 			ExtraOpaqueData:           msg.ExtraOpaqueData,
 		}
@@ -2281,13 +2281,13 @@ func (d *AuthenticatedGossiper) processNetworkAnnouncement(
 		if isFirstNode {
 			dbProof.NodeSig1Bytes = msg.NodeSignature.ToSignatureBytes()
 			dbProof.NodeSig2Bytes = oppositeProof.NodeSignature.ToSignatureBytes()
-			dbProof.BitcoinSig1Bytes = msg.BitcoinSignature.ToSignatureBytes()
-			dbProof.BitcoinSig2Bytes = oppositeProof.BitcoinSignature.ToSignatureBytes()
+			dbProof.DecredSig1Bytes = msg.DecredSignature.ToSignatureBytes()
+			dbProof.DecredSig2Bytes = oppositeProof.DecredSignature.ToSignatureBytes()
 		} else {
 			dbProof.NodeSig1Bytes = oppositeProof.NodeSignature.ToSignatureBytes()
 			dbProof.NodeSig2Bytes = msg.NodeSignature.ToSignatureBytes()
-			dbProof.BitcoinSig1Bytes = oppositeProof.BitcoinSignature.ToSignatureBytes()
-			dbProof.BitcoinSig2Bytes = msg.BitcoinSignature.ToSignatureBytes()
+			dbProof.DecredSig1Bytes = oppositeProof.DecredSignature.ToSignatureBytes()
+			dbProof.DecredSig2Bytes = msg.DecredSignature.ToSignatureBytes()
 		}
 		chanAnn, e1Ann, e2Ann, err := CreateChanAnnouncement(
 			&dbProof, chanInfo, e1, e2,
@@ -2519,8 +2519,8 @@ func (d *AuthenticatedGossiper) updateChannel(info *channeldb.ChannelEdgeInfo,
 		Timestamp:       uint32(timestamp),
 		Flags:           edge.Flags,
 		TimeLockDelta:   edge.TimeLockDelta,
-		HtlcMinimumMAt:  edge.MinHTLC,
-		BaseFee:         uint32(edge.FeeBaseMAt),
+		HtlcMinimumMAtoms:  edge.MinHTLC,
+		BaseFee:         uint32(edge.FeeBaseMAtoms),
 		FeeRate:         uint32(edge.FeeProportionalMillionths),
 		ExtraOpaqueData: edge.ExtraOpaqueData,
 	}
@@ -2568,9 +2568,9 @@ func (d *AuthenticatedGossiper) updateChannel(info *channeldb.ChannelEdgeInfo,
 			NodeID1:         info.NodeKey1Bytes,
 			NodeID2:         info.NodeKey2Bytes,
 			ChainHash:       info.ChainHash,
-			BitcoinKey1:     info.BitcoinKey1Bytes,
+			DecredKey1:     info.DecredKey1Bytes,
 			Features:        lnwire.NewRawFeatureVector(),
-			BitcoinKey2:     info.BitcoinKey2Bytes,
+			DecredKey2:     info.DecredKey2Bytes,
 			ExtraOpaqueData: edge.ExtraOpaqueData,
 		}
 		chanAnn.NodeSig1, err = lnwire.NewSigFromRawSignature(
@@ -2585,14 +2585,14 @@ func (d *AuthenticatedGossiper) updateChannel(info *channeldb.ChannelEdgeInfo,
 		if err != nil {
 			return nil, nil, err
 		}
-		chanAnn.BitcoinSig1, err = lnwire.NewSigFromRawSignature(
-			info.AuthProof.BitcoinSig1Bytes,
+		chanAnn.DecredSig1, err = lnwire.NewSigFromRawSignature(
+			info.AuthProof.DecredSig1Bytes,
 		)
 		if err != nil {
 			return nil, nil, err
 		}
-		chanAnn.BitcoinSig2, err = lnwire.NewSigFromRawSignature(
-			info.AuthProof.BitcoinSig2Bytes,
+		chanAnn.DecredSig2, err = lnwire.NewSigFromRawSignature(
+			info.AuthProof.DecredSig2Bytes,
 		)
 		if err != nil {
 			return nil, nil, err

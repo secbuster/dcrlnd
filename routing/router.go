@@ -128,7 +128,7 @@ type FeeSchema struct {
 	// FeeRate is the rate that will be charged for forwarding payments.
 	// This value should be interpreted as the numerator for a fraction
 	// (fixed point arithmetic) whose denominator is 1 million. As a result
-	// the effective fee rate charged per mAT will be: (amount *
+	// the effective fee rate charged per milli-atoms will be: (amount *
 	// FeeRate/1,000,000).
 	FeeRate uint32
 }
@@ -1038,7 +1038,7 @@ func (r *ChannelRouter) processUpdate(msg interface{}) error {
 		// edge bitcoin keys and channel value corresponds to the
 		// reality.
 		witnessScript, err := lnwallet.GenMultiSigScript(
-			msg.BitcoinKey1Bytes[:], msg.BitcoinKey2Bytes[:],
+			msg.DecredKey1Bytes[:], msg.DecredKey2Bytes[:],
 		)
 		if err != nil {
 			return err
@@ -1470,7 +1470,7 @@ func (r *ChannelRouter) FindRoutes(target *secp256k1.PublicKey,
 	// Now that we have a set of paths, we'll need to turn them into
 	// *routes* by computing the required time-lock and fee information for
 	// each path. During this process, some paths may be discarded if they
-	// aren't able to support the total satoshis flow once fees have been
+	// aren't able to support the total atoms flow once fees have been
 	// factored in.
 	sourceVertex := Vertex(r.selfNode.PubKeyBytes)
 	validRoutes, err := pathsToFeeSortedRoutes(
@@ -2072,8 +2072,8 @@ func (r *ChannelRouter) applyChannelUpdate(msg *lnwire.ChannelUpdate,
 		LastUpdate:                time.Unix(int64(msg.Timestamp), 0),
 		Flags:                     msg.Flags,
 		TimeLockDelta:             msg.TimeLockDelta,
-		MinHTLC:                   msg.HtlcMinimumMAt,
-		FeeBaseMAt:                lnwire.MilliAtom(msg.BaseFee),
+		MinHTLC:                   msg.HtlcMinimumMAtoms,
+		FeeBaseMAtoms:                lnwire.MilliAtom(msg.BaseFee),
 		FeeProportionalMillionths: lnwire.MilliAtom(msg.FeeRate),
 	})
 	if err != nil && !IsError(err, ErrIgnored, ErrOutdated) {

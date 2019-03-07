@@ -1504,8 +1504,8 @@ func (s *Switch) htlcForwarder() {
 	// TODO(roasbeef): cleared vs settled distinction
 	var (
 		totalNumUpdates uint64
-		totalSatSent    dcrutil.Amount
-		totalSatRecv    dcrutil.Amount
+		totalAtomsSent  dcrutil.Amount
+		totalAtomsRecv  dcrutil.Amount
 	)
 	s.cfg.LogEventTicker.Resume()
 	defer s.cfg.LogEventTicker.Stop()
@@ -1608,14 +1608,14 @@ out:
 		case <-s.cfg.LogEventTicker.Ticks():
 			// First, we'll collate the current running tally of
 			// our forwarding stats.
-			prevSatSent := totalSatSent
-			prevSatRecv := totalSatRecv
+			prevAtomsSent := totalAtomsSent
+			prevAtomsRecv := totalAtomsRecv
 			prevNumUpdates := totalNumUpdates
 
 			var (
 				newNumUpdates uint64
-				newSatSent    dcrutil.Amount
-				newSatRecv    dcrutil.Amount
+				newAtomsSent  dcrutil.Amount
+				newAtomsRecv  dcrutil.Amount
 			)
 
 			// Next, we'll run through all the registered links and
@@ -1626,15 +1626,15 @@ out:
 				// stats printed.
 				updates, sent, recv := link.Stats()
 				newNumUpdates += updates
-				newSatSent += sent.ToAtoms()
-				newSatRecv += recv.ToAtoms()
+				newAtomsSent += sent.ToAtoms()
+				newAtomsRecv += recv.ToAtoms()
 			}
 			s.indexMtx.RUnlock()
 
 			var (
 				diffNumUpdates uint64
-				diffSatSent    dcrutil.Amount
-				diffSatRecv    dcrutil.Amount
+				diffAtomsSent  dcrutil.Amount
+				diffAtomsRecv  dcrutil.Amount
 			)
 
 			// If this is the first time we're computing these
@@ -1642,12 +1642,12 @@ out:
 			// this in order to avoid integer underflow issues.
 			if prevNumUpdates == 0 {
 				diffNumUpdates = newNumUpdates
-				diffSatSent = newSatSent
-				diffSatRecv = newSatRecv
+				diffAtomsSent = newAtomsSent
+				diffAtomsRecv = newAtomsRecv
 			} else {
 				diffNumUpdates = newNumUpdates - prevNumUpdates
-				diffSatSent = newSatSent - prevSatSent
-				diffSatRecv = newSatRecv - prevSatRecv
+				diffAtomsSent = newAtomsSent - prevAtomsSent
+				diffAtomsRecv = newAtomsRecv - prevAtomsRecv
 			}
 
 			// If the diff of num updates is zero, then we haven't
@@ -1663,21 +1663,21 @@ out:
 			// links.
 			if int64(diffNumUpdates) < 0 {
 				totalNumUpdates = newNumUpdates
-				totalSatSent = newSatSent
-				totalSatRecv = newSatRecv
+				totalAtomsSent = newAtomsSent
+				totalAtomsRecv = newAtomsRecv
 				continue
 			}
 
 			// Otherwise, we'll log this diff, then accumulate the
 			// new stats into the running total.
-			log.Debugf("Sent %d satoshis and received %d satoshis "+
+			log.Debugf("Sent %d atoms and received %d atoms "+
 				"in the last 10 seconds (%f tx/sec)",
-				diffSatSent, diffSatRecv,
+				diffAtomsSent, diffAtomsRecv,
 				float64(diffNumUpdates)/10)
 
 			totalNumUpdates += diffNumUpdates
-			totalSatSent += diffSatSent
-			totalSatRecv += diffSatRecv
+			totalAtomsSent += diffAtomsSent
+			totalAtomsRecv += diffAtomsRecv
 
 		case <-s.quit:
 			return

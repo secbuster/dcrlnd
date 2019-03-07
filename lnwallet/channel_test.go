@@ -120,7 +120,7 @@ func TestSimpleAddSettleWorkflow(t *testing.T) {
 
 	paymentPreimage := bytes.Repeat([]byte{1}, 32)
 	paymentHash := chainhash.HashH(paymentPreimage)
-	htlcAmt := lnwire.NewMAtFromAtoms(dcrutil.AtomsPerCoin)
+	htlcAmt := lnwire.NewMAtomsFromAtoms(dcrutil.AtomsPerCoin)
 	htlc := &lnwire.UpdateAddHTLC{
 		PaymentHash: paymentHash,
 		Amount:      htlcAmt,
@@ -220,27 +220,27 @@ func TestSimpleAddSettleWorkflow(t *testing.T) {
 			"should forward none", len(fwdPkg.SettleFails))
 	}
 
-	// At this point, both sides should have the proper number of satoshis
+	// At this point, both sides should have the proper number of atoms
 	// sent, and commitment height updated within their local channel
 	// state.
 	aliceSent := lnwire.MilliAtom(0)
 	bobSent := lnwire.MilliAtom(0)
 
-	if aliceChannel.channelState.TotalMAtSent != aliceSent {
+	if aliceChannel.channelState.TotalMAtomsSent != aliceSent {
 		t.Fatalf("alice has incorrect milli-atoms sent: %v vs %v",
-			aliceChannel.channelState.TotalMAtSent, aliceSent)
+			aliceChannel.channelState.TotalMAtomsSent, aliceSent)
 	}
-	if aliceChannel.channelState.TotalMAtReceived != bobSent {
+	if aliceChannel.channelState.TotalMAtomsReceived != bobSent {
 		t.Fatalf("alice has incorrect milli-atoms received %v vs %v",
-			aliceChannel.channelState.TotalMAtReceived, bobSent)
+			aliceChannel.channelState.TotalMAtomsReceived, bobSent)
 	}
-	if bobChannel.channelState.TotalMAtSent != bobSent {
+	if bobChannel.channelState.TotalMAtomsSent != bobSent {
 		t.Fatalf("bob has incorrect milli-atoms sent %v vs %v",
-			bobChannel.channelState.TotalMAtSent, bobSent)
+			bobChannel.channelState.TotalMAtomsSent, bobSent)
 	}
-	if bobChannel.channelState.TotalMAtReceived != aliceSent {
+	if bobChannel.channelState.TotalMAtomsReceived != aliceSent {
 		t.Fatalf("bob has incorrect milli-atoms received %v vs %v",
-			bobChannel.channelState.TotalMAtReceived, aliceSent)
+			bobChannel.channelState.TotalMAtomsReceived, aliceSent)
 	}
 	if bobChannel.currentHeight != 1 {
 		t.Fatalf("bob has incorrect commitment height, %v vs %v",
@@ -344,24 +344,24 @@ func TestSimpleAddSettleWorkflow(t *testing.T) {
 	// 4 DCR. Alice's channel should show 1 DCR sent and Bob's channel
 	// should show 1 DCR received. They should also be at commitment height
 	// two, with the revocation window extended by 1 (5).
-	mAtTransferred := lnwire.NewMAtFromAtoms(dcrutil.AtomsPerCoin)
-	if aliceChannel.channelState.TotalMAtSent != mAtTransferred {
-		t.Fatalf("alice satoshis sent incorrect %v vs %v expected",
-			aliceChannel.channelState.TotalMAtSent,
+	mAtTransferred := lnwire.NewMAtomsFromAtoms(dcrutil.AtomsPerCoin)
+	if aliceChannel.channelState.TotalMAtomsSent != mAtTransferred {
+		t.Fatalf("alice atoms sent incorrect %v vs %v expected",
+			aliceChannel.channelState.TotalMAtomsSent,
 			mAtTransferred)
 	}
-	if aliceChannel.channelState.TotalMAtReceived != 0 {
-		t.Fatalf("alice satoshis received incorrect %v vs %v expected",
-			aliceChannel.channelState.TotalMAtReceived, 0)
+	if aliceChannel.channelState.TotalMAtomsReceived != 0 {
+		t.Fatalf("alice atoms received incorrect %v vs %v expected",
+			aliceChannel.channelState.TotalMAtomsReceived, 0)
 	}
-	if bobChannel.channelState.TotalMAtReceived != mAtTransferred {
-		t.Fatalf("bob satoshis received incorrect %v vs %v expected",
-			bobChannel.channelState.TotalMAtReceived,
+	if bobChannel.channelState.TotalMAtomsReceived != mAtTransferred {
+		t.Fatalf("bob atoms received incorrect %v vs %v expected",
+			bobChannel.channelState.TotalMAtomsReceived,
 			mAtTransferred)
 	}
-	if bobChannel.channelState.TotalMAtSent != 0 {
-		t.Fatalf("bob satoshis sent incorrect %v vs %v expected",
-			bobChannel.channelState.TotalMAtSent, 0)
+	if bobChannel.channelState.TotalMAtomsSent != 0 {
+		t.Fatalf("bob atoms sent incorrect %v vs %v expected",
+			bobChannel.channelState.TotalMAtomsSent, 0)
 	}
 	if bobChannel.currentHeight != 2 {
 		t.Fatalf("bob has incorrect commitment height, %v vs %v",
@@ -566,7 +566,7 @@ func TestForceClose(t *testing.T) {
 	// First, we'll add an outgoing HTLC from Alice to Bob, such that it
 	// will still be present within the broadcast commitment transaction.
 	// We'll ensure that the HTLC amount is above Alice's dust limit.
-	htlcAmount := lnwire.NewMAtFromAtoms(20000)
+	htlcAmount := lnwire.NewMAtomsFromAtoms(20000)
 	htlcAlice, _ := createHTLC(0, htlcAmount)
 	if _, err := aliceChannel.AddHTLC(htlcAlice, nil); err != nil {
 		t.Fatalf("alice unable to add htlc: %v", err)
@@ -868,7 +868,7 @@ func TestForceCloseDustOutput(t *testing.T) {
 	aliceChannel.remoteChanCfg.ChanReserve = 0
 	bobChannel.remoteChanCfg.ChanReserve = 0
 
-	htlcAmount := lnwire.NewMAtFromAtoms(500)
+	htlcAmount := lnwire.NewMAtomsFromAtoms(500)
 
 	aliceAmount := aliceChannel.channelState.LocalCommitment.LocalBalance
 	bobAmount := bobChannel.channelState.LocalCommitment.LocalBalance
@@ -981,7 +981,7 @@ func TestDustHTLCFees(t *testing.T) {
 	aliceStartingBalance := aliceChannel.channelState.LocalCommitment.LocalBalance
 
 	// This HTLC amount should be lower than the dust limits of both nodes.
-	htlcAmount := lnwire.NewMAtFromAtoms(100)
+	htlcAmount := lnwire.NewMAtomsFromAtoms(100)
 	htlc, _ := createHTLC(0, htlcAmount)
 	if _, err := aliceChannel.AddHTLC(htlc, nil); err != nil {
 		t.Fatalf("alice unable to add htlc: %v", err)
@@ -997,20 +997,20 @@ func TestDustHTLCFees(t *testing.T) {
 	// properly. Namely, the local+remote+commitfee values should add up to
 	// the total capacity of the channel. This same should hold for both
 	// sides.
-	totalSatoshisAlice := (aliceChannel.channelState.LocalCommitment.LocalBalance +
+	totalAtomsAlice := (aliceChannel.channelState.LocalCommitment.LocalBalance +
 		aliceChannel.channelState.LocalCommitment.RemoteBalance +
-		lnwire.NewMAtFromAtoms(aliceChannel.channelState.LocalCommitment.CommitFee))
-	if totalSatoshisAlice+htlcAmount != lnwire.NewMAtFromAtoms(aliceChannel.Capacity) {
-		t.Fatalf("alice's funds leaked: total satoshis are %v, but channel "+
-			"capacity is %v", int64(totalSatoshisAlice),
+		lnwire.NewMAtomsFromAtoms(aliceChannel.channelState.LocalCommitment.CommitFee))
+	if totalAtomsAlice+htlcAmount != lnwire.NewMAtomsFromAtoms(aliceChannel.Capacity) {
+		t.Fatalf("alice's funds leaked: total atoms are %v, but channel "+
+			"capacity is %v", int64(totalAtomsAlice),
 			int64(aliceChannel.Capacity))
 	}
-	totalSatoshisBob := (bobChannel.channelState.LocalCommitment.LocalBalance +
+	totalAtomsBob := (bobChannel.channelState.LocalCommitment.LocalBalance +
 		bobChannel.channelState.LocalCommitment.RemoteBalance +
-		lnwire.NewMAtFromAtoms(bobChannel.channelState.LocalCommitment.CommitFee))
-	if totalSatoshisBob+htlcAmount != lnwire.NewMAtFromAtoms(bobChannel.Capacity) {
-		t.Fatalf("bob's funds leaked: total satoshis are %v, but channel "+
-			"capacity is %v", int64(totalSatoshisBob),
+		lnwire.NewMAtomsFromAtoms(bobChannel.channelState.LocalCommitment.CommitFee))
+	if totalAtomsBob+htlcAmount != lnwire.NewMAtomsFromAtoms(bobChannel.Capacity) {
+		t.Fatalf("bob's funds leaked: total atoms are %v, but channel "+
+			"capacity is %v", int64(totalAtomsBob),
 			int64(bobChannel.Capacity))
 	}
 
@@ -1057,9 +1057,9 @@ func TestHTLCDustLimit(t *testing.T) {
 
 	// The amount of the HTLC should be above Alice's dust limit and below
 	// Bob's dust limit.
-	htlcSat := (dcrutil.Amount(500) + htlcTimeoutFee(
+	htlcAtoms := (dcrutil.Amount(500) + htlcTimeoutFee(
 		AtomPerKByte(aliceChannel.channelState.LocalCommitment.FeePerKw)))
-	htlcAmount := lnwire.NewMAtFromAtoms(htlcSat)
+	htlcAmount := lnwire.NewMAtomsFromAtoms(htlcAtoms)
 
 	htlc, preimage := createHTLC(0, htlcAmount)
 	aliceHtlcIndex, err := aliceChannel.AddHTLC(htlc, nil)
@@ -1109,15 +1109,15 @@ func TestHTLCDustLimit(t *testing.T) {
 	}
 
 	// At this point, for Alice's commitment chains, the value of the HTLC
-	// should have been added to Alice's balance and TotalSatoshisSent.
+	// should have been added to Alice's balance and TotalMatomsSent.
 	commitment := aliceChannel.localCommitChain.tip()
 	if len(commitment.txn.TxOut) != 2 {
 		t.Fatalf("incorrect # of outputs: expected %v, got %v",
 			2, len(commitment.txn.TxOut))
 	}
-	if aliceChannel.channelState.TotalMAtSent != htlcAmount {
-		t.Fatalf("alice satoshis sent incorrect: expected %v, got %v",
-			htlcAmount, aliceChannel.channelState.TotalMAtSent)
+	if aliceChannel.channelState.TotalMAtomsSent != htlcAmount {
+		t.Fatalf("alice atoms sent incorrect: expected %v, got %v",
+			htlcAmount, aliceChannel.channelState.TotalMAtomsSent)
 	}
 }
 
@@ -1132,16 +1132,16 @@ func TestHTLCSigNumber(t *testing.T) {
 		*LightningChannel, *LightningChannel, func()) {
 
 		// Create a test channel funded evenly with Alice having 5 DCR,
-		// and Bob having 5 DCR. Alice's dustlimit is 200 sat, while
-		// Bob has 1300 sat.
+		// and Bob having 5 DCR. Alice's dustlimit is 200 Atoms, while
+		// Bob has 1300 Atoms.
 		aliceChannel, bobChannel, cleanUp, err := CreateTestChannels()
 		if err != nil {
 			t.Fatalf("unable to create test channels: %v", err)
 		}
 
-		for i, htlcSat := range htlcValues {
-			htlcMat := lnwire.NewMAtFromAtoms(htlcSat)
-			htlc, _ := createHTLC(i, htlcMat)
+		for i, htlcAtoms := range htlcValues {
+			htlcMAtoms := lnwire.NewMAtomsFromAtoms(htlcAtoms)
+			htlc, _ := createHTLC(i, htlcMAtoms)
 			_, err := aliceChannel.AddHTLC(htlc, nil)
 			if err != nil {
 				t.Fatalf("alice unable to add htlc: %v", err)
@@ -1329,9 +1329,9 @@ func TestChannelBalanceDustLimit(t *testing.T) {
 	// dust limit but lower than bob's dust limit, causing bob to remove that
 	// output from his commitment transaction.
 	aliceBalance := aliceChannel.channelState.LocalCommitment.LocalBalance.ToAtoms()
-	htlcSat := aliceBalance - htlcFee - aliceDustLimit - 1
+	htlcAtoms := aliceBalance - htlcFee - aliceDustLimit - 1
 
-	htlcAmount := lnwire.NewMAtFromAtoms(htlcSat)
+	htlcAmount := lnwire.NewMAtomsFromAtoms(htlcAtoms)
 	htlc, preimage := createHTLC(0, htlcAmount)
 	aliceHtlcIndex, err := aliceChannel.AddHTLC(htlc, nil)
 	if err != nil {
@@ -1366,9 +1366,9 @@ func TestChannelBalanceDustLimit(t *testing.T) {
 		t.Fatalf("incorrect # of outputs for bob: expected %v, got %v",
 			1, len(bobCommitment.txn.TxOut))
 	}
-	if aliceChannel.channelState.TotalMAtSent != htlcAmount {
-		t.Fatalf("alice satoshis sent incorrect: expected %v, got %v",
-			htlcAmount, aliceChannel.channelState.TotalMAtSent)
+	if aliceChannel.channelState.TotalMAtomsSent != htlcAmount {
+		t.Fatalf("alice atoms sent incorrect: expected %v, got %v",
+			htlcAmount, aliceChannel.channelState.TotalMAtomsSent)
 	}
 	aliceCommitment := aliceChannel.localCommitChain.tip()
 	if len(aliceCommitment.txn.TxOut) != 2 {
@@ -1390,7 +1390,7 @@ func TestStateUpdatePersistence(t *testing.T) {
 	defer cleanUp()
 
 	const numHtlcs = 4
-	htlcAmt := lnwire.NewMAtFromAtoms(5000)
+	htlcAmt := lnwire.NewMAtomsFromAtoms(5000)
 
 	var fakeOnionBlob [lnwire.OnionPacketSize]byte
 	copy(fakeOnionBlob[:], bytes.Repeat([]byte{0x05}, lnwire.OnionPacketSize))
@@ -1635,21 +1635,21 @@ func TestStateUpdatePersistence(t *testing.T) {
 
 	// The amounts transferred should been updated as per the amounts in
 	// the HTLCs
-	if aliceChannelNew.channelState.TotalMAtSent != htlcAmt*3 {
-		t.Fatalf("expected %v alice satoshis sent, got %v",
-			htlcAmt*3, aliceChannelNew.channelState.TotalMAtSent)
+	if aliceChannelNew.channelState.TotalMAtomsSent != htlcAmt*3 {
+		t.Fatalf("expected %v alice atoms sent, got %v",
+			htlcAmt*3, aliceChannelNew.channelState.TotalMAtomsSent)
 	}
-	if aliceChannelNew.channelState.TotalMAtReceived != htlcAmt {
-		t.Fatalf("expected %v alice satoshis received, got %v",
-			htlcAmt, aliceChannelNew.channelState.TotalMAtReceived)
+	if aliceChannelNew.channelState.TotalMAtomsReceived != htlcAmt {
+		t.Fatalf("expected %v alice atoms received, got %v",
+			htlcAmt, aliceChannelNew.channelState.TotalMAtomsReceived)
 	}
-	if bobChannelNew.channelState.TotalMAtSent != htlcAmt {
-		t.Fatalf("expected %v bob satoshis sent, got %v",
-			htlcAmt, bobChannel.channelState.TotalMAtSent)
+	if bobChannelNew.channelState.TotalMAtomsSent != htlcAmt {
+		t.Fatalf("expected %v bob atoms sent, got %v",
+			htlcAmt, bobChannel.channelState.TotalMAtomsSent)
 	}
-	if bobChannelNew.channelState.TotalMAtReceived != htlcAmt*3 {
-		t.Fatalf("expected %v bob satoshis sent, got %v",
-			htlcAmt*3, bobChannel.channelState.TotalMAtReceived)
+	if bobChannelNew.channelState.TotalMAtomsReceived != htlcAmt*3 {
+		t.Fatalf("expected %v bob atoms sent, got %v",
+			htlcAmt*3, bobChannel.channelState.TotalMAtomsReceived)
 	}
 
 	// As a final test, we'll ensure that the HTLC counters for both sides
@@ -1686,7 +1686,7 @@ func TestCancelHTLC(t *testing.T) {
 
 	// Add a new HTLC from Alice to Bob, then trigger a new state
 	// transition in order to include it in the latest state.
-	htlcAmt := lnwire.NewMAtFromAtoms(dcrutil.AtomsPerCoin)
+	htlcAmt := lnwire.NewMAtomsFromAtoms(dcrutil.AtomsPerCoin)
 
 	var preImage [32]byte
 	copy(preImage[:], bytes.Repeat([]byte{0xaa}, 32))
@@ -1824,7 +1824,7 @@ func TestCooperativeCloseDustAdherence(t *testing.T) {
 	bobDeliveryScript := bobPkScript
 
 	// We'll start be initializing the limit of both Alice and Bob to 10k
-	// satoshis.
+	// atoms.
 	dustLimit := dcrutil.Amount(10000)
 	setDustLimit(dustLimit)
 
@@ -1865,8 +1865,8 @@ func TestCooperativeCloseDustAdherence(t *testing.T) {
 
 	// Next we'll modify the current balances and dust limits such that
 	// Bob's current balance is above _below_ his dust limit.
-	aliceBal := lnwire.NewMAtFromAtoms(dcrutil.AtomsPerCoin)
-	bobBal := lnwire.NewMAtFromAtoms(250)
+	aliceBal := lnwire.NewMAtomsFromAtoms(dcrutil.AtomsPerCoin)
+	bobBal := lnwire.NewMAtomsFromAtoms(250)
 	setBalances(aliceBal, bobBal)
 
 	// Attempt another cooperative channel closure. It should succeed
@@ -2445,7 +2445,7 @@ func TestAddHTLCNegativeBalance(t *testing.T) {
 
 	// First, we'll add 3 HTLCs of 1 DCR each to Alice's commitment.
 	const numHTLCs = 3
-	htlcAmt := lnwire.NewMAtFromAtoms(dcrutil.AtomsPerCoin)
+	htlcAmt := lnwire.NewMAtomsFromAtoms(dcrutil.AtomsPerCoin)
 	for i := 0; i < numHTLCs; i++ {
 		htlc, _ := createHTLC(i, htlcAmt)
 		if _, err := aliceChannel.AddHTLC(htlc, nil); err != nil {
@@ -2456,7 +2456,7 @@ func TestAddHTLCNegativeBalance(t *testing.T) {
 	// Alice now has an available balance of 2 DCR. We'll add a new HTLC of
 	// value 2 DCR, which should make Alice's balance negative (since she
 	// has to pay a commitment fee).
-	htlcAmt = lnwire.NewMAtFromAtoms(2 * dcrutil.AtomsPerCoin)
+	htlcAmt = lnwire.NewMAtomsFromAtoms(2 * dcrutil.AtomsPerCoin)
 	htlc, _ := createHTLC(numHTLCs+1, htlcAmt)
 	_, err = aliceChannel.AddHTLC(htlc, nil)
 	if err != ErrBelowChanReserve {
@@ -2528,7 +2528,7 @@ func TestChanSyncFullySynced(t *testing.T) {
 	var paymentPreimage [32]byte
 	copy(paymentPreimage[:], bytes.Repeat([]byte{1}, 32))
 	paymentHash := chainhash.HashH(paymentPreimage[:])
-	htlcAmt := lnwire.NewMAtFromAtoms(dcrutil.AtomsPerCoin)
+	htlcAmt := lnwire.NewMAtomsFromAtoms(dcrutil.AtomsPerCoin)
 	htlc := &lnwire.UpdateAddHTLC{
 		PaymentHash: paymentHash,
 		Amount:      htlcAmt,
@@ -2645,7 +2645,7 @@ func TestChanSyncOweCommitment(t *testing.T) {
 
 	// We'll start off the scenario with Bob sending 3 HTLC's to Alice in a
 	// single state update.
-	htlcAmt := lnwire.NewMAtFromAtoms(20000)
+	htlcAmt := lnwire.NewMAtomsFromAtoms(20000)
 	const numBobHtlcs = 3
 	var bobPreimage [32]byte
 	copy(bobPreimage[:], bytes.Repeat([]byte{0xbb}, 32))
@@ -2918,22 +2918,22 @@ func TestChanSyncOweCommitment(t *testing.T) {
 
 	// At this point, the final balances of both parties should properly
 	// reflect the amount of HTLC's sent.
-	bobMatSent := numBobHtlcs * htlcAmt
-	if aliceChannel.channelState.TotalMAtSent != htlcAmt {
+	bobMAtomsSent := numBobHtlcs * htlcAmt
+	if aliceChannel.channelState.TotalMAtomsSent != htlcAmt {
 		t.Fatalf("wrong value for mAt sent: expected %v, got %v",
-			htlcAmt, aliceChannel.channelState.TotalMAtSent)
+			htlcAmt, aliceChannel.channelState.TotalMAtomsSent)
 	}
-	if aliceChannel.channelState.TotalMAtReceived != bobMatSent {
+	if aliceChannel.channelState.TotalMAtomsReceived != bobMAtomsSent {
 		t.Fatalf("wrong value for mAt recv: expected %v, got %v",
-			bobMatSent, aliceChannel.channelState.TotalMAtReceived)
+			bobMAtomsSent, aliceChannel.channelState.TotalMAtomsReceived)
 	}
-	if bobChannel.channelState.TotalMAtSent != bobMatSent {
+	if bobChannel.channelState.TotalMAtomsSent != bobMAtomsSent {
 		t.Fatalf("wrong value for mAt sent: expected %v, got %v",
-			bobMatSent, bobChannel.channelState.TotalMAtSent)
+			bobMAtomsSent, bobChannel.channelState.TotalMAtomsSent)
 	}
-	if bobChannel.channelState.TotalMAtReceived != htlcAmt {
+	if bobChannel.channelState.TotalMAtomsReceived != htlcAmt {
 		t.Fatalf("wrong value for mAt recv: expected %v, got %v",
-			htlcAmt, bobChannel.channelState.TotalMAtReceived)
+			htlcAmt, bobChannel.channelState.TotalMAtomsReceived)
 	}
 }
 
@@ -2959,7 +2959,7 @@ func TestChanSyncOweRevocation(t *testing.T) {
 
 	// We'll start the test with Bob extending a single HTLC to Alice, and
 	// then initiating a state transition.
-	htlcAmt := lnwire.NewMAtFromAtoms(20000)
+	htlcAmt := lnwire.NewMAtomsFromAtoms(20000)
 	var bobPreimage [32]byte
 	copy(bobPreimage[:], bytes.Repeat([]byte{0xaa}, 32))
 	rHash := chainhash.HashH(bobPreimage[:])
@@ -3142,7 +3142,7 @@ func TestChanSyncOweRevocationAndCommit(t *testing.T) {
 	}
 	defer cleanUp()
 
-	htlcAmt := lnwire.NewMAtFromAtoms(20000)
+	htlcAmt := lnwire.NewMAtomsFromAtoms(20000)
 
 	// We'll kick off the test by having Bob send Alice an HTLC, then lock
 	// it in with a state transition.
@@ -3310,7 +3310,7 @@ func TestChanSyncOweRevocationAndCommitForceTransition(t *testing.T) {
 	}
 	defer cleanUp()
 
-	htlcAmt := lnwire.NewMAtFromAtoms(20000)
+	htlcAmt := lnwire.NewMAtomsFromAtoms(20000)
 
 	// We'll kick off the test by having Bob send Alice an HTLC, then lock
 	// it in with a state transition.
@@ -3537,7 +3537,7 @@ func TestChanSyncFailure(t *testing.T) {
 	}
 	defer cleanUp()
 
-	htlcAmt := lnwire.NewMAtFromAtoms(20000)
+	htlcAmt := lnwire.NewMAtomsFromAtoms(20000)
 	index := byte(0)
 
 	// advanceState is a helper method to fully advance the channel state
@@ -3939,7 +3939,7 @@ func TestChannelRetransmissionFeeUpdate(t *testing.T) {
 	rHash := chainhash.HashH(bobPreimage[:])
 	bobHtlc := &lnwire.UpdateAddHTLC{
 		PaymentHash: rHash,
-		Amount:      lnwire.NewMAtFromAtoms(20000),
+		Amount:      lnwire.NewMAtomsFromAtoms(20000),
 		Expiry:      uint32(10),
 	}
 	if _, err := bobChannel.AddHTLC(bobHtlc, nil); err != nil {
@@ -4019,7 +4019,7 @@ func TestChanSyncInvalidLastSecret(t *testing.T) {
 	var paymentPreimage [32]byte
 	copy(paymentPreimage[:], bytes.Repeat([]byte{1}, 32))
 	paymentHash := chainhash.HashH(paymentPreimage[:])
-	htlcAmt := lnwire.NewMAtFromAtoms(dcrutil.AtomsPerCoin)
+	htlcAmt := lnwire.NewMAtomsFromAtoms(dcrutil.AtomsPerCoin)
 	htlc := &lnwire.UpdateAddHTLC{
 		PaymentHash: paymentHash,
 		Amount:      htlcAmt,
@@ -4150,7 +4150,7 @@ func TestChanAvailableBandwidth(t *testing.T) {
 	// We'll repeat the same exercise, but with non-dust HTLCs. So we'll
 	// crank up the value of the HTLC's we're adding to the commitment
 	// transaction.
-	htlcAmt = lnwire.NewMAtFromAtoms(30000)
+	htlcAmt = lnwire.NewMAtomsFromAtoms(30000)
 	for i := 0; i < numHtlcs; i++ {
 		htlc, preImage := createHTLC(numHtlcs+i, htlcAmt)
 		if _, err := aliceChannel.AddHTLC(htlc, nil); err != nil {
@@ -4606,7 +4606,7 @@ func TestChannelUnilateralCloseHtlcResolution(t *testing.T) {
 
 	// We'll start off the test by adding an HTLC in both directions, then
 	// initiating enough state transitions to lock both of them in.
-	htlcAmount := lnwire.NewMAtFromAtoms(20000)
+	htlcAmount := lnwire.NewMAtomsFromAtoms(20000)
 	htlcAlice, _ := createHTLC(0, htlcAmount)
 	if _, err := aliceChannel.AddHTLC(htlcAlice, nil); err != nil {
 		t.Fatalf("alice unable to add htlc: %v", err)
@@ -4769,7 +4769,7 @@ func TestChannelUnilateralClosePendingCommit(t *testing.T) {
 
 	// First, we'll add an HTLC from Alice to Bob, just to be be able to
 	// create a new state transition.
-	htlcAmount := lnwire.NewMAtFromAtoms(20000)
+	htlcAmount := lnwire.NewMAtomsFromAtoms(20000)
 	htlcAlice, _ := createHTLC(0, htlcAmount)
 	if _, err := aliceChannel.AddHTLC(htlcAlice, nil); err != nil {
 		t.Fatalf("alice unable to add htlc: %v", err)
@@ -4896,7 +4896,7 @@ func TestDesyncHTLCs(t *testing.T) {
 	defer cleanUp()
 
 	// First add one HTLC of value 4.1 DCR.
-	htlcAmt := lnwire.NewMAtFromAtoms(4.1 * dcrutil.AtomsPerCoin)
+	htlcAmt := lnwire.NewMAtomsFromAtoms(4.1 * dcrutil.AtomsPerCoin)
 	htlc, _ := createHTLC(0, htlcAmt)
 	aliceIndex, err := aliceChannel.AddHTLC(htlc, nil)
 	if err != nil {
@@ -4929,7 +4929,7 @@ func TestDesyncHTLCs(t *testing.T) {
 	//
 	// We try adding an HTLC of value 1 DCR, which should fail because the
 	// balance is unavailable.
-	htlcAmt = lnwire.NewMAtFromAtoms(1 * dcrutil.AtomsPerCoin)
+	htlcAmt = lnwire.NewMAtomsFromAtoms(1 * dcrutil.AtomsPerCoin)
 	htlc, _ = createHTLC(1, htlcAmt)
 	if _, err = aliceChannel.AddHTLC(htlc, nil); err != ErrBelowChanReserve {
 		t.Fatalf("expected ErrInsufficientBalance, instead received: %v",
@@ -4978,7 +4978,7 @@ func TestMaxAcceptedHTLCs(t *testing.T) {
 	bobChannel.localChanCfg.MaxAcceptedHtlcs = numHTLCsReceived
 
 	// Each HTLC amount is 0.1 DCR.
-	htlcAmt := lnwire.NewMAtFromAtoms(0.1 * dcrutil.AtomsPerCoin)
+	htlcAmt := lnwire.NewMAtomsFromAtoms(0.1 * dcrutil.AtomsPerCoin)
 
 	// Send the maximum allowed number of HTLCs.
 	for i := 0; i < numHTLCs; i++ {
@@ -5026,7 +5026,7 @@ func TestMaxPendingAmount(t *testing.T) {
 	// We set the remote required MaxPendingAmount to 3 DCR. We will
 	// attempt to overflow this value and see if it gives us the
 	// ErrMaxPendingAmount error.
-	maxPending := lnwire.NewMAtFromAtoms(dcrutil.AtomsPerCoin * 3)
+	maxPending := lnwire.NewMAtomsFromAtoms(dcrutil.AtomsPerCoin * 3)
 
 	// We set the max pending amount of Alice's config. This mean that she
 	// cannot offer Bob HTLCs with a total value above this limit at a given
@@ -5037,7 +5037,7 @@ func TestMaxPendingAmount(t *testing.T) {
 	// First, we'll add 2 HTLCs of 1.5 DCR each to Alice's commitment.
 	// This won't trigger Alice's ErrMaxPendingAmount error.
 	const numHTLCs = 2
-	htlcAmt := lnwire.NewMAtFromAtoms(1.5 * dcrutil.AtomsPerCoin)
+	htlcAmt := lnwire.NewMAtomsFromAtoms(1.5 * dcrutil.AtomsPerCoin)
 	for i := 0; i < numHTLCs; i++ {
 		htlc, _ := createHTLC(i, htlcAmt)
 		if _, err := aliceChannel.AddHTLC(htlc, nil); err != nil {
@@ -5050,7 +5050,7 @@ func TestMaxPendingAmount(t *testing.T) {
 
 	// We finally add one more HTLC of 0.1 DCR to Alice's commitment. This
 	// SHOULD trigger Alice's ErrMaxPendingAmount error.
-	htlcAmt = lnwire.NewMAtFromAtoms(0.1 * dcrutil.AtomsPerCoin)
+	htlcAmt = lnwire.NewMAtomsFromAtoms(0.1 * dcrutil.AtomsPerCoin)
 	htlc, _ := createHTLC(numHTLCs, htlcAmt)
 	_, err = aliceChannel.AddHTLC(htlc, nil)
 	if err != ErrMaxPendingAmount {
@@ -5148,7 +5148,7 @@ func TestChanReserve(t *testing.T) {
 	// Resulting balances:
 	//	Alice:	4.5
 	//	Bob:	5.0
-	htlcAmt := lnwire.NewMAtFromAtoms(0.5 * dcrutil.AtomsPerCoin)
+	htlcAmt := lnwire.NewMAtomsFromAtoms(0.5 * dcrutil.AtomsPerCoin)
 	htlc, _ := createHTLC(aliceIndex, htlcAmt)
 	aliceIndex++
 	if _, err := aliceChannel.AddHTLC(htlc, nil); err != nil {
@@ -5206,7 +5206,7 @@ func TestChanReserve(t *testing.T) {
 	// Resulting balances:
 	//	Alice:	1.5
 	//	Bob:	9.5
-	htlcAmt = lnwire.NewMAtFromAtoms(3.5 * dcrutil.AtomsPerCoin)
+	htlcAmt = lnwire.NewMAtomsFromAtoms(3.5 * dcrutil.AtomsPerCoin)
 
 	// The first HTLC should successfully be sent.
 	htlc, _ = createHTLC(aliceIndex, htlcAmt)
@@ -5222,7 +5222,7 @@ func TestChanReserve(t *testing.T) {
 	// Alice's balance all the way down to her channel reserve, but since
 	// she is the initiator the additional transaction fee makes her
 	// balance dip below.
-	htlcAmt = lnwire.NewMAtFromAtoms(1 * dcrutil.AtomsPerCoin)
+	htlcAmt = lnwire.NewMAtomsFromAtoms(1 * dcrutil.AtomsPerCoin)
 	htlc, _ = createHTLC(aliceIndex, htlcAmt)
 	aliceIndex++
 	_, err = aliceChannel.AddHTLC(htlc, nil)
@@ -5252,7 +5252,7 @@ func TestChanReserve(t *testing.T) {
 	// Resulting balances:
 	//	Alice:	3.0
 	//	Bob:	7.0
-	htlcAmt = lnwire.NewMAtFromAtoms(2 * dcrutil.AtomsPerCoin)
+	htlcAmt = lnwire.NewMAtomsFromAtoms(2 * dcrutil.AtomsPerCoin)
 	htlc, preimage := createHTLC(aliceIndex, htlcAmt)
 	aliceIndex++
 	aliceHtlcIndex, err := aliceChannel.AddHTLC(htlc, nil)
@@ -5292,7 +5292,7 @@ func TestChanReserve(t *testing.T) {
 	// And now let Bob add an HTLC of 1 DCR. This will take Bob's balance
 	// all the way down to his channel reserve, but since he is not paying
 	// the fee this is okay.
-	htlcAmt = lnwire.NewMAtFromAtoms(1 * dcrutil.AtomsPerCoin)
+	htlcAmt = lnwire.NewMAtomsFromAtoms(1 * dcrutil.AtomsPerCoin)
 	htlc, _ = createHTLC(bobIndex, htlcAmt)
 	bobIndex++
 	if _, err := bobChannel.AddHTLC(htlc, nil); err != nil {
@@ -5329,7 +5329,7 @@ func TestMinHTLC(t *testing.T) {
 
 	// We set Alice's MinHTLC to 0.1 DCR. We will attempt to send an
 	// HTLC BELOW this value to trigger the ErrBelowMinHTLC error.
-	minValue := lnwire.NewMAtFromAtoms(0.1 * dcrutil.AtomsPerCoin)
+	minValue := lnwire.NewMAtomsFromAtoms(0.1 * dcrutil.AtomsPerCoin)
 
 	// Setting the min value in Alice's local config means that the
 	// remote will not accept any HTLCs of value less than specified.
@@ -5338,7 +5338,7 @@ func TestMinHTLC(t *testing.T) {
 
 	// First, we will add an HTLC of 0.5 DCR. This will not trigger
 	// ErrBelowMinHTLC.
-	htlcAmt := lnwire.NewMAtFromAtoms(0.5 * dcrutil.AtomsPerCoin)
+	htlcAmt := lnwire.NewMAtomsFromAtoms(0.5 * dcrutil.AtomsPerCoin)
 	htlc, _ := createHTLC(0, htlcAmt)
 	if _, err := aliceChannel.AddHTLC(htlc, nil); err != nil {
 		t.Fatalf("unable to add htlc: %v", err)
@@ -5403,7 +5403,7 @@ func TestNewBreachRetributionSkipsDustHtlcs(t *testing.T) {
 		rHash := chainhash.HashH(bobPreimage[:])
 		h := &lnwire.UpdateAddHTLC{
 			PaymentHash: rHash,
-			Amount:      lnwire.NewMAtFromAtoms(dustValue),
+			Amount:      lnwire.NewMAtomsFromAtoms(dustValue),
 			Expiry:      uint32(10),
 			OnionBlob:   fakeOnionBlob,
 		}
@@ -5559,7 +5559,7 @@ func TestChannelRestoreUpdateLogs(t *testing.T) {
 
 	// First, we'll add an HTLC from Alice to Bob, which we will lock in on
 	// Bob's commit, but not on Alice's.
-	htlcAmount := lnwire.NewMAtFromAtoms(20000)
+	htlcAmount := lnwire.NewMAtomsFromAtoms(20000)
 	htlcAlice, _ := createHTLC(0, htlcAmount)
 	if _, err := aliceChannel.AddHTLC(htlcAlice, nil); err != nil {
 		t.Fatalf("alice unable to add htlc: %v", err)
@@ -5727,7 +5727,7 @@ func TestChannelRestoreUpdateLogsFailedHTLC(t *testing.T) {
 	defer cleanUp()
 
 	// First, we'll add an HTLC from Alice to Bob, and lock it in for both.
-	htlcAmount := lnwire.NewMAtFromAtoms(20000)
+	htlcAmount := lnwire.NewMAtomsFromAtoms(20000)
 	htlcAlice, _ := createHTLC(0, htlcAmount)
 	if _, err := aliceChannel.AddHTLC(htlcAlice, nil); err != nil {
 		t.Fatalf("alice unable to add htlc: %v", err)
@@ -5849,7 +5849,7 @@ func TestDuplicateFailRejection(t *testing.T) {
 
 	// First, we'll add an HTLC from Alice to Bob, and lock it in for both
 	// parties.
-	htlcAmount := lnwire.NewMAtFromAtoms(20000)
+	htlcAmount := lnwire.NewMAtomsFromAtoms(20000)
 	htlcAlice, _ := createHTLC(0, htlcAmount)
 	if _, err := aliceChannel.AddHTLC(htlcAlice, nil); err != nil {
 		t.Fatalf("alice unable to add htlc: %v", err)
@@ -5927,7 +5927,7 @@ func TestDuplicateSettleRejection(t *testing.T) {
 
 	// First, we'll add an HTLC from Alice to Bob, and lock it in for both
 	// parties.
-	htlcAmount := lnwire.NewMAtFromAtoms(20000)
+	htlcAmount := lnwire.NewMAtomsFromAtoms(20000)
 	htlcAlice, alicePreimage := createHTLC(0, htlcAmount)
 	if _, err := aliceChannel.AddHTLC(htlcAlice, nil); err != nil {
 		t.Fatalf("alice unable to add htlc: %v", err)
@@ -6049,7 +6049,7 @@ func TestChannelRestoreCommitHeight(t *testing.T) {
 	}
 
 	// We'll send an HtLC from Alice to Bob.
-	htlcAmount := lnwire.NewMAtFromAtoms(100000000)
+	htlcAmount := lnwire.NewMAtomsFromAtoms(100000000)
 	htlcAlice, _ := createHTLC(0, htlcAmount)
 	if _, err := aliceChannel.AddHTLC(htlcAlice, nil); err != nil {
 		t.Fatalf("alice unable to add htlc: %v", err)

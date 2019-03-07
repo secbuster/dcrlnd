@@ -50,11 +50,11 @@ type HopHint struct {
 	// ChannelID is the unique identifier of the channel.
 	ChannelID uint64
 
-	// FeeBaseMAt is the base fee of the channel in MilliAtoms.
-	FeeBaseMAt uint32
+	// FeeBaseMAtoms is the base fee of the channel in MilliAtoms.
+	FeeBaseMAtoms uint32
 
-	// FeeProportionalMillionths is the fee rate, in millionths of a
-	// satoshi, for every satoshi sent through the channel.
+	// FeeProportionalMillionths is the fee rate, in millionths of an
+	// atom, for every atom sent through the channel.
 	FeeProportionalMillionths uint32
 
 	// CLTVExpiryDelta is the time-lock delta of the channel.
@@ -100,7 +100,7 @@ type edgePolicyWithSource struct {
 func computeFee(amt lnwire.MilliAtom,
 	edge *channeldb.ChannelEdgePolicy) lnwire.MilliAtom {
 
-	return edge.FeeBaseMAt + (amt*edge.FeeProportionalMillionths)/1000000
+	return edge.FeeBaseMAtoms + (amt*edge.FeeProportionalMillionths)/1000000
 }
 
 // isSamePath returns true if path1 and path2 travel through the exact same
@@ -141,7 +141,7 @@ type Route struct {
 	// TotalAmount is the total amount of funds required to complete a
 	// payment over this route. This value includes the cumulative fees at
 	// each hop. As a result, the HTLC extended to the first-hop in the
-	// route will need to have at least this many satoshis, otherwise the
+	// route will need to have at least this many atoms, otherwise the
 	// route will fail at an intermediate node due to an insufficient
 	// amount of fees.
 	TotalAmount lnwire.MilliAtom
@@ -716,7 +716,7 @@ func findPath(g *graphParams, r *restrictParams,
 				// If we don't have a hint for this edge, then
 				// we'll just use the known Capacity as the
 				// available bandwidth.
-				edgeBandwidth = lnwire.NewMAtFromAtoms(
+				edgeBandwidth = lnwire.NewMAtomsFromAtoms(
 					edgeInfo.Capacity,
 				)
 			}
@@ -816,7 +816,7 @@ func findPaths(tx *bolt.Tx, graph *channeldb.ChannelGraph,
 
 	// First we'll find a single shortest path from the source (our
 	// selfNode) to the target destination that's capable of carrying amt
-	// satoshis along the path before fees are calculated.
+	// atoms along the path before fees are calculated.
 	startingPath, err := findPath(
 		&graphParams{
 			tx:             tx,

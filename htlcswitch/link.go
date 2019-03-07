@@ -70,12 +70,12 @@ type ForwardingPolicy struct {
 	// lifetime of the channel.
 	MinHTLC lnwire.MilliAtom
 
-	// BaseFee is the base fee, expressed in milli-satoshi that must be
+	// BaseFee is the base fee, expressed in milli-atoms that must be
 	// paid for each incoming HTLC. This field, combined with FeeRate is
 	// used to compute the required fee for a given HTLC.
 	BaseFee lnwire.MilliAtom
 
-	// FeeRate is the fee rate, expressed in milli-satoshi that must be
+	// FeeRate is the fee rate, expressed in milli-atom that must be
 	// paid for each incoming HTLC. This field combined with BaseFee is
 	// used to compute the required fee for a given HTLC.
 	FeeRate lnwire.MilliAtom
@@ -1817,7 +1817,7 @@ func (l *channelLink) Bandwidth() lnwire.MilliAtom {
 
 	// If the channel reserve is greater than the total available balance
 	// of the link, just return 0.
-	reserve := lnwire.NewMAtFromAtoms(l.channel.LocalChanReserve())
+	reserve := lnwire.NewMAtomsFromAtoms(l.channel.LocalChanReserve())
 	if linkBandwidth < reserve {
 		return 0
 	}
@@ -2002,8 +2002,8 @@ func (l *channelLink) Stats() (uint64, lnwire.MilliAtom, lnwire.MilliAtom) {
 	snapshot := l.channel.StateSnapshot()
 
 	return snapshot.ChannelCommitment.CommitHeight,
-		snapshot.TotalMAtSent,
-		snapshot.TotalMAtReceived
+		snapshot.TotalMAtomsSent,
+		snapshot.TotalMAtomsReceived
 }
 
 // String returns the string representation of channel link.
@@ -2348,7 +2348,7 @@ func (l *channelLink) processRemoteAdds(fwdPkg *channeldb.FwdPkg,
 			//
 			// NOTE: We make an exception when the value requested
 			// by the invoice is zero. This means the invoice
-			// allows the payee to specify the amount of satoshis
+			// allows the payee to specify the amount of atoms
 			// they wish to send.  So since we expect the htlc to
 			// have a different amount, we should not fail.
 			if !l.cfg.DebugHTLC && invoice.Terms.Value > 0 &&
@@ -2374,7 +2374,7 @@ func (l *channelLink) processRemoteAdds(fwdPkg *channeldb.FwdPkg,
 			//
 			// NOTE: We make an exception when the value requested
 			// by the invoice is zero. This means the invoice
-			// allows the payee to specify the amount of satoshis
+			// allows the payee to specify the amount of atoms
 			// they wish to send.  So since we expect the htlc to
 			// have a different amount, we should not fail.
 			if !l.cfg.DebugHTLC && invoice.Terms.Value > 0 &&

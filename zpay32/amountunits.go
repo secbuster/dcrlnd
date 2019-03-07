@@ -8,18 +8,18 @@ import (
 )
 
 var (
-	// toMAt is a map from a unit to a function that converts an amount
+	// toMAtoms is a map from a unit to a function that converts an amount
 	// of that unit to MilliAtoms.
-	toMAt = map[byte]func(uint64) (lnwire.MilliAtom, error){
-		'm': mDcrToMAt,
-		'u': uDcrToMAt,
-		'n': nDcrToMAt,
-		'p': pDcrToMAt,
+	toMAtoms = map[byte]func(uint64) (lnwire.MilliAtom, error){
+		'm': mDcrToMAtoms,
+		'u': uDcrToMAtoms,
+		'n': nDcrToMAtoms,
+		'p': pDcrToMAtoms,
 	}
 
-	// fromMAt is a map from a unit to a function that converts an amount
+	// fromMAtoms is a map from a unit to a function that converts an amount
 	// in MilliAtoms to an amount of that unit.
-	fromMAt = map[byte]func(lnwire.MilliAtom) (uint64, error){
+	fromMAtoms = map[byte]func(lnwire.MilliAtom) (uint64, error){
 		'm': mAtToMDcr,
 		'u': mAtToUDcr,
 		'n': mAtToNDcr,
@@ -27,23 +27,23 @@ var (
 	}
 )
 
-// mDcrToMAt converts the given amount in milliDCR to MilliAtoms.
-func mDcrToMAt(m uint64) (lnwire.MilliAtom, error) {
+// mDcrToMAtoms converts the given amount in milliDCR to MilliAtoms.
+func mDcrToMAtoms(m uint64) (lnwire.MilliAtom, error) {
 	return lnwire.MilliAtom(m) * 100000000, nil
 }
 
-// uDcrToMAt converts the given amount in microDCR to MilliAtoms.
-func uDcrToMAt(u uint64) (lnwire.MilliAtom, error) {
+// uDcrToMAtoms converts the given amount in microDCR to MilliAtoms.
+func uDcrToMAtoms(u uint64) (lnwire.MilliAtom, error) {
 	return lnwire.MilliAtom(u * 100000), nil
 }
 
-// nDcrToMAt converts the given amount in nanoDCR to MilliAtoms.
-func nDcrToMAt(n uint64) (lnwire.MilliAtom, error) {
+// nDcrToMAtoms converts the given amount in nanoDCR to MilliAtoms.
+func nDcrToMAtoms(n uint64) (lnwire.MilliAtom, error) {
 	return lnwire.MilliAtom(n * 100), nil
 }
 
-// pDcrToMAt converts the given amount in picoDCR to MilliAtoms.
-func pDcrToMAt(p uint64) (lnwire.MilliAtom, error) {
+// pDcrToMAtoms converts the given amount in picoDCR to MilliAtoms.
+func pDcrToMAtoms(p uint64) (lnwire.MilliAtom, error) {
 	if p < 10 {
 		return 0, fmt.Errorf("minimum amount is 10p")
 	}
@@ -67,7 +67,7 @@ func mAtToMDcr(mat lnwire.MilliAtom) (uint64, error) {
 func mAtToUDcr(mat lnwire.MilliAtom) (uint64, error) {
 	if mat%100000 != 0 {
 		return 0, fmt.Errorf("%d mAt not expressible "+
-			"in uBTC", mat)
+			"in uDCR", mat)
 	}
 	return uint64(mat / 100000), nil
 }
@@ -93,7 +93,7 @@ func decodeAmount(amount string) (lnwire.MilliAtom, error) {
 	}
 
 	// If last character is a digit, then the amount can just be
-	// interpreted as BTC.
+	// interpreted as DCR.
 	char := amount[len(amount)-1]
 	digit := char - '0'
 	if digit >= 0 && digit <= 9 {
@@ -105,7 +105,7 @@ func decodeAmount(amount string) (lnwire.MilliAtom, error) {
 	}
 
 	// If not a digit, it must be part of the known units.
-	conv, ok := toMAt[char]
+	conv, ok := toMAtoms[char]
 	if !ok {
 		return 0, fmt.Errorf("unknown multiplier %c", char)
 	}
@@ -138,13 +138,13 @@ func encodeAmount(mat lnwire.MilliAtom) (string, error) {
 	}
 
 	// Should always be expressible in pico DCR.
-	pico, err := fromMAt['p'](mat)
+	pico, err := fromMAtoms['p'](mat)
 	if err != nil {
 		return "", fmt.Errorf("unable to express %d mAt as pDCR: %v",
 			mat, err)
 	}
 	shortened := strconv.FormatUint(pico, 10) + "p"
-	for unit, conv := range fromMAt {
+	for unit, conv := range fromMAtoms {
 		am, err := conv(mat)
 		if err != nil {
 			// Not expressible using this unit.

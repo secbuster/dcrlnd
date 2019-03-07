@@ -115,10 +115,10 @@ type ChannelReservation struct {
 	// throughout its lifetime.
 	reservationID uint64
 
-	// pushMAt the amount of milli-atoms that should be pushed to the
+	// pushMAtoms the amount of milli-atoms that should be pushed to the
 	// responder of a single funding channel as part of the initial
 	// commitment state.
-	pushMAt lnwire.MilliAtom
+	pushMAtoms lnwire.MilliAtom
 
 	// chanOpen houses a struct containing the channel and additional
 	// confirmation details will be sent on once the channel is considered
@@ -136,7 +136,7 @@ type ChannelReservation struct {
 // lnwallet.InitChannelReservation interface.
 func NewChannelReservation(capacity, fundingAmt dcrutil.Amount,
 	commitFeePerKw AtomPerKByte, wallet *LightningWallet,
-	id uint64, pushMAt lnwire.MilliAtom, chainHash *chainhash.Hash,
+	id uint64, pushMAtoms lnwire.MilliAtom, chainHash *chainhash.Hash,
 	flags lnwire.FundingFlag) (*ChannelReservation, error) {
 
 	var (
@@ -147,16 +147,16 @@ func NewChannelReservation(capacity, fundingAmt dcrutil.Amount,
 
 	commitFee := commitFeePerKw.FeeForSize(CommitmentTxSize)
 
-	fundingMAt := lnwire.NewMAtFromAtoms(fundingAmt)
-	capacityMAt := lnwire.NewMAtFromAtoms(capacity)
-	feeMAt := lnwire.NewMAtFromAtoms(commitFee)
+	fundingMAtoms := lnwire.NewMAtomsFromAtoms(fundingAmt)
+	capacityMAtoms := lnwire.NewMAtomsFromAtoms(capacity)
+	feeMAtoms := lnwire.NewMAtomsFromAtoms(commitFee)
 
 	// If we're the responder to a single-funder reservation, then we have
 	// no initial balance in the channel unless the remote party is pushing
 	// some funds to us within the first commitment state.
 	if fundingAmt == 0 {
-		ourBalance = pushMAt
-		theirBalance = capacityMAt - feeMAt - pushMAt
+		ourBalance = pushMAtoms
+		theirBalance = capacityMAtoms - feeMAtoms - pushMAtoms
 		initiator = false
 
 		// If the responder doesn't have enough funds to actually pay
@@ -176,14 +176,14 @@ func NewChannelReservation(capacity, fundingAmt dcrutil.Amount,
 			// we pay all the initial fees within the commitment
 			// transaction. We also deduct our balance by the
 			// amount pushed as part of the initial state.
-			ourBalance = capacityMAt - feeMAt - pushMAt
-			theirBalance = pushMAt
+			ourBalance = capacityMAtoms - feeMAtoms - pushMAtoms
+			theirBalance = pushMAtoms
 		} else {
 			// Otherwise, this is a dual funder workflow where both
 			// slides split the amount funded and the commitment
 			// fee.
-			ourBalance = fundingMAt - (feeMAt / 2)
-			theirBalance = capacityMAt - fundingMAt - (feeMAt / 2) + pushMAt
+			ourBalance = fundingMAtoms - (feeMAtoms / 2)
+			theirBalance = capacityMAtoms - fundingMAtoms - (feeMAtoms / 2) + pushMAtoms
 		}
 
 		initiator = true
@@ -218,7 +218,7 @@ func NewChannelReservation(capacity, fundingAmt dcrutil.Amount,
 	// If either of the balances are zero at this point, or we have a
 	// non-zero push amt (there's no pushing for dual funder), then this is
 	// a single-funder channel.
-	if ourBalance == 0 || theirBalance == 0 || pushMAt != 0 {
+	if ourBalance == 0 || theirBalance == 0 || pushMAtoms != 0 {
 		chanType = channeldb.SingleFunder
 	} else {
 		// Otherwise, this is a dual funder channel, and no side is
@@ -257,7 +257,7 @@ func NewChannelReservation(capacity, fundingAmt dcrutil.Amount,
 			},
 			Db: wallet.Cfg.Database,
 		},
-		pushMAt:       pushMAt,
+		pushMAtoms:       pushMAtoms,
 		reservationID: id,
 		chanOpen:      make(chan *openChanDetails, 1),
 		chanOpenErr:   make(chan error, 1),
@@ -280,7 +280,7 @@ func (r *ChannelReservation) SetNumConfsRequired(numConfs uint16) {
 // CommitConstraints takes the constraints that the remote party specifies for
 // the type of commitments that we can generate for them. These constraints
 // include several parameters that serve as flow control restricting the amount
-// of satoshis that can be transferred in a single commitment. This function
+// of atoms that can be transferred in a single commitment. This function
 // will also attempt to verify the constraints for sanity, returning an error
 // if the parameters are seemed unsound.
 func (r *ChannelReservation) CommitConstraints(csvDelay, maxHtlcs uint16,

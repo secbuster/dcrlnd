@@ -216,8 +216,8 @@ func createTestPeer(notifier chainntnfs.ChainNotifier,
 	// TODO(roasbeef): need to factor in commit fee?
 	aliceCommit := channeldb.ChannelCommitment{
 		CommitHeight:  0,
-		LocalBalance:  lnwire.NewMAtFromAtoms(channelBal),
-		RemoteBalance: lnwire.NewMAtFromAtoms(channelBal),
+		LocalBalance:  lnwire.NewMAtomsFromAtoms(channelBal),
+		RemoteBalance: lnwire.NewMAtomsFromAtoms(channelBal),
 		FeePerKw:      dcrutil.Amount(feePerKB),
 		CommitFee:     feePerKB.FeeForSize(lnwallet.CommitmentTxSize),
 		CommitTx:      aliceCommitTx,
@@ -225,8 +225,8 @@ func createTestPeer(notifier chainntnfs.ChainNotifier,
 	}
 	bobCommit := channeldb.ChannelCommitment{
 		CommitHeight:  0,
-		LocalBalance:  lnwire.NewMAtFromAtoms(channelBal),
-		RemoteBalance: lnwire.NewMAtFromAtoms(channelBal),
+		LocalBalance:  lnwire.NewMAtomsFromAtoms(channelBal),
+		RemoteBalance: lnwire.NewMAtomsFromAtoms(channelBal),
 		FeePerKw:      dcrutil.Amount(feePerKB),
 		CommitFee:     feePerKB.FeeForSize(lnwallet.CommitmentTxSize),
 		CommitTx:      bobCommitTx,

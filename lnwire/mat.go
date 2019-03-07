@@ -18,9 +18,9 @@ const mAtomScale uint64 = 1000
 // the nearest atom.
 type MilliAtom uint64
 
-// NewMAtFromAtoms creates a new MilliAtom instance from a target amount
+// NewMAtomsFromAtoms creates a new MilliAtom instance from a target amount
 // of Atoms.
-func NewMAtFromAtoms(at dcrutil.Amount) MilliAtom {
+func NewMAtomsFromAtoms(at dcrutil.Amount) MilliAtom {
 	return MilliAtom(uint64(at) * mAtomScale)
 }
 
@@ -32,14 +32,14 @@ func (mat MilliAtom) ToCoin() float64 {
 }
 
 // ToAtoms converts the target MilliAtom amount to atoms. Simply, this
-// sheds a factor of 1000 from the mAT amount in order to convert it to Atoms.
+// sheds a factor of 1000 from the milli-atoms amount in order to convert it to Atoms.
 func (mat MilliAtom) ToAtoms() dcrutil.Amount {
 	return dcrutil.Amount(uint64(mat) / mAtomScale)
 }
 
-// String returns the string representation of the mAT amount.
+// String returns the string representation of the milli-atoms amount.
 func (mat MilliAtom) String() string {
-	return fmt.Sprintf("%v mAT", uint64(mat))
+	return fmt.Sprintf("%v milli-atoms", uint64(mat))
 }
 
 // TODO(roasbeef): extend with arithmetic operations?

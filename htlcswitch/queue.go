@@ -200,7 +200,7 @@ func (p *packetQueue) Length() int32 {
 	return atomic.LoadInt32(&p.queueLen)
 }
 
-// TotalHtlcAmount is the total amount (in mAT) of all HTLC's currently
+// TotalHtlcAmount is the total amount (in milli-atoms) of all HTLC's currently
 // residing within the overflow queue.
 func (p *packetQueue) TotalHtlcAmount() lnwire.MilliAtom {
 	// TODO(roasbeef): also factor in fee rate?

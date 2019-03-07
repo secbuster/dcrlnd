@@ -373,13 +373,13 @@ func createAnnouncements(blockHeight uint32) (*annBatch, error) {
 	}
 
 	batch.localProofAnn = &lnwire.AnnounceSignatures{
-		NodeSignature:    batch.remoteChanAnn.NodeSig1,
-		BitcoinSignature: batch.remoteChanAnn.BitcoinSig1,
+		NodeSignature:   batch.remoteChanAnn.NodeSig1,
+		DecredSignature: batch.remoteChanAnn.DecredSig1,
 	}
 
 	batch.remoteProofAnn = &lnwire.AnnounceSignatures{
-		NodeSignature:    batch.remoteChanAnn.NodeSig2,
-		BitcoinSignature: batch.remoteChanAnn.BitcoinSig2,
+		NodeSignature:   batch.remoteChanAnn.NodeSig2,
+		DecredSignature: batch.remoteChanAnn.DecredSig2,
 	}
 
 	batch.localChanAnn, err = createRemoteChannelAnnouncement(blockHeight)
@@ -450,12 +450,12 @@ func createUpdateAnnouncement(blockHeight uint32, flags lnwire.ChanUpdateFlag,
 		ShortChannelID: lnwire.ShortChannelID{
 			BlockHeight: blockHeight,
 		},
-		Timestamp:      timestamp,
-		TimeLockDelta:  uint16(prand.Int63()),
-		Flags:          flags,
-		HtlcMinimumMAt: lnwire.MilliAtom(prand.Int63()),
-		FeeRate:        uint32(prand.Int31()),
-		BaseFee:        uint32(prand.Int31()),
+		Timestamp:         timestamp,
+		TimeLockDelta:     uint16(prand.Int63()),
+		Flags:             flags,
+		HtlcMinimumMAtoms: lnwire.MilliAtom(prand.Int63()),
+		FeeRate:           uint32(prand.Int31()),
+		BaseFee:           uint32(prand.Int31()),
 	}
 	if len(extraBytes) == 1 {
 		a.ExtraOpaqueData = extraBytes[0]
@@ -489,8 +489,8 @@ func createAnnouncementWithoutProof(blockHeight uint32,
 	}
 	copy(a.NodeID1[:], nodeKeyPub1.SerializeCompressed())
 	copy(a.NodeID2[:], nodeKeyPub2.SerializeCompressed())
-	copy(a.BitcoinKey1[:], bitcoinKeyPub1.SerializeCompressed())
-	copy(a.BitcoinKey2[:], bitcoinKeyPub2.SerializeCompressed())
+	copy(a.DecredKey1[:], bitcoinKeyPub1.SerializeCompressed())
+	copy(a.DecredKey2[:], bitcoinKeyPub2.SerializeCompressed())
 	if len(extraBytes) == 1 {
 		a.ExtraOpaqueData = extraBytes[0]
 	}
@@ -531,7 +531,7 @@ func createRemoteChannelAnnouncement(blockHeight uint32,
 	if err != nil {
 		return nil, err
 	}
-	a.BitcoinSig1, err = lnwire.NewSigFromSignature(sig)
+	a.DecredSig1, err = lnwire.NewSigFromSignature(sig)
 	if err != nil {
 		return nil, err
 	}
@@ -542,7 +542,7 @@ func createRemoteChannelAnnouncement(blockHeight uint32,
 	if err != nil {
 		return nil, err
 	}
-	a.BitcoinSig2, err = lnwire.NewSigFromSignature(sig)
+	a.DecredSig2, err = lnwire.NewSigFromSignature(sig)
 	if err != nil {
 		return nil, err
 	}

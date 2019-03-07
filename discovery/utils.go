@@ -28,21 +28,21 @@ func CreateChanAnnouncement(chanProof *channeldb.ChannelAuthProof,
 		NodeID1:         chanInfo.NodeKey1Bytes,
 		NodeID2:         chanInfo.NodeKey2Bytes,
 		ChainHash:       chanInfo.ChainHash,
-		BitcoinKey1:     chanInfo.BitcoinKey1Bytes,
-		BitcoinKey2:     chanInfo.BitcoinKey2Bytes,
+		DecredKey1:     chanInfo.DecredKey1Bytes,
+		DecredKey2:     chanInfo.DecredKey2Bytes,
 		Features:        lnwire.NewRawFeatureVector(),
 		ExtraOpaqueData: chanInfo.ExtraOpaqueData,
 	}
 
 	var err error
-	chanAnn.BitcoinSig1, err = lnwire.NewSigFromRawSignature(
-		chanProof.BitcoinSig1Bytes,
+	chanAnn.DecredSig1, err = lnwire.NewSigFromRawSignature(
+		chanProof.DecredSig1Bytes,
 	)
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	chanAnn.BitcoinSig2, err = lnwire.NewSigFromRawSignature(
-		chanProof.BitcoinSig2Bytes,
+	chanAnn.DecredSig2, err = lnwire.NewSigFromRawSignature(
+		chanProof.DecredSig2Bytes,
 	)
 	if err != nil {
 		return nil, nil, nil, err
@@ -75,8 +75,8 @@ func CreateChanAnnouncement(chanProof *channeldb.ChannelAuthProof,
 			Timestamp:       uint32(e1.LastUpdate.Unix()),
 			Flags:           e1.Flags,
 			TimeLockDelta:   e1.TimeLockDelta,
-			HtlcMinimumMAt:  e1.MinHTLC,
-			BaseFee:         uint32(e1.FeeBaseMAt),
+			HtlcMinimumMAtoms:  e1.MinHTLC,
+			BaseFee:         uint32(e1.FeeBaseMAtoms),
 			FeeRate:         uint32(e1.FeeProportionalMillionths),
 			ExtraOpaqueData: e1.ExtraOpaqueData,
 		}
@@ -92,8 +92,8 @@ func CreateChanAnnouncement(chanProof *channeldb.ChannelAuthProof,
 			Timestamp:       uint32(e2.LastUpdate.Unix()),
 			Flags:           e2.Flags,
 			TimeLockDelta:   e2.TimeLockDelta,
-			HtlcMinimumMAt:  e2.MinHTLC,
-			BaseFee:         uint32(e2.FeeBaseMAt),
+			HtlcMinimumMAtoms:  e2.MinHTLC,
+			BaseFee:         uint32(e2.FeeBaseMAtoms),
 			FeeRate:         uint32(e2.FeeProportionalMillionths),
 			ExtraOpaqueData: e2.ExtraOpaqueData,
 		}

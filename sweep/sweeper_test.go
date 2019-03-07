@@ -305,10 +305,10 @@ func TestDust(t *testing.T) {
 	ctx := createSweeperTestContext(t)
 
 	// Sweeping a single output produces a tx of 486 weight units. With the
-	// test fee rate, the sweep tx will pay 4860 sat in fees.
+	// test fee rate, the sweep tx will pay 4860 atoms in fees.
 	//
 	// Create an input so that the output after paying fees is still
-	// positive (400 sat), but less than the dust limit (537 sat) for the
+	// positive (400 atoms), but less than the dust limit (537 atoms) for the
 	// sweep tx output script (P2WPKH).
 	dustInput := createTestInput(5260, lnwallet.CommitmentTimeLock)
 
