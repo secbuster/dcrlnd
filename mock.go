@@ -169,7 +169,9 @@ func (m *mockSpendNotifier) Spend(outpoint *wire.OutPoint, height int32,
 // hasPenderNotification checks whether the given outpoint has at least one
 // client registered to receive spend notifications for the given outpoint.
 func (m *mockSpendNotifier) hasSpenderNotification(outpoint *wire.OutPoint) bool {
+	m.mtx.Lock()
 	_, ok := m.spendMap[*outpoint]
+	m.mtx.Unlock()
 	return ok
 }
 
