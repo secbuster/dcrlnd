@@ -324,15 +324,15 @@ func (c *ChanSeries) FetchChanUpdates(chain chainhash.Hash,
 	chanUpdates := make([]*lnwire.ChannelUpdate, 0, 2)
 	if e1 != nil {
 		chanUpdate := &lnwire.ChannelUpdate{
-			ChainHash:       chanInfo.ChainHash,
-			ShortChannelID:  shortChanID,
-			Timestamp:       uint32(e1.LastUpdate.Unix()),
-			Flags:           e1.Flags,
-			TimeLockDelta:   e1.TimeLockDelta,
-			HtlcMinimumMAtoms:  e1.MinHTLC,
-			BaseFee:         uint32(e1.FeeBaseMAtoms),
-			FeeRate:         uint32(e1.FeeProportionalMillionths),
-			ExtraOpaqueData: e1.ExtraOpaqueData,
+			ChainHash:         chanInfo.ChainHash,
+			ShortChannelID:    shortChanID,
+			Timestamp:         uint32(e1.LastUpdate.Unix()),
+			Flags:             e1.Flags,
+			TimeLockDelta:     e1.TimeLockDelta,
+			HtlcMinimumMAtoms: e1.MinHTLC,
+			BaseFee:           uint32(e1.FeeBaseMAtoms),
+			FeeRate:           uint32(e1.FeeProportionalMillionths),
+			ExtraOpaqueData:   e1.ExtraOpaqueData,
 		}
 		chanUpdate.Signature, err = lnwire.NewSigFromRawSignature(e1.SigBytes)
 		if err != nil {
@@ -343,15 +343,15 @@ func (c *ChanSeries) FetchChanUpdates(chain chainhash.Hash,
 	}
 	if e2 != nil {
 		chanUpdate := &lnwire.ChannelUpdate{
-			ChainHash:       chanInfo.ChainHash,
-			ShortChannelID:  shortChanID,
-			Timestamp:       uint32(e2.LastUpdate.Unix()),
-			Flags:           e2.Flags,
-			TimeLockDelta:   e2.TimeLockDelta,
-			HtlcMinimumMAtoms:  e2.MinHTLC,
-			BaseFee:         uint32(e2.FeeBaseMAtoms),
-			FeeRate:         uint32(e2.FeeProportionalMillionths),
-			ExtraOpaqueData: e2.ExtraOpaqueData,
+			ChainHash:         chanInfo.ChainHash,
+			ShortChannelID:    shortChanID,
+			Timestamp:         uint32(e2.LastUpdate.Unix()),
+			Flags:             e2.Flags,
+			TimeLockDelta:     e2.TimeLockDelta,
+			HtlcMinimumMAtoms: e2.MinHTLC,
+			BaseFee:           uint32(e2.FeeBaseMAtoms),
+			FeeRate:           uint32(e2.FeeProportionalMillionths),
+			ExtraOpaqueData:   e2.ExtraOpaqueData,
 		}
 		chanUpdate.Signature, err = lnwire.NewSigFromRawSignature(e2.SigBytes)
 		if err != nil {

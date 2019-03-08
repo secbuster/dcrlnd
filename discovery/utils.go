@@ -28,8 +28,8 @@ func CreateChanAnnouncement(chanProof *channeldb.ChannelAuthProof,
 		NodeID1:         chanInfo.NodeKey1Bytes,
 		NodeID2:         chanInfo.NodeKey2Bytes,
 		ChainHash:       chanInfo.ChainHash,
-		DecredKey1:     chanInfo.DecredKey1Bytes,
-		DecredKey2:     chanInfo.DecredKey2Bytes,
+		DecredKey1:      chanInfo.DecredKey1Bytes,
+		DecredKey2:      chanInfo.DecredKey2Bytes,
 		Features:        lnwire.NewRawFeatureVector(),
 		ExtraOpaqueData: chanInfo.ExtraOpaqueData,
 	}
@@ -70,15 +70,15 @@ func CreateChanAnnouncement(chanProof *channeldb.ChannelAuthProof,
 	var edge1Ann, edge2Ann *lnwire.ChannelUpdate
 	if e1 != nil {
 		edge1Ann = &lnwire.ChannelUpdate{
-			ChainHash:       chanInfo.ChainHash,
-			ShortChannelID:  chanID,
-			Timestamp:       uint32(e1.LastUpdate.Unix()),
-			Flags:           e1.Flags,
-			TimeLockDelta:   e1.TimeLockDelta,
-			HtlcMinimumMAtoms:  e1.MinHTLC,
-			BaseFee:         uint32(e1.FeeBaseMAtoms),
-			FeeRate:         uint32(e1.FeeProportionalMillionths),
-			ExtraOpaqueData: e1.ExtraOpaqueData,
+			ChainHash:         chanInfo.ChainHash,
+			ShortChannelID:    chanID,
+			Timestamp:         uint32(e1.LastUpdate.Unix()),
+			Flags:             e1.Flags,
+			TimeLockDelta:     e1.TimeLockDelta,
+			HtlcMinimumMAtoms: e1.MinHTLC,
+			BaseFee:           uint32(e1.FeeBaseMAtoms),
+			FeeRate:           uint32(e1.FeeProportionalMillionths),
+			ExtraOpaqueData:   e1.ExtraOpaqueData,
 		}
 		edge1Ann.Signature, err = lnwire.NewSigFromRawSignature(e1.SigBytes)
 		if err != nil {
@@ -87,15 +87,15 @@ func CreateChanAnnouncement(chanProof *channeldb.ChannelAuthProof,
 	}
 	if e2 != nil {
 		edge2Ann = &lnwire.ChannelUpdate{
-			ChainHash:       chanInfo.ChainHash,
-			ShortChannelID:  chanID,
-			Timestamp:       uint32(e2.LastUpdate.Unix()),
-			Flags:           e2.Flags,
-			TimeLockDelta:   e2.TimeLockDelta,
-			HtlcMinimumMAtoms:  e2.MinHTLC,
-			BaseFee:         uint32(e2.FeeBaseMAtoms),
-			FeeRate:         uint32(e2.FeeProportionalMillionths),
-			ExtraOpaqueData: e2.ExtraOpaqueData,
+			ChainHash:         chanInfo.ChainHash,
+			ShortChannelID:    chanID,
+			Timestamp:         uint32(e2.LastUpdate.Unix()),
+			Flags:             e2.Flags,
+			TimeLockDelta:     e2.TimeLockDelta,
+			HtlcMinimumMAtoms: e2.MinHTLC,
+			BaseFee:           uint32(e2.FeeBaseMAtoms),
+			FeeRate:           uint32(e2.FeeProportionalMillionths),
+			ExtraOpaqueData:   e2.ExtraOpaqueData,
 		}
 		edge2Ann.Signature, err = lnwire.NewSigFromRawSignature(e2.SigBytes)
 		if err != nil {

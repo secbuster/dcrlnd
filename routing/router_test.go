@@ -548,13 +548,13 @@ func TestSendPaymentErrorRepeatedFeeInsufficient(t *testing.T) {
 	}
 
 	errChanUpdate := lnwire.ChannelUpdate{
-		ShortChannelID: lnwire.NewShortChanIDFromInt(chanID),
-		Timestamp:      uint32(edgeUpateToFail.LastUpdate.Unix()),
-		Flags:          edgeUpateToFail.Flags,
-		TimeLockDelta:  edgeUpateToFail.TimeLockDelta,
+		ShortChannelID:    lnwire.NewShortChanIDFromInt(chanID),
+		Timestamp:         uint32(edgeUpateToFail.LastUpdate.Unix()),
+		Flags:             edgeUpateToFail.Flags,
+		TimeLockDelta:     edgeUpateToFail.TimeLockDelta,
 		HtlcMinimumMAtoms: edgeUpateToFail.MinHTLC,
-		BaseFee:        uint32(edgeUpateToFail.FeeBaseMAtoms),
-		FeeRate:        uint32(edgeUpateToFail.FeeProportionalMillionths),
+		BaseFee:           uint32(edgeUpateToFail.FeeBaseMAtoms),
+		FeeRate:           uint32(edgeUpateToFail.FeeProportionalMillionths),
 	}
 
 	// The error will be returned by Son Goku.
@@ -654,13 +654,13 @@ func TestSendPaymentErrorNonFinalTimeLockErrors(t *testing.T) {
 	}
 
 	errChanUpdate := lnwire.ChannelUpdate{
-		ShortChannelID: lnwire.NewShortChanIDFromInt(chanID),
-		Timestamp:      uint32(edgeUpateToFail.LastUpdate.Unix()),
-		Flags:          edgeUpateToFail.Flags,
-		TimeLockDelta:  edgeUpateToFail.TimeLockDelta,
+		ShortChannelID:    lnwire.NewShortChanIDFromInt(chanID),
+		Timestamp:         uint32(edgeUpateToFail.LastUpdate.Unix()),
+		Flags:             edgeUpateToFail.Flags,
+		TimeLockDelta:     edgeUpateToFail.TimeLockDelta,
 		HtlcMinimumMAtoms: edgeUpateToFail.MinHTLC,
-		BaseFee:        uint32(edgeUpateToFail.FeeBaseMAtoms),
-		FeeRate:        uint32(edgeUpateToFail.FeeProportionalMillionths),
+		BaseFee:           uint32(edgeUpateToFail.FeeBaseMAtoms),
+		FeeRate:           uint32(edgeUpateToFail.FeeProportionalMillionths),
 	}
 
 	// The error will be returned by Son Goku.
@@ -1075,12 +1075,12 @@ func TestAddEdgeUnknownVertexes(t *testing.T) {
 	ctx.chain.addBlock(fundingBlock, chanID.BlockHeight, chanID.BlockHeight)
 
 	edge := &channeldb.ChannelEdgeInfo{
-		ChannelID:        chanID.ToUint64(),
-		NodeKey1Bytes:    pub1,
-		NodeKey2Bytes:    pub2,
+		ChannelID:       chanID.ToUint64(),
+		NodeKey1Bytes:   pub1,
+		NodeKey2Bytes:   pub2,
 		DecredKey1Bytes: pub1,
 		DecredKey2Bytes: pub2,
-		AuthProof:        nil,
+		AuthProof:       nil,
 	}
 	if err := ctx.router.AddEdge(edge); err != nil {
 		t.Fatalf("expected to be able to add edge to the channel graph,"+
@@ -1095,7 +1095,7 @@ func TestAddEdgeUnknownVertexes(t *testing.T) {
 		LastUpdate:                testTime,
 		TimeLockDelta:             10,
 		MinHTLC:                   1,
-		FeeBaseMAtoms:                10,
+		FeeBaseMAtoms:             10,
 		FeeProportionalMillionths: 10000,
 	}
 	edgePolicy.Flags = 0
@@ -1111,7 +1111,7 @@ func TestAddEdgeUnknownVertexes(t *testing.T) {
 		LastUpdate:                testTime,
 		TimeLockDelta:             10,
 		MinHTLC:                   1,
-		FeeBaseMAtoms:                10,
+		FeeBaseMAtoms:             10,
 		FeeProportionalMillionths: 10000,
 	}
 	edgePolicy.Flags = 1
@@ -1191,7 +1191,7 @@ func TestAddEdgeUnknownVertexes(t *testing.T) {
 		LastUpdate:                testTime,
 		TimeLockDelta:             10,
 		MinHTLC:                   1,
-		FeeBaseMAtoms:                10,
+		FeeBaseMAtoms:             10,
 		FeeProportionalMillionths: 10000,
 	}
 	edgePolicy.Flags = 0
@@ -1206,7 +1206,7 @@ func TestAddEdgeUnknownVertexes(t *testing.T) {
 		LastUpdate:                testTime,
 		TimeLockDelta:             10,
 		MinHTLC:                   1,
-		FeeBaseMAtoms:                10,
+		FeeBaseMAtoms:             10,
 		FeeProportionalMillionths: 10000,
 	}
 	edgePolicy.Flags = 1
@@ -1390,8 +1390,8 @@ func TestWakeUpOnStaleBranch(t *testing.T) {
 		NodeKey1Bytes: node1.PubKeyBytes,
 		NodeKey2Bytes: node2.PubKeyBytes,
 		AuthProof: &channeldb.ChannelAuthProof{
-			NodeSig1Bytes:    testSig.Serialize(),
-			NodeSig2Bytes:    testSig.Serialize(),
+			NodeSig1Bytes:   testSig.Serialize(),
+			NodeSig2Bytes:   testSig.Serialize(),
 			DecredSig1Bytes: testSig.Serialize(),
 			DecredSig2Bytes: testSig.Serialize(),
 		},
@@ -1408,8 +1408,8 @@ func TestWakeUpOnStaleBranch(t *testing.T) {
 		NodeKey1Bytes: node1.PubKeyBytes,
 		NodeKey2Bytes: node2.PubKeyBytes,
 		AuthProof: &channeldb.ChannelAuthProof{
-			NodeSig1Bytes:    testSig.Serialize(),
-			NodeSig2Bytes:    testSig.Serialize(),
+			NodeSig1Bytes:   testSig.Serialize(),
+			NodeSig2Bytes:   testSig.Serialize(),
 			DecredSig1Bytes: testSig.Serialize(),
 			DecredSig2Bytes: testSig.Serialize(),
 		},
@@ -1588,14 +1588,14 @@ func TestDisconnectedBlocks(t *testing.T) {
 	}
 
 	edge1 := &channeldb.ChannelEdgeInfo{
-		ChannelID:        chanID1,
-		NodeKey1Bytes:    node1.PubKeyBytes,
-		NodeKey2Bytes:    node2.PubKeyBytes,
+		ChannelID:       chanID1,
+		NodeKey1Bytes:   node1.PubKeyBytes,
+		NodeKey2Bytes:   node2.PubKeyBytes,
 		DecredKey1Bytes: node1.PubKeyBytes,
 		DecredKey2Bytes: node2.PubKeyBytes,
 		AuthProof: &channeldb.ChannelAuthProof{
-			NodeSig1Bytes:    testSig.Serialize(),
-			NodeSig2Bytes:    testSig.Serialize(),
+			NodeSig1Bytes:   testSig.Serialize(),
+			NodeSig2Bytes:   testSig.Serialize(),
 			DecredSig1Bytes: testSig.Serialize(),
 			DecredSig2Bytes: testSig.Serialize(),
 		},
@@ -1608,14 +1608,14 @@ func TestDisconnectedBlocks(t *testing.T) {
 	}
 
 	edge2 := &channeldb.ChannelEdgeInfo{
-		ChannelID:        chanID2,
-		NodeKey1Bytes:    node1.PubKeyBytes,
-		NodeKey2Bytes:    node2.PubKeyBytes,
+		ChannelID:       chanID2,
+		NodeKey1Bytes:   node1.PubKeyBytes,
+		NodeKey2Bytes:   node2.PubKeyBytes,
 		DecredKey1Bytes: node1.PubKeyBytes,
 		DecredKey2Bytes: node2.PubKeyBytes,
 		AuthProof: &channeldb.ChannelAuthProof{
-			NodeSig1Bytes:    testSig.Serialize(),
-			NodeSig2Bytes:    testSig.Serialize(),
+			NodeSig1Bytes:   testSig.Serialize(),
+			NodeSig2Bytes:   testSig.Serialize(),
 			DecredSig1Bytes: testSig.Serialize(),
 			DecredSig2Bytes: testSig.Serialize(),
 		},
@@ -1736,8 +1736,8 @@ func TestRouterChansClosedOfflinePruneGraph(t *testing.T) {
 		NodeKey1Bytes: node1.PubKeyBytes,
 		NodeKey2Bytes: node2.PubKeyBytes,
 		AuthProof: &channeldb.ChannelAuthProof{
-			NodeSig1Bytes:    testSig.Serialize(),
-			NodeSig2Bytes:    testSig.Serialize(),
+			NodeSig1Bytes:   testSig.Serialize(),
+			NodeSig2Bytes:   testSig.Serialize(),
 			DecredSig1Bytes: testSig.Serialize(),
 			DecredSig2Bytes: testSig.Serialize(),
 		},
@@ -1934,12 +1934,12 @@ func TestIsStaleNode(t *testing.T) {
 	ctx.chain.addBlock(fundingBlock, chanID.BlockHeight, chanID.BlockHeight)
 
 	edge := &channeldb.ChannelEdgeInfo{
-		ChannelID:        chanID.ToUint64(),
-		NodeKey1Bytes:    pub1,
-		NodeKey2Bytes:    pub2,
+		ChannelID:       chanID.ToUint64(),
+		NodeKey1Bytes:   pub1,
+		NodeKey2Bytes:   pub2,
 		DecredKey1Bytes: pub1,
 		DecredKey2Bytes: pub2,
-		AuthProof:        nil,
+		AuthProof:       nil,
 	}
 	if err := ctx.router.AddEdge(edge); err != nil {
 		t.Fatalf("unable to add edge: %v", err)
@@ -2016,12 +2016,12 @@ func TestIsKnownEdge(t *testing.T) {
 	ctx.chain.addBlock(fundingBlock, chanID.BlockHeight, chanID.BlockHeight)
 
 	edge := &channeldb.ChannelEdgeInfo{
-		ChannelID:        chanID.ToUint64(),
-		NodeKey1Bytes:    pub1,
-		NodeKey2Bytes:    pub2,
+		ChannelID:       chanID.ToUint64(),
+		NodeKey1Bytes:   pub1,
+		NodeKey2Bytes:   pub2,
 		DecredKey1Bytes: pub1,
 		DecredKey2Bytes: pub2,
-		AuthProof:        nil,
+		AuthProof:       nil,
 	}
 	if err := ctx.router.AddEdge(edge); err != nil {
 		t.Fatalf("unable to add edge: %v", err)
@@ -2079,12 +2079,12 @@ func TestIsStaleEdgePolicy(t *testing.T) {
 	}
 
 	edge := &channeldb.ChannelEdgeInfo{
-		ChannelID:        chanID.ToUint64(),
-		NodeKey1Bytes:    pub1,
-		NodeKey2Bytes:    pub2,
+		ChannelID:       chanID.ToUint64(),
+		NodeKey1Bytes:   pub1,
+		NodeKey2Bytes:   pub2,
 		DecredKey1Bytes: pub1,
 		DecredKey2Bytes: pub2,
-		AuthProof:        nil,
+		AuthProof:       nil,
 	}
 	if err := ctx.router.AddEdge(edge); err != nil {
 		t.Fatalf("unable to add edge: %v", err)
@@ -2097,7 +2097,7 @@ func TestIsStaleEdgePolicy(t *testing.T) {
 		LastUpdate:                updateTimeStamp,
 		TimeLockDelta:             10,
 		MinHTLC:                   1,
-		FeeBaseMAtoms:                10,
+		FeeBaseMAtoms:             10,
 		FeeProportionalMillionths: 10000,
 	}
 	edgePolicy.Flags = 0
@@ -2111,7 +2111,7 @@ func TestIsStaleEdgePolicy(t *testing.T) {
 		LastUpdate:                updateTimeStamp,
 		TimeLockDelta:             10,
 		MinHTLC:                   1,
-		FeeBaseMAtoms:                10,
+		FeeBaseMAtoms:             10,
 		FeeProportionalMillionths: 10000,
 	}
 	edgePolicy.Flags = 1

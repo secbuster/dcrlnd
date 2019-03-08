@@ -26,8 +26,8 @@ import (
 
 const (
 	// TODO(decred) verify these amounts
-	defaultDecredMinHTLCMAtoms    = lnwire.MilliAtom(1000)
-	defaultDecredBaseFeeMAtoms    = lnwire.MilliAtom(1000)
+	defaultDecredMinHTLCMAtoms = lnwire.MilliAtom(1000)
+	defaultDecredBaseFeeMAtoms = lnwire.MilliAtom(1000)
 	defaultDecredFeeRate       = lnwire.MilliAtom(1)
 	defaultDecredTimeLockDelta = 144
 

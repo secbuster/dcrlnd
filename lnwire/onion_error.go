@@ -619,7 +619,7 @@ func NewAmountBelowMinimum(htlcMAtoms MilliAtom,
 
 	return &FailAmountBelowMinimum{
 		HtlcMAtoms: htlcMAtoms,
-		Update:  update,
+		Update:     update,
 	}
 }
 
@@ -692,7 +692,7 @@ func NewFeeInsufficient(htlcMAtoms MilliAtom,
 	update ChannelUpdate) *FailFeeInsufficient {
 	return &FailFeeInsufficient{
 		HtlcMAtoms: htlcMAtoms,
-		Update:  update,
+		Update:     update,
 	}
 }
 

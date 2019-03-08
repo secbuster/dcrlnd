@@ -204,16 +204,16 @@ func createTestChannelState(cdb *DB) (*OpenChannel, error) {
 	chanID := lnwire.NewShortChanIDFromInt(uint64(rand.Int63()))
 
 	return &OpenChannel{
-		ChanType:         SingleFunder,
-		ChainHash:        key,
-		FundingOutpoint:  wire.OutPoint{Hash: key, Index: rand.Uint32()},
-		ShortChannelID:   chanID,
-		IsInitiator:      true,
-		IsPending:        true,
-		IdentityPub:      pubKey,
-		Capacity:         dcrutil.Amount(10000),
-		LocalChanCfg:     localCfg,
-		RemoteChanCfg:    remoteCfg,
+		ChanType:            SingleFunder,
+		ChainHash:           key,
+		FundingOutpoint:     wire.OutPoint{Hash: key, Index: rand.Uint32()},
+		ShortChannelID:      chanID,
+		IsInitiator:         true,
+		IsPending:           true,
+		IdentityPub:         pubKey,
+		Capacity:            dcrutil.Amount(10000),
+		LocalChanCfg:        localCfg,
+		RemoteChanCfg:       remoteCfg,
 		TotalMAtomsSent:     8,
 		TotalMAtomsReceived: 2,
 		LocalCommitment: ChannelCommitment{

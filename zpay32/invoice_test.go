@@ -52,7 +52,7 @@ var (
 		{
 			NodeID:                    testHopHintPubkey1,
 			ChannelID:                 0x0102030405060708,
-			FeeBaseMAtoms:                0,
+			FeeBaseMAtoms:             0,
 			FeeProportionalMillionths: 20,
 			CLTVExpiryDelta:           3,
 		},
@@ -61,14 +61,14 @@ var (
 		{
 			NodeID:                    testHopHintPubkey1,
 			ChannelID:                 0x0102030405060708,
-			FeeBaseMAtoms:                1,
+			FeeBaseMAtoms:             1,
 			FeeProportionalMillionths: 20,
 			CLTVExpiryDelta:           3,
 		},
 		{
 			NodeID:                    testHopHintPubkey2,
 			ChannelID:                 0x030405060708090a,
-			FeeBaseMAtoms:                2,
+			FeeBaseMAtoms:             2,
 			FeeProportionalMillionths: 30,
 			CLTVExpiryDelta:           4,
 		},

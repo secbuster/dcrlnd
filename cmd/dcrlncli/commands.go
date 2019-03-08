@@ -383,7 +383,7 @@ func sendMany(ctx *cli.Context) error {
 	txid, err := client.SendMany(ctxb, &lnrpc.SendManyRequest{
 		AddrToAmount: amountToAddr,
 		TargetConf:   int32(ctx.Int64("conf_target")),
-		AtomsPerByte:    ctx.Int64("atoms_per_byte"),
+		AtomsPerByte: ctx.Int64("atoms_per_byte"),
 	})
 	if err != nil {
 		return err
@@ -590,7 +590,7 @@ func openChannel(ctx *cli.Context) error {
 
 	req := &lnrpc.OpenChannelRequest{
 		TargetConf:     int32(ctx.Int64("conf_target")),
-		AtomsPerByte:      ctx.Int64("atoms_per_byte"),
+		AtomsPerByte:   ctx.Int64("atoms_per_byte"),
 		MinHtlcMAtoms:  ctx.Int64("min_htlc_m_atoms"),
 		RemoteCsvDelay: uint32(ctx.Uint64("remote_csv_delay")),
 		MinConfs:       int32(ctx.Uint64("min_confs")),
@@ -812,7 +812,7 @@ func closeChannel(ctx *cli.Context) error {
 		ChannelPoint: channelPoint,
 		Force:        ctx.Bool("force"),
 		TargetConf:   int32(ctx.Int64("conf_target")),
-		AtomsPerByte:    ctx.Int64("atoms_per_byte"),
+		AtomsPerByte: ctx.Int64("atoms_per_byte"),
 	}
 
 	// After parsing the request, we'll spin up a goroutine that will

@@ -1392,12 +1392,12 @@ func testUpdateChannelPolicy(net *lntest.NetworkHarness, t *harnessTest) {
 	expectedPolicy = &lnrpc.RoutingPolicy{
 		FeeBaseMAtoms:      baseFee,
 		FeeRateMilliMAtoms: testFeeBase * feeRate,
-		TimeLockDelta:   timeLockDelta,
-		MinHtlc:         defaultMinHtlc,
+		TimeLockDelta:      timeLockDelta,
+		MinHtlc:            defaultMinHtlc,
 	}
 
 	req := &lnrpc.PolicyUpdateRequest{
-		BaseFeeMAtoms:    baseFee,
+		BaseFeeMAtoms: baseFee,
 		FeeRate:       float64(feeRate),
 		TimeLockDelta: timeLockDelta,
 		Scope: &lnrpc.PolicyUpdateRequest_ChanPoint{
@@ -1488,7 +1488,7 @@ func testUpdateChannelPolicy(net *lntest.NetworkHarness, t *harnessTest) {
 	expectedPolicy.TimeLockDelta = timeLockDelta
 
 	req = &lnrpc.PolicyUpdateRequest{
-		BaseFeeMAtoms:    baseFee,
+		BaseFeeMAtoms: baseFee,
 		FeeRate:       float64(feeRate),
 		TimeLockDelta: timeLockDelta,
 	}

@@ -812,11 +812,11 @@ func (n *NetworkHarness) OpenChannel(ctx context.Context,
 	openReq := &lnrpc.OpenChannelRequest{
 		NodePubkey:         destNode.PubKey[:],
 		LocalFundingAmount: int64(p.Amt),
-		PushAtoms:             int64(p.PushAmt),
+		PushAtoms:          int64(p.PushAmt),
 		Private:            p.Private,
 		MinConfs:           minConfs,
 		SpendUnconfirmed:   p.SpendUnconfirmed,
-		MinHtlcMAtoms:         int64(p.MinHtlc),
+		MinHtlcMAtoms:      int64(p.MinHtlc),
 	}
 
 	respStream, err := srcNode.OpenChannel(ctx, openReq)
@@ -875,7 +875,7 @@ func (n *NetworkHarness) OpenPendingChannel(ctx context.Context,
 	openReq := &lnrpc.OpenChannelRequest{
 		NodePubkey:         destNode.PubKey[:],
 		LocalFundingAmount: int64(amt),
-		PushAtoms:             int64(pushAmt),
+		PushAtoms:          int64(pushAmt),
 		Private:            false,
 	}
 

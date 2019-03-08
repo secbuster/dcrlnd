@@ -3061,15 +3061,15 @@ func createChannelUpdate(info *channeldb.ChannelEdgeInfo,
 	policy *channeldb.ChannelEdgePolicy) (*lnwire.ChannelUpdate, error) {
 
 	update := &lnwire.ChannelUpdate{
-		ChainHash:       info.ChainHash,
-		ShortChannelID:  lnwire.NewShortChanIDFromInt(policy.ChannelID),
-		Timestamp:       uint32(policy.LastUpdate.Unix()),
-		Flags:           policy.Flags,
-		TimeLockDelta:   policy.TimeLockDelta,
-		HtlcMinimumMAtoms:  policy.MinHTLC,
-		BaseFee:         uint32(policy.FeeBaseMAtoms),
-		FeeRate:         uint32(policy.FeeProportionalMillionths),
-		ExtraOpaqueData: policy.ExtraOpaqueData,
+		ChainHash:         info.ChainHash,
+		ShortChannelID:    lnwire.NewShortChanIDFromInt(policy.ChannelID),
+		Timestamp:         uint32(policy.LastUpdate.Unix()),
+		Flags:             policy.Flags,
+		TimeLockDelta:     policy.TimeLockDelta,
+		HtlcMinimumMAtoms: policy.MinHTLC,
+		BaseFee:           uint32(policy.FeeBaseMAtoms),
+		FeeRate:           uint32(policy.FeeProportionalMillionths),
+		ExtraOpaqueData:   policy.ExtraOpaqueData,
 	}
 
 	var err error

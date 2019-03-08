@@ -1719,8 +1719,8 @@ func (d *AuthenticatedGossiper) processNetworkAnnouncement(
 			// itself to the database so we can fetch it later when
 			// gossiping with other nodes.
 			proof = &channeldb.ChannelAuthProof{
-				NodeSig1Bytes:    msg.NodeSig1.ToSignatureBytes(),
-				NodeSig2Bytes:    msg.NodeSig2.ToSignatureBytes(),
+				NodeSig1Bytes:   msg.NodeSig1.ToSignatureBytes(),
+				NodeSig2Bytes:   msg.NodeSig2.ToSignatureBytes(),
 				DecredSig1Bytes: msg.DecredSig1.ToSignatureBytes(),
 				DecredSig2Bytes: msg.DecredSig2.ToSignatureBytes(),
 			}
@@ -1736,15 +1736,15 @@ func (d *AuthenticatedGossiper) processNetworkAnnouncement(
 		}
 
 		edge := &channeldb.ChannelEdgeInfo{
-			ChannelID:        msg.ShortChannelID.ToUint64(),
-			ChainHash:        msg.ChainHash,
-			NodeKey1Bytes:    msg.NodeID1,
-			NodeKey2Bytes:    msg.NodeID2,
+			ChannelID:       msg.ShortChannelID.ToUint64(),
+			ChainHash:       msg.ChainHash,
+			NodeKey1Bytes:   msg.NodeID1,
+			NodeKey2Bytes:   msg.NodeID2,
 			DecredKey1Bytes: msg.DecredKey1,
 			DecredKey2Bytes: msg.DecredKey2,
-			AuthProof:        proof,
-			Features:         featureBuf.Bytes(),
-			ExtraOpaqueData:  msg.ExtraOpaqueData,
+			AuthProof:       proof,
+			Features:        featureBuf.Bytes(),
+			ExtraOpaqueData: msg.ExtraOpaqueData,
 		}
 
 		// We will add the edge to the channel router. If the nodes
@@ -2012,7 +2012,7 @@ func (d *AuthenticatedGossiper) processNetworkAnnouncement(
 			Flags:                     msg.Flags,
 			TimeLockDelta:             msg.TimeLockDelta,
 			MinHTLC:                   msg.HtlcMinimumMAtoms,
-			FeeBaseMAtoms:                lnwire.MilliAtom(msg.BaseFee),
+			FeeBaseMAtoms:             lnwire.MilliAtom(msg.BaseFee),
 			FeeProportionalMillionths: lnwire.MilliAtom(msg.FeeRate),
 			ExtraOpaqueData:           msg.ExtraOpaqueData,
 		}
@@ -2514,15 +2514,15 @@ func (d *AuthenticatedGossiper) updateChannel(info *channeldb.ChannelEdgeInfo,
 	}
 	edge.LastUpdate = time.Unix(timestamp, 0)
 	chanUpdate := &lnwire.ChannelUpdate{
-		ChainHash:       info.ChainHash,
-		ShortChannelID:  lnwire.NewShortChanIDFromInt(edge.ChannelID),
-		Timestamp:       uint32(timestamp),
-		Flags:           edge.Flags,
-		TimeLockDelta:   edge.TimeLockDelta,
-		HtlcMinimumMAtoms:  edge.MinHTLC,
-		BaseFee:         uint32(edge.FeeBaseMAtoms),
-		FeeRate:         uint32(edge.FeeProportionalMillionths),
-		ExtraOpaqueData: edge.ExtraOpaqueData,
+		ChainHash:         info.ChainHash,
+		ShortChannelID:    lnwire.NewShortChanIDFromInt(edge.ChannelID),
+		Timestamp:         uint32(timestamp),
+		Flags:             edge.Flags,
+		TimeLockDelta:     edge.TimeLockDelta,
+		HtlcMinimumMAtoms: edge.MinHTLC,
+		BaseFee:           uint32(edge.FeeBaseMAtoms),
+		FeeRate:           uint32(edge.FeeProportionalMillionths),
+		ExtraOpaqueData:   edge.ExtraOpaqueData,
 	}
 	chanUpdate.Signature, err = lnwire.NewSigFromRawSignature(edge.SigBytes)
 	if err != nil {
@@ -2568,9 +2568,9 @@ func (d *AuthenticatedGossiper) updateChannel(info *channeldb.ChannelEdgeInfo,
 			NodeID1:         info.NodeKey1Bytes,
 			NodeID2:         info.NodeKey2Bytes,
 			ChainHash:       info.ChainHash,
-			DecredKey1:     info.DecredKey1Bytes,
+			DecredKey1:      info.DecredKey1Bytes,
 			Features:        lnwire.NewRawFeatureVector(),
-			DecredKey2:     info.DecredKey2Bytes,
+			DecredKey2:      info.DecredKey2Bytes,
 			ExtraOpaqueData: edge.ExtraOpaqueData,
 		}
 		chanAnn.NodeSig1, err = lnwire.NewSigFromRawSignature(

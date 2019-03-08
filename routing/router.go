@@ -2073,7 +2073,7 @@ func (r *ChannelRouter) applyChannelUpdate(msg *lnwire.ChannelUpdate,
 		Flags:                     msg.Flags,
 		TimeLockDelta:             msg.TimeLockDelta,
 		MinHTLC:                   msg.HtlcMinimumMAtoms,
-		FeeBaseMAtoms:                lnwire.MilliAtom(msg.BaseFee),
+		FeeBaseMAtoms:             lnwire.MilliAtom(msg.BaseFee),
 		FeeProportionalMillionths: lnwire.MilliAtom(msg.FeeRate),
 	})
 	if err != nil && !IsError(err, ErrIgnored, ErrOutdated) {
