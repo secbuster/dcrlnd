@@ -1066,9 +1066,9 @@ out:
 
 // checkChannelPolicy checks that the policy matches the expected one.
 func checkChannelPolicy(policy, expectedPolicy *lnrpc.RoutingPolicy) error {
-	if policy.FeeBaseMat != expectedPolicy.FeeBaseMAtoms {
+	if policy.FeeBaseMAtoms != expectedPolicy.FeeBaseMAtoms {
 		return fmt.Errorf("expected base fee %v, got %v",
-			expectedPolicy.FeeBaseMAtoms, policy.FeeBaseMat)
+			expectedPolicy.FeeBaseMAtoms, policy.FeeBaseMAtoms)
 	}
 	if policy.FeeRateMilliMAtoms != expectedPolicy.FeeRateMilliMAtoms {
 		return fmt.Errorf("expected fee rate %v, got %v",
@@ -1132,8 +1132,8 @@ func testUpdateChannelPolicy(net *lntest.NetworkHarness, t *harnessTest) {
 	// Alice and Bob should see each other's ChannelUpdates, advertising the
 	// default routing policies.
 	expectedPolicy := &lnrpc.RoutingPolicy{
-		FeeBaseMatoms:      defaultFeeBase,
-		FeeRateMilliMatoms: defaultFeeRate,
+		FeeBaseMAtoms:      defaultFeeBase,
+		FeeRateMilliMAtoms: defaultFeeRate,
 		TimeLockDelta:      defaultTimeLockDelta,
 		MinHtlc:            defaultMinHtlc,
 	}
@@ -1344,7 +1344,7 @@ func testUpdateChannelPolicy(net *lntest.NetworkHarness, t *harnessTest) {
 	// Expected as part of the error message.
 	substrs := []string{
 		"AmountBelowMinimum",
-		"HtlcMinimumMat: (lnwire.MilliAtom) 5000 milli-atoms",
+		"HtlcMinimumMAtoms: (lnwire.MilliAtom) 5000 milli-atoms",
 	}
 	for _, s := range substrs {
 		if !strings.Contains(sendResp.PaymentError, s) {
@@ -1358,9 +1358,9 @@ func testUpdateChannelPolicy(net *lntest.NetworkHarness, t *harnessTest) {
 	amtAtoms = int64(payAmt)
 	amtMAtoms = int64(lnwire.NewMAtomsFromAtoms(payAmt))
 	routes.Routes[0].Hops[0].AmtToForward = amtAtoms
-	routes.Routes[0].Hops[0].AmtToForwardMat = amtMAtoms
+	routes.Routes[0].Hops[0].AmtToForwardMAtoms = amtMAtoms
 	routes.Routes[0].Hops[1].AmtToForward = amtAtoms
-	routes.Routes[0].Hops[1].AmtToForwardMat = amtMAtoms
+	routes.Routes[0].Hops[1].AmtToForwardMAtoms = amtMAtoms
 
 	sendReq = &lnrpc.SendToRouteRequest{
 		PaymentHash: resp.RHash,
@@ -1390,14 +1390,14 @@ func testUpdateChannelPolicy(net *lntest.NetworkHarness, t *harnessTest) {
 	timeLockDelta := uint32(66)
 
 	expectedPolicy = &lnrpc.RoutingPolicy{
-		FeeBaseMat:      baseFee,
-		FeeRateMilliMat: testFeeBase * feeRate,
+		FeeBaseMAtoms:      baseFee,
+		FeeRateMilliMAtoms: testFeeBase * feeRate,
 		TimeLockDelta:   timeLockDelta,
 		MinHtlc:         defaultMinHtlc,
 	}
 
 	req := &lnrpc.PolicyUpdateRequest{
-		BaseFeeMat:    baseFee,
+		BaseFeeMAtoms:    baseFee,
 		FeeRate:       float64(feeRate),
 		TimeLockDelta: timeLockDelta,
 		Scope: &lnrpc.PolicyUpdateRequest_ChanPoint{
@@ -1483,12 +1483,12 @@ func testUpdateChannelPolicy(net *lntest.NetworkHarness, t *harnessTest) {
 	feeRate = int64(123)
 	timeLockDelta = uint32(22)
 
-	expectedPolicy.FeeBaseMat = baseFee
-	expectedPolicy.FeeRateMilliMat = testFeeBase * feeRate
+	expectedPolicy.FeeBaseMAtoms = baseFee
+	expectedPolicy.FeeRateMilliMAtoms = testFeeBase * feeRate
 	expectedPolicy.TimeLockDelta = timeLockDelta
 
 	req = &lnrpc.PolicyUpdateRequest{
-		BaseFeeMat:    baseFee,
+		BaseFeeMAtoms:    baseFee,
 		FeeRate:       float64(feeRate),
 		TimeLockDelta: timeLockDelta,
 	}
@@ -3040,7 +3040,7 @@ func testSphinxReplayPersistence(net *lntest.NetworkHarness, t *harnessTest) {
 		if err != nil {
 			t.Fatalf("unable to query for alice's channel list: %v", err)
 		}
-		carolSatoshisSent := carolListChannels.Channels[0].TotalSatoshisSent
+		carolSatoshisSent := carolListChannels.Channels[0].TotalAtomsSent
 		if carolSatoshisSent != int64(amt) {
 			t.Fatalf("Carol's atoms sent is incorrect got %v, expected %v",
 				carolSatoshisSent, amt)
@@ -3051,7 +3051,7 @@ func testSphinxReplayPersistence(net *lntest.NetworkHarness, t *harnessTest) {
 		if err != nil {
 			t.Fatalf("unable to query for Dave's channel list: %v", err)
 		}
-		daveSatoshisReceived := daveListChannels.Channels[0].TotalSatoshisReceived
+		daveSatoshisReceived := daveListChannels.Channels[0].TotalAtomsReceived
 		if daveSatoshisReceived != int64(amt) {
 			t.Fatalf("Dave's atoms received is incorrect got %v, expected %v",
 				daveSatoshisReceived, amt)
@@ -3187,7 +3187,7 @@ func testSingleHopInvoice(net *lntest.NetworkHarness, t *harnessTest) {
 		if err != nil {
 			t.Fatalf("unable to query for alice's channel list: %v", err)
 		}
-		aliceSatoshisSent := aliceListChannels.Channels[0].TotalSatoshisSent
+		aliceSatoshisSent := aliceListChannels.Channels[0].TotalAtomsSent
 		if aliceSatoshisSent != int64(amt) {
 			t.Fatalf("Alice's atoms sent is incorrect got %v, expected %v",
 				aliceSatoshisSent, amt)
@@ -3198,7 +3198,7 @@ func testSingleHopInvoice(net *lntest.NetworkHarness, t *harnessTest) {
 		if err != nil {
 			t.Fatalf("unable to query for bob's channel list: %v", err)
 		}
-		bobSatoshisReceived := bobListChannels.Channels[0].TotalSatoshisReceived
+		bobSatoshisReceived := bobListChannels.Channels[0].TotalAtomsReceived
 		if bobSatoshisReceived != int64(amt) {
 			t.Fatalf("Bob's atoms received is incorrect got %v, expected %v",
 				bobSatoshisReceived, amt)
@@ -3473,18 +3473,18 @@ func assertAmountPaid(t *harnessTest, channelName string,
 				continue
 			}
 
-			if channel.TotalSatoshisSent != amountSent {
+			if channel.TotalAtomsSent != amountSent {
 				return fmt.Errorf("%v: incorrect amount"+
 					" sent: %v != %v", channelName,
-					channel.TotalSatoshisSent,
+					channel.TotalAtomsSent,
 					amountSent)
 			}
-			if channel.TotalSatoshisReceived !=
+			if channel.TotalAtomsReceived !=
 				amountReceived {
 				return fmt.Errorf("%v: incorrect amount"+
 					" received: %v != %v",
 					channelName,
-					channel.TotalSatoshisReceived,
+					channel.TotalAtomsReceived,
 					amountReceived)
 			}
 
