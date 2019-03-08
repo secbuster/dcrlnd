@@ -192,6 +192,9 @@ func newPkScript(t *testing.T, w *lnwallet.LightningWallet,
 		t.Fatalf("unable to create output script: %v", err)
 	}
 
+	// Wait for the wallet's address manager to close (see dcrwallet#1372).
+	time.Sleep(time.Millisecond * 50)
+
 	return pkScript
 }
 
@@ -291,20 +294,29 @@ func loadTestCredits(miner *rpctest.Harness, w *lnwallet.LightningWallet,
 		return err
 	}
 	expectedBalance += dcrutil.Amount(int64(atomsPerOutput) * int64(numOutputs))
-	addrs := make([]dcrutil.Address, 0, numOutputs)
+	addrs := make([]dcrutil.Address, numOutputs)
 	for i := 0; i < numOutputs; i++ {
 		// Grab a fresh address from the wallet to house this output.
-		walletAddr, err := w.NewAddress(lnwallet.PubKeyHash, false)
+		addrs[i], err = w.NewAddress(lnwallet.PubKeyHash, false)
 		if err != nil {
 			return err
 		}
+	}
 
+	// Sleep for a bit to allow the wallet to unlock the mutexes of the address
+	// manager and underlying database. This is needed to prevent a possible
+	// deadlock condition in the wallet when generating new addresses while
+	// processing a transaction (see
+	// https://github.com/decred/dcrwallet/issues/1372). This isn't pretty, but
+	// 50ms should be more than enough to prevent triggering this bug on most
+	// dev machines.
+	time.Sleep(time.Millisecond * 50)
+
+	for _, walletAddr := range addrs {
 		script, err := txscript.PayToAddrScript(walletAddr)
 		if err != nil {
 			return err
 		}
-
-		addrs = append(addrs, walletAddr)
 
 		output := &wire.TxOut{
 			Value:    int64(atomsPerOutput),
@@ -314,15 +326,6 @@ func loadTestCredits(miner *rpctest.Harness, w *lnwallet.LightningWallet,
 		if _, err := miner.SendOutputs([]*wire.TxOut{output}, 1e5); err != nil {
 			return err
 		}
-
-		// Sleep for a bit to allow the wallet to receive and process the
-		// transaction. This is needed to prevent a possible deadlock condition
-		// in the wallet when generating new addresses while processing a
-		// transaction (see https://github.com/decred/dcrwallet/issues/1372).
-		// This isn't pretty, and the correct thing would be to wait until the
-		// transaction shows up from the wallet, but IME, 50ms should be more
-		// than enough to prevent triggering this bug on most dev machines.
-		time.Sleep(time.Millisecond * 50)
 	}
 
 	// TODO(roasbeef): shouldn't hardcode 10, use config param that dictates
@@ -1099,13 +1102,21 @@ func testListTransactionDetails(miner *rpctest.Harness,
 	// Create 5 new outputs spendable by the wallet.
 	const numTxns = 5
 	const outputAmt = dcrutil.AtomsPerCoin
-	txids := make(map[chainhash.Hash]struct{})
+	var err error
+	addrs := make([]dcrutil.Address, numTxns)
 	for i := 0; i < numTxns; i++ {
-		addr, err := alice.NewAddress(lnwallet.PubKeyHash, false)
+		addrs[i], err = alice.NewAddress(lnwallet.PubKeyHash, false)
 		if err != nil {
 			t.Fatalf("unable to create new address: %v", err)
 		}
-		script, err := txscript.PayToAddrScript(addr)
+	}
+
+	// Let the wallet close the address manager (see issue dcrwallet#1372).
+	time.Sleep(time.Millisecond * 50)
+
+	txids := make(map[chainhash.Hash]struct{})
+	for i := 0; i < numTxns; i++ {
+		script, err := txscript.PayToAddrScript(addrs[i])
 		if err != nil {
 			t.Fatalf("unable to create output script: %v", err)
 		}
@@ -1357,12 +1368,20 @@ func testTransactionSubscriptions(miner *rpctest.Harness,
 
 	// Next, fetch a fresh address from the wallet, create 3 new outputs
 	// with the pkScript.
+	addrs := make([]dcrutil.Address, numTxns)
 	for i := 0; i < numTxns; i++ {
-		addr, err := alice.NewAddress(lnwallet.PubKeyHash, false)
+		addrs[i], err = alice.NewAddress(lnwallet.PubKeyHash, false)
 		if err != nil {
 			t.Fatalf("unable to create new address: %v", err)
 		}
-		script, err := txscript.PayToAddrScript(addr)
+	}
+
+	// Sleep to allow the wallet's address manager to close (see issue
+	// dcrwallet#1372).
+	time.Sleep(time.Millisecond * 50)
+
+	for i := 0; i < numTxns; i++ {
+		script, err := txscript.PayToAddrScript(addrs[i])
 		if err != nil {
 			t.Fatalf("unable to create output script: %v", err)
 		}
