@@ -82,5 +82,5 @@ replace (
 	github.com/decred/dcrd/connmgr => github.com/decred/dcrd/connmgr v0.0.0-20190306151227-8cbb5ae69df7
 
 	github.com/decred/dcrwallet => github.com/matheusd/dcrwallet v0.0.0-20190225211924-3a618c61edb8
-	github.com/decred/dcrwallet/wallet/v2 => github.com/matheusd/dcrwallet/wallet/v2 v2.0.0-20190225211924-3a618c61edb8
+	github.com/decred/dcrwallet/wallet/v2 => github.com/matheusd/dcrwallet/wallet/v2 v2.0.0-20190311091118-5682704f0912
 )
