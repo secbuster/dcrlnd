@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"sync"
 	"sync/atomic"
 
 	"encoding/hex"
@@ -924,6 +925,118 @@ func testUnconfirmedChannelFunding(net *lntest.NetworkHarness, t *harnessTest) {
 	// Now that we're done with the test, the channel can be closed.
 	ctxt, _ = context.WithTimeout(ctxb, channelCloseTimeout)
 	closeChannelAndAssert(ctxt, t, net, carol, chanPoint, false)
+}
+
+// testConcurrentNodeConnection tests whether we can repeatedly connect and
+// disconnect two nodes and that trying to connect "at the same time" will not
+// cause problems.
+//
+// "At the same time" is used in scare quotes, since at the level of abstraction
+// used in these tests it's not possible to really enforce that the connection
+// attempts are sent in any specific order or parallelism. So we resort to doing
+// a number of repeated number of trial runs, with as much concurrency as
+// possible.
+func testConcurrentNodeConnection(net *lntest.NetworkHarness, t *harnessTest) {
+	ctxb := context.Background()
+
+	// Create two new nodes: Carol and Dave
+	carol, err := net.NewNode("Carol", nil)
+	if err != nil {
+		t.Fatalf("unable to create new nodes: %v", err)
+	}
+	defer shutdownAndAssert(net, t, carol)
+
+	dave, err := net.NewNode("Dave", nil)
+	if err != nil {
+		t.Fatalf("unable to create new nodes: %v", err)
+	}
+	defer shutdownAndAssert(net, t, carol)
+
+	carolToDaveReq := &lnrpc.ConnectPeerRequest{
+		Addr: &lnrpc.LightningAddress{
+			Pubkey: dave.PubKeyStr,
+			Host:   dave.P2PAddr(),
+		},
+		Perm: false,
+	}
+
+	daveToCarolReq := &lnrpc.ConnectPeerRequest{
+		Addr: &lnrpc.LightningAddress{
+			Pubkey: carol.PubKeyStr,
+			Host:   carol.P2PAddr(),
+		},
+		Perm: false,
+	}
+
+	connect := func(node *lntest.HarnessNode, req *lnrpc.ConnectPeerRequest, wg *sync.WaitGroup) error {
+		_, err := node.ConnectPeer(ctxb, req)
+		wg.Done()
+		return err
+	}
+
+	// Perform a number of trial runs in sequence, so we have some reasonable
+	// chance actually performing connections "at the same time".
+	nbAttempts := 10
+	for i := 0; i < nbAttempts; i++ {
+		// Sanity check that neither node has a connection.
+		assertNumConnections(t, carol, dave, 0)
+
+		logLine := fmt.Sprintf("=== %s: Starting connection iteration %d\n",
+			time.Now(), i)
+		dave.AddToLog(logLine)
+		carol.AddToLog(logLine)
+
+		var carolReply, daveReply error
+		wg := new(sync.WaitGroup)
+
+		// Start two go routines which will try to connect "at the same time".
+		wg.Add(2)
+		go func() { carolReply = connect(carol, carolToDaveReq, wg) }()
+		go func() { daveReply = connect(dave, daveToCarolReq, wg) }()
+
+		wgWaitChan := make(chan struct{})
+		go func() {
+			wg.Wait()
+			close(wgWaitChan)
+		}()
+
+		select {
+		case <-wgWaitChan:
+			if carolReply != nil && daveReply != nil {
+				// Depending on exact timings, one of the replies might fail
+				// due to the nodes already being connected, but not both.
+				t.Fatalf("Both replies should not error out")
+			}
+		case <-time.After(15 * time.Second):
+			t.Fatalf("Timeout while waiting for connection reply")
+		}
+
+		// Give the nodes time to settle their connections and background
+		// processes.
+		time.Sleep(100 * time.Millisecond)
+
+		logLine = fmt.Sprintf("=== %s: Connections requests sent. Will check on status\n",
+			time.Now())
+		dave.AddToLog(logLine)
+		carol.AddToLog(logLine)
+
+		// Sanity check connection number.
+		assertNumConnections(t, carol, dave, 1)
+
+		// Check whether the connection was made carol -> dave or dave -> carol.
+		// The assert above ensures we can safely access carolsPeers[0].
+		carolPeers, err := carol.ListPeers(ctxb, &lnrpc.ListPeersRequest{})
+		if err != nil {
+			t.Fatalf("unable to fetch carol's peers %v", err)
+		}
+		if !carolPeers.Peers[0].Inbound {
+			// Connection was made in the carol -> dave direction.
+			net.DisconnectNodes(ctxb, carol, dave)
+		} else {
+			// Connection was made in the carol <- dave direction.
+			net.DisconnectNodes(ctxb, dave, carol)
+		}
+	}
 }
 
 // txStr returns the string representation of the channel's funding transaction.
@@ -12557,6 +12670,10 @@ var testsCases = []*testCase{
 	// 	name: "onchain fund recovery",
 	// 	test: testOnchainFundRecovery,
 	// },
+	{
+		name: "test concurrent node connection",
+		test: testConcurrentNodeConnection,
+	},
 	{
 		name: "basic funding flow",
 		test: testBasicChannelFunding,

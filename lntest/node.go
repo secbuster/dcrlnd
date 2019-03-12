@@ -619,6 +619,11 @@ func (hn *HarnessNode) shutdown() error {
 	return nil
 }
 
+// P2PAddr returns the configured P2P address for the node.
+func (hn *HarnessNode) P2PAddr() string {
+	return hn.cfg.P2PAddr()
+}
+
 // closeChanWatchRequest is a request to the lightningNetworkWatcher to be
 // notified once it's detected within the test Lightning Network, that a
 // channel has either been added or closed.
