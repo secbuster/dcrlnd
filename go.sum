@@ -357,6 +357,8 @@ github.com/matheusd/dcrd/dcrutil v0.0.0-20190307112912-9da5a1dfb89c h1:pLXluBpAL
 github.com/matheusd/dcrd/dcrutil v0.0.0-20190307112912-9da5a1dfb89c/go.mod h1:XQJokgSLrxb40Ov1d1vBbiMpE1rCFwcTDMfRT0MA/is=
 github.com/matheusd/dcrwallet v0.0.0-20190225211924-3a618c61edb8 h1:2gZgYBn8WVM2ZXubsLLC2T3RIhKjySXF4koXEp1NnyM=
 github.com/matheusd/dcrwallet v0.0.0-20190225211924-3a618c61edb8/go.mod h1:I6oyAiLa7VpQuNnU25eYZkVC4IWhUhwPacXnX9A8esI=
+github.com/matheusd/dcrwallet v0.0.0-20190313115339-2fc7bea70354 h1:7IRFBabL9WSCEgTmZDJkLf2WzXLjmTg49LCcCbWPBXI=
+github.com/matheusd/dcrwallet v0.0.0-20190313115339-2fc7bea70354/go.mod h1:XzKvnKRXVKFIp6lLE4s4Vhaalg5wSEo6UuIRk7iaJss=
 github.com/matheusd/dcrwallet/chain/v2 v2.0.0-20190225211924-3a618c61edb8 h1:oXYwK9q0wklm2oDdfjebFjOTl86lFPJQOT6MouyBDpQ=
 github.com/matheusd/dcrwallet/chain/v2 v2.0.0-20190225211924-3a618c61edb8/go.mod h1:xWVdMP0lbZbArXa56NsxPXYScjQ47VSQA6FWrRkZcHE=
 github.com/matheusd/dcrwallet/wallet v0.0.0-20190115143705-93473c7512c8 h1:I93r09sXRi8wkgPAre5RgglzRyTXLtgq4aE/k30E3T8=
@@ -365,6 +367,8 @@ github.com/matheusd/dcrwallet/wallet/v2 v2.0.0-20190225211924-3a618c61edb8 h1:kX
 github.com/matheusd/dcrwallet/wallet/v2 v2.0.0-20190225211924-3a618c61edb8/go.mod h1:/nNjau7GMVEfduKPRwEt0aCGBvriVsslFaMAsdl8m5Q=
 github.com/matheusd/dcrwallet/wallet/v2 v2.0.0-20190311091118-5682704f0912 h1:XIPyq5tqpk8rZ+yxIdOtaUMq11rhcF++f04Mi2MFVHY=
 github.com/matheusd/dcrwallet/wallet/v2 v2.0.0-20190311091118-5682704f0912/go.mod h1:/nNjau7GMVEfduKPRwEt0aCGBvriVsslFaMAsdl8m5Q=
+github.com/matheusd/dcrwallet/wallet/v2 v2.0.0-20190313115339-2fc7bea70354 h1:0F+b0ZqbNI7MyV7fwaaRNCfDRHmEsy3dbEuf8yxB7tY=
+github.com/matheusd/dcrwallet/wallet/v2 v2.0.0-20190313115339-2fc7bea70354/go.mod h1:/nNjau7GMVEfduKPRwEt0aCGBvriVsslFaMAsdl8m5Q=
 github.com/miekg/dns v0.0.0-20171125082028-79bfde677fa8 h1:PRMAcldsl4mXKJeRNB/KVNz6TlbS6hk2Rs42PqgU3Ws=
 github.com/miekg/dns v0.0.0-20171125082028-79bfde677fa8/go.mod h1:W1PPwlIAgtquWBMBEV9nkV9Cazfe8ScdGz/Lj7v3Nrg=
 github.com/miekg/dns v1.1.3 h1:1g0r1IvskvgL8rR+AcHzUA+oFmGcQlaIm4IqakufeMM=
