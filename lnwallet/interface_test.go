@@ -1534,7 +1534,7 @@ func testPublishTransaction(r *rpctest.Harness,
 	}
 	pubkeyHash := dcrutil.Hash160(pubKey.PubKey.SerializeCompressed())
 	keyAddr, err := dcrutil.NewAddressPubKeyHash(pubkeyHash,
-		&chaincfg.RegNetParams, dcrec.STEcdsaSecp256k1)
+		netParams, dcrec.STEcdsaSecp256k1)
 	if err != nil {
 		t.Fatalf("unable to create addr: %v", err)
 	}
@@ -1551,7 +1551,7 @@ func testPublishTransaction(r *rpctest.Harness,
 		// Create a script to pay to.
 		payToPubkeyHash := dcrutil.Hash160(payToPubKey.SerializeCompressed())
 		payToKeyAddr, err := dcrutil.NewAddressPubKeyHash(payToPubkeyHash,
-			&chaincfg.RegNetParams, dcrec.STEcdsaSecp256k1)
+			netParams, dcrec.STEcdsaSecp256k1)
 		if err != nil {
 			t.Fatalf("unable to create addr: %v", err)
 		}
