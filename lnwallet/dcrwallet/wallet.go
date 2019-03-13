@@ -370,6 +370,10 @@ func (b *DcrWallet) PublishTransaction(tx *wire.MsgTx) error {
 			// consider this an error.
 			return nil
 		}
+		if strings.Contains(err.Error(), "by double spending") {
+			// Output was already spent.
+			return lnwallet.ErrDoubleSpend
+		}
 		if strings.Contains(err.Error(), "already spent") {
 			// Output was already spent.
 			return lnwallet.ErrDoubleSpend
