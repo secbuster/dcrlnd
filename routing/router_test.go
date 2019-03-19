@@ -17,7 +17,7 @@ import (
 	"github.com/decred/dcrlnd/htlcswitch"
 	"github.com/decred/dcrlnd/lnwire"
 
-	sphinx "github.com/lightningnetwork/lightning-onion" // TODO(decred): ok?
+	sphinx "github.com/decred/lightning-onion"
 )
 
 // defaultNumRoutes is the default value for the maximum number of routes to

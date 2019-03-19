@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/decred/dcrlnd/chainntnfs"
-	"github.com/lightningnetwork/lightning-onion" // TODO(decred): ok?
+	"github.com/decred/lightning-onion"
 )
 
 const (

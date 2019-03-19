@@ -10,7 +10,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/btcsuite/btcd/btcec"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrd/wire"
@@ -24,8 +23,8 @@ import (
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/routing/chainview"
 
+	sphinx "github.com/decred/lightning-onion"
 	"github.com/go-errors/errors"
-	sphinx "github.com/lightningnetwork/lightning-onion" // TODO(decred): ok?
 )
 
 const (
@@ -1512,9 +1511,9 @@ func generateSphinxPacket(route *Route, paymentHash []byte) ([]byte,
 
 	// First obtain all the public keys along the route which are contained
 	// in each hop.
-	nodes := make([]*btcec.PublicKey, len(route.Hops))
+	nodes := make([]*secp256k1.PublicKey, len(route.Hops))
 	for i, hop := range route.Hops {
-		pub, err := btcec.ParsePubKey(hop.PubKeyBytes[:], btcec.S256())
+		pub, err := secp256k1.ParsePubKey(hop.PubKeyBytes[:])
 		if err != nil {
 			return nil, nil, err
 		}
@@ -1533,7 +1532,7 @@ func generateSphinxPacket(route *Route, paymentHash []byte) ([]byte,
 		}),
 	)
 
-	sessionKey, err := btcec.NewPrivateKey(btcec.S256())
+	sessionKey, err := secp256k1.GeneratePrivateKey()
 	if err != nil {
 		return nil, nil, err
 	}

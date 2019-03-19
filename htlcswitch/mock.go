@@ -24,8 +24,8 @@ import (
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/ticker"
+	"github.com/decred/lightning-onion"
 	"github.com/go-errors/errors"
-	"github.com/lightningnetwork/lightning-onion" // TODO(decred): ok?
 )
 
 type mockPreimageCache struct {

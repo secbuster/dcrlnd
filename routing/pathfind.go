@@ -11,7 +11,7 @@ import (
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/lnwire"
-	sphinx "github.com/lightningnetwork/lightning-onion" // TODO(decred): ok?
+	sphinx "github.com/decred/lightning-onion"
 	bolt "go.etcd.io/bbolt"
 )
 

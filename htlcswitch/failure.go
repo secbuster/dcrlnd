@@ -7,7 +7,7 @@ import (
 
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrlnd/lnwire"
-	"github.com/lightningnetwork/lightning-onion" // TODO(decred): ok?
+	"github.com/decred/lightning-onion"
 )
 
 // ForwardingError wraps an lnwire.FailureMessage in a struct that also

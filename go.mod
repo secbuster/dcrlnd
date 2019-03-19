@@ -5,7 +5,6 @@ require (
 	github.com/NebulousLabs/go-upnp v0.0.0-20181203152547-b32978b8ccbf
 	github.com/Roasbeef/btcutil v0.0.0-20180406014609-dfb640c57141 // indirect
 	github.com/Yawning/aez v0.0.0-20180408160647-ec7426b44926
-	github.com/aead/chacha20 v0.0.0-20180709150244-8b13a72661da // indirect
 	github.com/awalterschulze/gographviz v0.0.0-20181013152038-b2885df04310
 	github.com/btcsuite/btcd v0.0.0-20190109040709-5bda5314ca95
 	github.com/btcsuite/btcutil v0.0.0-20190112041146-bf1e1be93589
@@ -33,6 +32,7 @@ require (
 	github.com/decred/dcrwallet/errors v1.0.1
 	github.com/decred/dcrwallet/ticketbuyer v1.0.2 // indirect
 	github.com/decred/dcrwallet/wallet/v2 v2.0.0
+	github.com/decred/lightning-onion v1.0.0
 	github.com/decred/lnd v0.2.1-alpha
 	github.com/decred/slog v1.0.0
 	github.com/go-errors/errors v1.0.1
@@ -83,4 +83,6 @@ replace (
 
 	github.com/decred/dcrwallet => github.com/matheusd/dcrwallet v0.0.0-20190313115339-2fc7bea70354
 	github.com/decred/dcrwallet/wallet/v2 => github.com/matheusd/dcrwallet/wallet/v2 v2.0.0-20190313115339-2fc7bea70354
+
+	github.com/decred/lightning-onion => github.com/decred/lightning-onion v0.0.0-20190321210301-95556fb4cc37
 )

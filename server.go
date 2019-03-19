@@ -17,8 +17,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/btcsuite/btcd/btcec"
-	bitcoinCfg "github.com/btcsuite/btcd/chaincfg"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/connmgr"
 	"github.com/decred/dcrd/dcrec/secp256k1"
@@ -42,8 +40,8 @@ import (
 	"github.com/decred/dcrlnd/sweep"
 	"github.com/decred/dcrlnd/ticker"
 	"github.com/decred/dcrlnd/tor"
+	sphinx "github.com/decred/lightning-onion"
 	"github.com/go-errors/errors"
-	sphinx "github.com/lightningnetwork/lightning-onion" // TODO(decred): ok?
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -260,12 +258,7 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB, cc *chainControl,
 	sharedSecretPath := filepath.Join(graphDir, "sphinxreplay.db")
 	replayLog := htlcswitch.NewDecayedLog(sharedSecretPath, cc.chainNotifier)
 
-	// TODO(decred) fix this. The main problem is the activeNetParams.
-	//sphinxRouter := sphinx.NewRouter(privKey, activeNetParams.Params, replayLog)
-	btcecPrivKey := &btcec.PrivateKey{PublicKey: privKey.PublicKey, D: privKey.D}
-	sphinxRouter := sphinx.NewRouter(
-		btcecPrivKey, &bitcoinCfg.MainNetParams, replayLog,
-	)
+	sphinxRouter := sphinx.NewRouter(privKey, activeNetParams.Params, replayLog)
 
 	s := &server{
 		chanDB:  chanDB,
