@@ -3,23 +3,18 @@ module github.com/decred/dcrlnd
 require (
 	git.schwanenlied.me/yawning/bsaes.git v0.0.0-20180720073208-c0276d75487e // indirect
 	github.com/NebulousLabs/go-upnp v0.0.0-20181203152547-b32978b8ccbf
-	github.com/Roasbeef/btcutil v0.0.0-20180406014609-dfb640c57141 // indirect
 	github.com/Yawning/aez v0.0.0-20180408160647-ec7426b44926
-	github.com/awalterschulze/gographviz v0.0.0-20181013152038-b2885df04310
-	github.com/btcsuite/btcd v0.0.0-20190109040709-5bda5314ca95
-	github.com/btcsuite/btcutil v0.0.0-20190112041146-bf1e1be93589
-	github.com/coreos/bbolt v1.3.0
 	github.com/davecgh/go-spew v1.1.1
 	github.com/decred/dcrd v1.3.0
 	github.com/decred/dcrd/bech32 v1.0.0
 	github.com/decred/dcrd/blockchain v1.1.1
 	github.com/decred/dcrd/blockchain/stake v1.1.0
-	github.com/decred/dcrd/certgen v1.0.2
 	github.com/decred/dcrd/chaincfg v1.3.0
 	github.com/decred/dcrd/chaincfg/chainhash v1.0.1
 	github.com/decred/dcrd/connmgr v1.0.2
 	github.com/decred/dcrd/dcrec v0.0.0-20190214012338-9265b4051009
 	github.com/decred/dcrd/dcrec/secp256k1 v1.0.1
+	github.com/decred/dcrd/dcrjson v1.1.0 // indirect
 	github.com/decred/dcrd/dcrjson/v2 v2.0.0
 	github.com/decred/dcrd/dcrutil v1.2.0
 	github.com/decred/dcrd/hdkeychain v1.1.1
@@ -30,10 +25,8 @@ require (
 	github.com/decred/dcrwallet v1.2.2
 	github.com/decred/dcrwallet/chain/v2 v2.0.0
 	github.com/decred/dcrwallet/errors v1.0.1
-	github.com/decred/dcrwallet/ticketbuyer v1.0.2 // indirect
 	github.com/decred/dcrwallet/wallet/v2 v2.0.0
 	github.com/decred/lightning-onion v1.0.0
-	github.com/decred/lnd v0.2.1-alpha
 	github.com/decred/slog v1.0.0
 	github.com/go-errors/errors v1.0.1
 	github.com/golang/protobuf v1.2.0
@@ -50,13 +43,7 @@ require (
 	github.com/juju/utils v0.0.0-20180820210520-bf9cc5bdd62d // indirect
 	github.com/juju/version v0.0.0-20180108022336-b64dbd566305 // indirect
 	github.com/kkdai/bstream v0.0.0-20181106074824-b3251f7901ec
-	github.com/lightningnetwork/lightning-onion v0.0.0-20181120012844-725fcf830eac
-	github.com/lightningnetwork/lnd v0.0.2 // indirect
-	github.com/ltcsuite/ltcd v0.0.0-20190101042124-f37f8bf35796
 	github.com/miekg/dns v1.1.3
-	github.com/roasbeef/btcd v0.0.0-20180418012700-a03db407e40d // indirect
-	github.com/roasbeef/btcrpcclient v0.0.0-20170622074026-d0f4db8b4dad // indirect
-	github.com/roasbeef/btcutil v0.0.0-20180406014609-dfb640c57141
 	github.com/rogpeppe/fastuuid v0.0.0-20150106093220-6724a57986af // indirect
 	github.com/tv42/zbase32 v0.0.0-20160707012821-501572607d02
 	github.com/urfave/cli v1.20.0
@@ -70,7 +57,6 @@ require (
 	google.golang.org/grpc v1.18.0
 	gopkg.in/errgo.v1 v1.0.0 // indirect
 	gopkg.in/macaroon-bakery.v2 v2.1.0
-	gopkg.in/macaroon.v1 v1.0.0-20170816141150-ab101776739e
 	gopkg.in/macaroon.v2 v2.0.0
 	gopkg.in/mgo.v2 v2.0.0-20180705113604-9856a29383ce // indirect
 )
