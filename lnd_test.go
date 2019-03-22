@@ -3422,6 +3422,189 @@ func testSingleHopInvoice(net *lntest.NetworkHarness, t *harnessTest) {
 	closeChannelAndAssert(ctxt, t, net, net.Alice, chanPoint, false)
 }
 
+// testOfflineHopInvoice tests whether trying to pay an invoice to an offline
+// node fails as expected.
+//
+// This test creates the following network of channels:
+//
+//   Dave -> Carol    Alice -> Bob
+//
+// Then tries to perform a payment from Dave -> to Bob. This should fail, since
+// there is no route connecting them. Carol and Alice are then connected,
+// payments are performed. And a final test disconnecting Alice and trying to
+// perform a new payment should also fail.
+func testOfflineHopInvoice(net *lntest.NetworkHarness, t *harnessTest) {
+	const chanAmt = dcrutil.Amount(100000)
+	ctxb := context.Background()
+
+	// Open a channel between Alice and Bob with Alice being the sole funder of
+	// the channel.
+	ctxt, _ := context.WithTimeout(ctxb, channelOpenTimeout)
+	chanPointAlice := openChannelAndAssert(
+		ctxt, t, net, net.Alice, net.Bob,
+		lntest.OpenChannelParams{
+			Amt: chanAmt,
+		},
+	)
+
+	// Create Dave's Node.
+	dave, err := net.NewNode("Dave", nil)
+	if err != nil {
+		t.Fatalf("unable to create new nodes: %v", err)
+	}
+	defer shutdownAndAssert(net, t, dave)
+	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	err = net.SendCoins(ctxt, dcrutil.AtomsPerCoin, dave)
+	if err != nil {
+		t.Fatalf("unable to send coins to dave: %v", err)
+	}
+
+	// Next, we'll create Carol and establish a channel from Dave to her.
+	// Carol is started with --unsafe-disconnect so that we can disconnect her
+	// from Alice without receiving an error.
+	carol, err := net.NewNode("Carol", []string{"--unsafe-disconnect", "--nolisten"})
+	if err != nil {
+		t.Fatalf("unable to create new nodes: %v", err)
+	}
+	defer shutdownAndAssert(net, t, carol)
+
+	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	if err := net.ConnectNodes(ctxt, carol, dave); err != nil {
+		t.Fatalf("unable to connect carol to dave: %v", err)
+	}
+	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	err = net.SendCoins(ctxt, dcrutil.AtomsPerCoin, carol)
+	if err != nil {
+		t.Fatalf("unable to send coins to carol: %v", err)
+	}
+	ctxt, _ = context.WithTimeout(ctxb, channelOpenTimeout)
+	chanPointDave := openChannelAndAssert(
+		ctxt, t, net, dave, carol,
+		lntest.OpenChannelParams{
+			Amt: chanAmt,
+		},
+	)
+
+	// Generate 5 payment requests in Bob.
+	const numPayments = 5
+	const paymentAmt = 1000
+	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	payReqs, _, _, err := createPayReqs(
+		ctxt, net.Bob, paymentAmt, numPayments,
+	)
+	if err != nil {
+		t.Fatalf("unable to create pay reqs: %v", err)
+	}
+
+	// tryPayment tries to pay the given invoice from srcNode. It will check
+	// if the returned error is the expected one.
+	tryPayment := func(payReq string, srcNode *lntest.HarnessNode, expectedErr string) {
+		sendReq := &lnrpc.SendRequest{
+			PaymentRequest: payReq,
+		}
+		ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+		resp, err := srcNode.SendPaymentSync(ctxt, sendReq)
+		if err != nil {
+			t.Fatalf("unable to send payment: %v", err)
+		}
+		if resp.PaymentError != expectedErr {
+			t.Fatalf("payment error (%v) != expected (%v)",
+				resp.PaymentError, expectedErr)
+		}
+	}
+
+	// Constants to make our lives easier.
+	errNoPath := "unable to find a path to destination"
+	success := ""
+
+	// At this stage, our network looks like the following:
+	//    Dave -> Carol    Alice -> Bob
+
+	// Payment from Alice should work, given the Alice -> Bob link.
+	tryPayment(payReqs[0], net.Alice, success)
+
+	// Payments from Carol and Dave should _not_ work, given there is no route.
+	tryPayment(payReqs[1], carol, errNoPath)
+	tryPayment(payReqs[1], dave, errNoPath)
+
+	// Connect Carol to Alice (but don't create a channel yet).
+	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	if err := net.EnsureConnected(ctxt, carol, net.Alice); err != nil {
+		t.Fatalf("unable to connect carol to Alice %v",
+			err)
+	}
+
+	// Try to perform the payments from Carol and Dave. They should still fail.
+	tryPayment(payReqs[1], carol, errNoPath)
+	tryPayment(payReqs[1], dave, errNoPath)
+
+	// Create a channel between Carol and Alice and wait for it to become valid.
+	ctxt, _ = context.WithTimeout(ctxb, channelOpenTimeout)
+	chanPointCarol := openChannelAndAssert(
+		ctxt, t, net, carol, net.Alice,
+		lntest.OpenChannelParams{
+			Amt: chanAmt,
+		},
+	)
+
+	// Ensure Dave knows about the Carol -> Alice channel
+	if err = dave.WaitForNetworkChannelOpen(ctxt, chanPointCarol); err != nil {
+		t.Fatalf("carol didn't advertise channel before "+
+			"timeout: %v", err)
+	}
+
+	// At this stage, our network looks like the following:
+	//    Dave -> Carol -> Alice -> Bob
+
+	// Performing the payments should now work.
+	tryPayment(payReqs[1], carol, success)
+	tryPayment(payReqs[2], dave, success)
+
+	// Disconnect Carol from Alice & Dave (simulating a broken link, carol
+	// offline, etc)
+	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	if err := net.DisconnectNodes(ctxt, carol, net.Alice); err != nil {
+		t.Fatalf("unable to disconnect carol from alice: %v", err)
+	}
+	if err := net.DisconnectNodes(ctxt, carol, dave); err != nil {
+		t.Fatalf("unable to disconnect carol from dave: %v", err)
+	}
+
+	// Give some time for disconnection to finalize.
+	time.Sleep(time.Second)
+
+	// Starting payments from Carol and Dave should fail.
+	tryPayment(payReqs[3], carol, errNoPath)
+	tryPayment(payReqs[3], dave, errNoPath)
+
+	// Reconnect Carol to Alice & Dave
+	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	if err := net.EnsureConnected(ctxt, carol, net.Alice); err != nil {
+		t.Fatalf("unable to connect carol to Alice %v",
+			err)
+	}
+	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	if err := net.EnsureConnected(ctxt, carol, dave); err != nil {
+		t.Fatalf("unable to connect carol to Alice %v",
+			err)
+	}
+
+	// Give some time for reconnection to finalize.
+	time.Sleep(time.Second)
+
+	// Payments now succeed again.
+	tryPayment(payReqs[3], carol, success)
+	tryPayment(payReqs[4], dave, success)
+
+	// Close the channels.
+	ctxt, _ = context.WithTimeout(ctxb, channelCloseTimeout)
+	closeChannelAndAssert(ctxt, t, net, net.Alice, chanPointAlice, false)
+	ctxt, _ = context.WithTimeout(ctxb, channelCloseTimeout)
+	closeChannelAndAssert(ctxt, t, net, carol, chanPointCarol, false)
+	ctxt, _ = context.WithTimeout(ctxb, channelCloseTimeout)
+	closeChannelAndAssert(ctxt, t, net, dave, chanPointDave, false)
+}
+
 func testListPayments(net *lntest.NetworkHarness, t *harnessTest) {
 	ctxb := context.Background()
 
@@ -12714,6 +12897,10 @@ var testsCases = []*testCase{
 	{
 		name: "single hop invoice",
 		test: testSingleHopInvoice,
+	},
+	{
+		name: "offline hop invoice",
+		test: testOfflineHopInvoice,
 	},
 	{
 		name: "sphinx replay persistence",
