@@ -1309,13 +1309,27 @@ func (s *server) peerBootstrapper(numTargetPeers uint32,
 
 	defer s.wg.Done()
 
+	// Create a context so that initial DNS bootstrapping can be canceled in
+	// case of shutdown.
+	//
+	// This follows a different style for signalling shutdown than other
+	// services of the node (which use Start/Stop calls). Ideally, bootstrapping
+	// should be refactored to follow the same style.
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		// The main loop of peerBootstrapper() only returns once the node has
+		// been signalled to close, so it's safe to call cancel() only then.
+		<-s.quit
+		cancel()
+	}()
+
 	// ignore is a set used to keep track of peers already retrieved from
 	// our bootstrappers in order to avoid duplicates.
 	ignore := make(map[autopilot.NodeID]struct{})
 
 	// We'll start off by aggressively attempting connections to peers in
 	// order to be a part of the network as soon as possible.
-	s.initialPeerBootstrap(ignore, numTargetPeers, bootstrappers)
+	s.initialPeerBootstrap(ctx, ignore, numTargetPeers, bootstrappers)
 
 	// Once done, we'll attempt to maintain our target minimum number of
 	// peers.
@@ -1397,7 +1411,7 @@ func (s *server) peerBootstrapper(numTargetPeers uint32,
 			s.mu.RUnlock()
 
 			peerAddrs, err := discovery.MultiSourceBootstrap(
-				ignoreList, numNeeded*2, bootstrappers...,
+				ctx, ignoreList, numNeeded*2, bootstrappers...,
 			)
 			if err != nil {
 				srvrLog.Errorf("Unable to retrieve bootstrap "+
@@ -1438,8 +1452,8 @@ func (s *server) peerBootstrapper(numTargetPeers uint32,
 // initialPeerBootstrap attempts to continuously connect to peers on startup
 // until the target number of peers has been reached. This ensures that nodes
 // receive an up to date network view as soon as possible.
-func (s *server) initialPeerBootstrap(ignore map[autopilot.NodeID]struct{},
-	numTargetPeers uint32, bootstrappers []discovery.NetworkPeerBootstrapper) {
+func (s *server) initialPeerBootstrap(ctx context.Context,
+	ignore map[autopilot.NodeID]struct{}, numTargetPeers uint32, bootstrappers []discovery.NetworkPeerBootstrapper) {
 
 	var wg sync.WaitGroup
 
@@ -1464,7 +1478,7 @@ func (s *server) initialPeerBootstrap(ignore map[autopilot.NodeID]struct{},
 		// order to reach our target.
 		peersNeeded := numTargetPeers - numActivePeers
 		bootstrapAddrs, err := discovery.MultiSourceBootstrap(
-			ignore, peersNeeded, bootstrappers...,
+			ctx, ignore, peersNeeded, bootstrappers...,
 		)
 		if err != nil {
 			srvrLog.Errorf("Unable to retrieve initial bootstrap "+
