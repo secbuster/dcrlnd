@@ -1878,8 +1878,22 @@ func (r *rpcServer) ChannelBalance(ctx context.Context,
 	}
 
 	var balance dcrutil.Amount
+	var maxInbound dcrutil.Amount
+	var maxOutbound dcrutil.Amount
 	for _, channel := range openChannels {
 		balance += channel.LocalCommitment.LocalBalance.ToAtoms()
+
+		// The maximum amount we can receive from this channel is however much
+		// the remote node has, minus its required channel reserve.
+		maxInbound += channel.RemoteCommitment.RemoteBalance.ToAtoms() -
+			dcrutil.Amount(channel.RemoteChanCfg.ChannelConstraints.ChanReserve)
+
+		// The maximum amount we can send accoss this channel is however much
+		// the local node has, minus what the remote node requires us to
+		// reserve.
+		maxOutbound += channel.LocalCommitment.LocalBalance.ToAtoms() -
+			dcrutil.Amount(channel.LocalChanCfg.ChannelConstraints.ChanReserve)
+
 	}
 
 	pendingChannels, err := r.server.chanDB.FetchPendingChannels()
@@ -1895,6 +1909,8 @@ func (r *rpcServer) ChannelBalance(ctx context.Context,
 	return &lnrpc.ChannelBalanceResponse{
 		Balance:            int64(balance),
 		PendingOpenBalance: int64(pendingOpenBalance),
+		MaxInboundAmount:   int64(maxInbound),
+		MaxOutboundAmount:  int64(maxOutbound),
 	}, nil
 }
 

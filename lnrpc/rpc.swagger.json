@@ -1431,6 +1431,16 @@
           "type": "string",
           "format": "int64",
           "title": "/ Sum of channels pending balances denominated in atoms"
+        },
+        "max_inbound_amount": {
+          "type": "string",
+          "format": "int64",
+          "description": "* \nMaximum amount we can receive across all our channels, after accounting\nfor required reserves."
+        },
+        "max_outbound_amount": {
+          "type": "string",
+          "format": "int64",
+          "description": "* \nMaximum amount we can send across all our channels, after accounting for\nrequired reserves."
         }
       }
     },

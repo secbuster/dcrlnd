@@ -1415,6 +1415,18 @@ message ChannelBalanceResponse {
 
     /// Sum of channels pending balances denominated in atoms
     int64 pending_open_balance = 2 [json_name = "pending_open_balance"];
+    
+    /** 
+    Maximum amount we can receive across all our channels, after accounting
+    for required reserves.
+    */    
+    int64 max_inbound_amount = 3 [json_name = "max_inbound_amount"];
+    
+    /** 
+    Maximum amount we can send across all our channels, after accounting for
+    required reserves.
+    */
+    int64 max_outbound_amount = 4 [json_name = "max_outbound_amount"];
 }
 
 message QueryRoutesRequest {
