@@ -41,6 +41,13 @@ type DcrWallet struct {
 	wallet             *base.Wallet
 	atomicWalletSynced uint32 // CAS (synced=1) when wallet syncing complete
 
+	// cancelCtx is the func that signals all long running goroutines should
+	// end.
+	//
+	// wg is the wait group for long-running goroutines.
+	cancelCtx func()
+	wg        sync.WaitGroup
+
 	cfg *Config
 
 	netParams *chaincfg.Params
@@ -149,20 +156,24 @@ func (b *DcrWallet) Start() error {
 	b.walletNetBackend = chain.BackendFromRPCClient(b.chain.Client)
 	b.wallet.SetNetworkBackend(b.walletNetBackend)
 
+	var ctx context.Context
+	ctx, b.cancelCtx = context.WithCancel(context.Background())
+	b.wg.Add(1)
 	go func() {
+		defer b.wg.Done()
+
 		dcrwLog.Debugf("Starting rpc syncer")
 		syncer := chain.NewRPCSyncer(b.wallet, b.chain)
 		syncer.SetNotifications(&chain.Notifications{
 			Synced: b.onRPCSyncerSynced,
 		})
-		ctx := context.TODO()
 		err := syncer.Run(ctx, true)
 
-		dcrwLog.Errorf("Wallet rpc syncer failed: %v", err)
-		if err != nil {
-			// TODO(decred) What to do?
-			panic(err)
+		if werr, is := err.(*errors.Error); is && werr.Err == context.Canceled {
+			// This was a graceful shutdown, so ignore the error.
+			return
 		}
+		dcrwLog.Errorf("Wallet RPC syncer failed: %v", err)
 	}()
 
 	return nil
@@ -178,7 +189,10 @@ func (b *DcrWallet) Stop() error {
 
 	b.wallet.WaitForShutdown()
 
-	b.chain.Disconnect()
+	b.cancelCtx()
+	b.wg.Wait()
+	b.chain.Stop()
+	dcrwLog.Debugf("Wallet has shut down")
 
 	return nil
 }
@@ -705,5 +719,6 @@ func (b *DcrWallet) IsSynced() (bool, int64, error) {
 }
 
 func (b *DcrWallet) onRPCSyncerSynced(synced bool) {
+	dcrwLog.Debug("RPC syncer notified wallet is synced")
 	atomic.StoreUint32(&b.atomicWalletSynced, 1)
 }
