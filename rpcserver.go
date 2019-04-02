@@ -2280,23 +2280,28 @@ func (r *rpcServer) ListChannels(ctx context.Context,
 		}
 		externalCommitFee := dbChannel.Capacity - sumOutputs
 
+		remoteChanReserve := dbChannel.RemoteChanCfg.ChannelConstraints.ChanReserve
+		localChanReserve := dbChannel.LocalChanCfg.ChannelConstraints.ChanReserve
+
 		channel := &lnrpc.Channel{
-			Active:             isActive,
-			Private:            !isPublic,
-			RemotePubkey:       nodeID,
-			ChannelPoint:       chanPoint.String(),
-			ChanId:             chanID,
-			Capacity:           int64(dbChannel.Capacity),
-			LocalBalance:       int64(localBalance.ToAtoms()),
-			RemoteBalance:      int64(remoteBalance.ToAtoms()),
-			CommitFee:          int64(externalCommitFee),
-			CommitWeight:       commitSize,
-			FeePerKw:           int64(localCommit.FeePerKw),
-			TotalAtomsSent:     int64(dbChannel.TotalMAtomsSent.ToAtoms()),
-			TotalAtomsReceived: int64(dbChannel.TotalMAtomsReceived.ToAtoms()),
-			NumUpdates:         localCommit.CommitHeight,
-			PendingHtlcs:       make([]*lnrpc.HTLC, len(localCommit.Htlcs)),
-			CsvDelay:           uint32(dbChannel.LocalChanCfg.CsvDelay),
+			Active:               isActive,
+			Private:              !isPublic,
+			RemotePubkey:         nodeID,
+			ChannelPoint:         chanPoint.String(),
+			ChanId:               chanID,
+			Capacity:             int64(dbChannel.Capacity),
+			LocalBalance:         int64(localBalance.ToAtoms()),
+			RemoteBalance:        int64(remoteBalance.ToAtoms()),
+			CommitFee:            int64(externalCommitFee),
+			CommitWeight:         commitSize,
+			FeePerKw:             int64(localCommit.FeePerKw),
+			TotalAtomsSent:       int64(dbChannel.TotalMAtomsSent.ToAtoms()),
+			TotalAtomsReceived:   int64(dbChannel.TotalMAtomsReceived.ToAtoms()),
+			NumUpdates:           localCommit.CommitHeight,
+			PendingHtlcs:         make([]*lnrpc.HTLC, len(localCommit.Htlcs)),
+			CsvDelay:             uint32(dbChannel.LocalChanCfg.CsvDelay),
+			RemoteChannelReserve: int64(remoteChanReserve),
+			LocalChannelReserve:  int64(localChanReserve),
 		}
 
 		for i, htlc := range localCommit.Htlcs {
