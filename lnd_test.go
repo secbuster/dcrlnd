@@ -591,6 +591,11 @@ func createPayReqs(ctx context.Context, node *lntest.HarnessNode,
 			Memo:      "testing",
 			RPreimage: preimage,
 			Value:     int64(paymentAmt),
+
+			// Historically, integration tests assumed this check never happened,
+			// so disable by default. There are specific tests for asserting the
+			// behavior when this flag is false.
+			IgnoreMaxInboundAmt: true,
 		}
 		resp, err := node.AddInvoice(ctx, invoice)
 		if err != nil {
@@ -8078,7 +8083,8 @@ out:
 	// but Bob only has 10k available on his side of the channel. So a
 	// payment from Alice to Carol worth 100k atoms should fail.
 	invoiceReq = &lnrpc.Invoice{
-		Value: 100000,
+		Value:               100000,
+		IgnoreMaxInboundAmt: true,
 	}
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
 	carolInvoice3, err := carol.AddInvoice(ctxt, invoiceReq)
@@ -12841,6 +12847,240 @@ func testAbandonChannel(net *lntest.NetworkHarness, t *harnessTest) {
 	cleanupForceClose(t, net, net.Bob, chanPoint)
 }
 
+// testAddInvoiceMaxInboundAmt tests whether trying to add an invoice fails
+// under various circumstances when taking into account the maximum inbound
+// amount available in directly connected channels.
+func testAddInvoiceMaxInboundAmt(net *lntest.NetworkHarness, t *harnessTest) {
+	ctxb := context.Background()
+
+	// Create a Carol node to use in tests. All invoices will be created on
+	// her node.
+	carol, err := net.NewNode("Carol", []string{"--unsafe-disconnect"})
+	if err != nil {
+		t.Fatalf("unable to create carol's node: %v", err)
+	}
+	defer shutdownAndAssert(net, t, carol)
+
+	ctxt, _ := context.WithTimeout(ctxb, defaultTimeout)
+	if err := net.ConnectNodes(ctxt, carol, net.Bob); err != nil {
+		t.Fatalf("unable to connect carol to bob: %v", err)
+	}
+	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	err = net.SendCoins(ctxt, dcrutil.AtomsPerCoin, carol)
+	if err != nil {
+		t.Fatalf("unable to send coins to bob: %v", err)
+	}
+
+	// Closure to help on tests.
+	addInvoice := func(value int64, ignoreMaxInbound bool) error {
+		invoice := &lnrpc.Invoice{
+			Value:               value,
+			IgnoreMaxInboundAmt: ignoreMaxInbound,
+		}
+		ctxt, _ := context.WithTimeout(ctxb, defaultTimeout)
+		_, err := carol.AddInvoice(ctxt, invoice)
+		return err
+	}
+
+	// Test that adding an invoice when Carol doesn't have any open channels
+	// fails.
+	err = addInvoice(0, false)
+	if err == nil {
+		t.Fatalf("adding invoice without open channels should return an error")
+	}
+	if !strings.Contains(err.Error(), "no open channels") {
+		t.Fatalf("adding invoice without open channels should return " +
+			"correct error")
+	}
+
+	// Same test, but ignoring inbound amounts succeeds.
+	err = addInvoice(0, true)
+	if err != nil {
+		t.Fatalf("adding invoice ignoring inbound should succeed without open " +
+			"channels")
+	}
+
+	// Now open a channel from Carol -> Bob.
+	chanAmt := int64(1000000)
+	pushAmt := chanAmt / 2
+	chanReserve := chanAmt / 100
+	channelParam := lntest.OpenChannelParams{
+		Amt:     dcrutil.Amount(chanAmt),
+		PushAmt: dcrutil.Amount(pushAmt),
+	}
+	ctxt, _ = context.WithTimeout(ctxb, channelOpenTimeout)
+	chanPoint := openChannelAndAssert(
+		ctxt, t, net, carol, net.Bob, channelParam)
+
+	// Test various scenarios with the channel open. The maximum amount receivable
+	// from a channel should be the remote channel balance minus our required
+	// channel reserve to it.
+	testCasesWithChan := []struct {
+		value         int64
+		ignoreInbound bool
+		valid         bool
+		descr         string
+	}{
+		// Test accounting for max inbound amount.
+		{0, false, true, "zero amount"},
+		{1, false, true, "one amount"},
+		{pushAmt - chanReserve, false, true, "maximum amount"},
+		{pushAmt - chanReserve + 1, false, false, "maximum amount +1"},
+		{pushAmt, false, false, "total push amount"},
+		{chanAmt, false, false, "total chan amount"},
+
+		// Test ignoring max inbound amount.
+		{pushAmt - chanReserve + 1, true, true, "maximum amount +1"},
+		{pushAmt, true, true, "total push amount"},
+		{chanAmt, true, true, "total chan amount"},
+	}
+
+	for _, tc := range testCasesWithChan {
+		err := addInvoice(tc.value, tc.ignoreInbound)
+		if tc.valid && err != nil {
+			t.Fatalf("case %s with ignore %v returned error '%v' but should "+
+				"have returned nil", tc.descr, tc.ignoreInbound, err)
+		}
+		if !tc.valid && err == nil {
+			t.Fatalf("case %s with ignore %v returned valid but should "+
+				"have returned error", tc.descr, tc.ignoreInbound)
+		}
+		if !tc.valid && !strings.Contains(err.Error(), "not enough inbound capacity") {
+			t.Fatalf("case %s with ignore %v did not return expected "+
+				"'not enough capacity' error (returned '%v')", tc.descr,
+				tc.ignoreInbound, err)
+		}
+	}
+
+	// Disconnect the nodes from one another. While their channel remains open,
+	// carol cannot receive payments (since bob is offline from her POV).
+	err = net.DisconnectNodes(ctxb, carol, net.Bob)
+	if err != nil {
+		t.Fatalf("unable to disconnect carol and bob: %v", err)
+	}
+
+	// Now trying to add an invoice with an offline peer should fail.
+	err = addInvoice(0, false)
+	if err == nil {
+		t.Fatalf("adding invoice without online peer should return an error")
+	}
+	if !strings.Contains(err.Error(), "no online channels found") {
+		t.Fatalf("adding invoice without online channels should return " +
+			"correct error")
+	}
+
+	// But adding an invoice ignoring inbound capacity should still work
+	err = addInvoice(0, true)
+	if err != nil {
+		t.Fatalf("adding invoice ignoring inbound should succeed without open " +
+			"channels")
+	}
+
+	// Force-close and cleanup the channel, since bob & carol are disconnected.
+	ctxt, _ = context.WithTimeout(ctxb, channelCloseTimeout)
+	closeChannelAndAssert(ctxt, t, net, carol, chanPoint, true)
+	cleanupForceClose(t, net, carol, chanPoint)
+}
+
+// testAddReceiveInvoiceMaxInboundAmt tests whether, after verifying that an
+// invoice can be added _without_ ignoring the maximum inbound capacity, that
+// same invoice can actually be paid by another node.
+//
+// In particular, it tests invoices at the limit of draining the channel.
+func testAddReceiveInvoiceMaxInboundAmt(net *lntest.NetworkHarness, t *harnessTest) {
+	ctxb := context.Background()
+
+	// Create and fund a Carol node to use in tests. All invoices will be
+	// created on her node.
+	carol, err := net.NewNode("Carol", []string{"--unsafe-disconnect"})
+	if err != nil {
+		t.Fatalf("unable to create carol's node: %v", err)
+	}
+	defer shutdownAndAssert(net, t, carol)
+
+	ctxt, _ := context.WithTimeout(ctxb, defaultTimeout)
+	if err := net.ConnectNodes(ctxt, carol, net.Bob); err != nil {
+		t.Fatalf("unable to connect carol to bob: %v", err)
+	}
+	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	err = net.SendCoins(ctxt, dcrutil.AtomsPerCoin, carol)
+	if err != nil {
+		t.Fatalf("unable to send coins to bob: %v", err)
+	}
+
+	// Now open a channel from Carol -> Bob.
+	chanAmt := int64(1000000)
+	pushAmt := chanAmt / 2
+	chanReserve := chanAmt / 100
+	channelParam := lntest.OpenChannelParams{
+		Amt:     dcrutil.Amount(chanAmt),
+		PushAmt: dcrutil.Amount(pushAmt),
+	}
+	ctxt, _ = context.WithTimeout(ctxb, channelOpenTimeout)
+	chanPointCarol := openChannelAndAssert(
+		ctxt, t, net, carol, net.Bob, channelParam)
+
+	// Also open a channel from Alice -> bob. Alice will attempt the payments.
+	ctxt, _ = context.WithTimeout(ctxb, channelOpenTimeout)
+	channelParam = lntest.OpenChannelParams{
+		Amt: dcrutil.Amount(chanAmt),
+	}
+	chanPointAlice := openChannelAndAssert(
+		ctxt, t, net, net.Alice, net.Bob, channelParam)
+
+	// Sanity check that payments one atom larger than the channel capacity -
+	// reserve cannot be paid.
+	maxInboundCap := pushAmt - chanReserve
+	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	_, err = carol.AddInvoice(ctxt, &lnrpc.Invoice{Value: maxInboundCap + 1})
+	if err == nil {
+		t.Fatalf("adding an invoice for maxInboundCap + 1 should fail")
+	}
+
+	// Generate a valid invoice with the maximum amount possible.
+	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	invoice, err := carol.AddInvoice(ctxt, &lnrpc.Invoice{Value: maxInboundCap})
+	if err != nil {
+		t.Fatalf("unable to add invoice at maxInboundCap: %v", err)
+	}
+
+	// Try and pay this invoice from Alice. It should succeed.
+	sendReq := &lnrpc.SendRequest{PaymentRequest: invoice.PaymentRequest}
+	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	resp, err := net.Alice.SendPaymentSync(ctxt, sendReq)
+	if err != nil {
+		t.Fatalf("unable to send payment: %v", err)
+	}
+	if resp.PaymentError != "" {
+		t.Fatalf("error when attempting recv: %v", resp.PaymentError)
+	}
+
+	// Verify the inbound channel balance is now 0.
+	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	balances, err := carol.ChannelBalance(ctxt, &lnrpc.ChannelBalanceRequest{})
+	if err != nil {
+		t.Fatalf("unable to obtain balances: %v", err)
+	}
+	if balances.MaxInboundAmount != 0 {
+		t.Fatalf("max inbound amount not drained (%d remaining)",
+			balances.MaxInboundAmount)
+	}
+
+	// Try to generate a new invoice with value of one atom. It should fail,
+	// since we have now drained the inbound capacity of Carol.
+	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	_, err = carol.AddInvoice(ctxt, &lnrpc.Invoice{Value: 1})
+	if err == nil {
+		t.Fatalf("invoice sould not be generated after draining " +
+			"inbound capacity")
+	}
+
+	ctxt, _ = context.WithTimeout(ctxb, channelCloseTimeout)
+	closeChannelAndAssert(ctxt, t, net, carol, chanPointCarol, false)
+	ctxt, _ = context.WithTimeout(ctxb, channelCloseTimeout)
+	closeChannelAndAssert(ctxt, t, net, net.Alice, chanPointAlice, false)
+}
+
 type testCase struct {
 	name string
 	test func(net *lntest.NetworkHarness, t *harnessTest)
@@ -13070,6 +13310,14 @@ var testsCases = []*testCase{
 	{
 		name: "send update disable channel",
 		test: testSendUpdateDisableChannel,
+	},
+	{
+		name: "add invoice max inbound amount",
+		test: testAddInvoiceMaxInboundAmt,
+	},
+	{
+		name: "add and receive invoice at max inbound amount",
+		test: testAddReceiveInvoiceMaxInboundAmt,
 	},
 }
 

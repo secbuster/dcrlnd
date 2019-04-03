@@ -2975,6 +2975,96 @@ func (r *rpcServer) sendPaymentSync(ctx context.Context,
 	}, nil
 }
 
+// checkCanReceiveInvoice performs a check on available inbound capacity from
+// directly connected channels to ensure the passed invoice can be settled.
+//
+// It returns nil if there is enough capacity to potentially settle the invoice
+// or an error otherwise.
+func (r *rpcServer) checkCanReceiveInvoice(ctx context.Context,
+	invoice *lnrpc.Invoice) error {
+
+	// Return early if we've been instructed to ignore the available inbound
+	// bandwidth.
+	if invoice.IgnoreMaxInboundAmt {
+		return nil
+	}
+
+	// Verify whether there is at least one channel with enough inbound
+	// capacity (after accounting for channel reserves) to receive the payment
+	// from this invoice.
+	openChannels, err := r.server.chanDB.FetchAllOpenChannels()
+	if err != nil {
+		return err
+	}
+
+	// If the node has no open channels, it can't possibly receive payment for
+	// this.
+	if len(openChannels) == 0 {
+		return errors.New("no open channels")
+	}
+
+	amt := dcrutil.Amount(invoice.Value)
+	graph := r.server.chanDB.ChannelGraph()
+
+	// Loop through all available channels, check for liveliness and capacity.
+	var maxChanCap dcrutil.Amount
+	var maxChanID uint64
+	for _, channel := range openChannels {
+		// Ensure the channel is active and the remote peer is online, which is
+		// required to receive from this channel.
+		chanPoint := &channel.FundingOutpoint
+		if _, err := r.server.FindPeer(channel.IdentityPub); err != nil {
+			// We're not connected to the peer, therefore can't receive htlcs
+			// from it.
+			continue
+		}
+
+		// Try to retrieve a the link from the htlc switch to verify we can
+		// currently use this channel for routing.
+		channelID := lnwire.NewChanIDFromOutPoint(chanPoint)
+		var link htlcswitch.ChannelLink
+		if link, err = r.server.htlcSwitch.GetLink(channelID); err != nil {
+			continue
+		}
+
+		// If this link isn' eligible for htcl forwarding, it means we can't
+		// recieve from it.
+		if !link.EligibleToForward() {
+			continue
+		}
+
+		// We have now verified the channel is online and can route htlcs
+		// through it. Verifiy if it has enough inbound capacity for this new
+		// invoice.
+		//
+		// Inbound capacity for a channel is how much the remote node currently
+		// has (the remote_balance from our pov) minus what we require the
+		// remote node to maintain at all times (chan_reserve).
+		capacity := channel.RemoteCommitment.RemoteBalance.ToAtoms() -
+			dcrutil.Amount(channel.RemoteChanCfg.ChannelConstraints.ChanReserve)
+
+		if capacity >= amt {
+			// Found an online channel with enough capacity. Signal success.
+			return nil
+		}
+
+		// Not yet enough capacity. Store the largest channel to present a
+		// better error msg.
+		if capacity > maxChanCap {
+			maxChanCap = capacity
+			maxChanID, _ = graph.ChannelID(chanPoint)
+		}
+	}
+
+	if maxChanID == 0 {
+		return errors.New("no online channels found")
+	}
+
+	missingCap := amt - maxChanCap
+	return fmt.Errorf("not enough inbound capacity (missing %d atoms "+
+		"in channel %d)", missingCap, maxChanID)
+}
+
 // AddInvoice attempts to add a new invoice to the invoice database. Any
 // duplicated invoices are rejected, therefore all invoices *must* have a
 // unique payment preimage.
@@ -3032,6 +3122,10 @@ func (r *rpcServer) AddInvoice(ctx context.Context,
 	if amtMAtoms > maxPaymentMAtoms {
 		return nil, fmt.Errorf("payment of %v is too large, max "+
 			"payment allowed is %v", amt, maxPaymentMAtoms.ToAtoms())
+	}
+
+	if err := r.checkCanReceiveInvoice(ctx, invoice); err != nil {
+		return nil, err
 	}
 
 	// Next, generate the payment hash itself from the preimage. This will

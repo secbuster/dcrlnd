@@ -2402,6 +2402,12 @@ var addInvoiceCommand = cli.Command{
 				"private channels in order to assist the " +
 				"payer in reaching you",
 		},
+		cli.BoolFlag{
+			Name: "ignore_max_inbound_amt",
+			Usage: "ignore check for available inbound capacity " +
+				"in directly connected channels and create the " +
+				"invoice anyway.",
+		},
 	},
 	Action: actionDecorator(addInvoice),
 }
@@ -2453,14 +2459,15 @@ func addInvoice(ctx *cli.Context) error {
 	}
 
 	invoice := &lnrpc.Invoice{
-		Memo:            ctx.String("memo"),
-		Receipt:         receipt,
-		RPreimage:       preimage,
-		Value:           amt,
-		DescriptionHash: descHash,
-		FallbackAddr:    ctx.String("fallback_addr"),
-		Expiry:          ctx.Int64("expiry"),
-		Private:         ctx.Bool("private"),
+		Memo:                ctx.String("memo"),
+		Receipt:             receipt,
+		RPreimage:           preimage,
+		Value:               amt,
+		DescriptionHash:     descHash,
+		FallbackAddr:        ctx.String("fallback_addr"),
+		Expiry:              ctx.Int64("expiry"),
+		Private:             ctx.Bool("private"),
+		IgnoreMaxInboundAmt: ctx.Bool("ignore_max_inbound_amt"),
 	}
 
 	resp, err := client.AddInvoice(context.Background(), invoice)

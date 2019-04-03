@@ -1832,6 +1832,18 @@ message Invoice {
     The state the invoice is in.
     */
     InvoiceState state = 21 [json_name = "state"];
+
+    /**
+    Whether to forgo checking for the current max inbound amount before 
+    creating the invoice. This is only applicable during invoice creation.
+
+    When creating an invoice, the node will check if there is enough inbound
+    bandwidth in at least one of its directly connected channels (after 
+    accounting for the required reserves) before allowing the invoice to be
+    created. Specifying this parameter as true will make the node ignore those
+    checks and create the invoice even if it could not possibly have it settled.
+    */
+    bool ignore_max_inbound_amt = 22 [json_name = "ignore_max_inbound_amt"];
 }
 
 message AddInvoiceResponse {
