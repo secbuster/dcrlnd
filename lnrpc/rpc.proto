@@ -770,7 +770,21 @@ message SendRequest {
     send the payment.
     */
     FeeLimit fee_limit = 8;
+
+    /**
+    Whether to forgo checking for the maximum outbound amount before attempting
+    to send the payment.
+
+    When sending a payment, the node will check if there is enough outbound
+    bandwidth in at least one of its directly connected channels (after
+    accounting for the required reserves) before attempting to determine a
+    route for it. Specifying this parameter will disable these checks and allow
+    the node to attempt the payment even if there are no outbound channels with
+    enough capacity to send it.
+    */
+    bool ignore_max_outbound_amt = 9;
 }
+
 message SendResponse {
     string payment_error = 1 [json_name = "payment_error"];
     bytes payment_preimage = 2 [json_name = "payment_preimage"];

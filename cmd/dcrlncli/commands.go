@@ -1927,6 +1927,12 @@ var sendPaymentCommand = cli.Command{
 			Name:  "force, f",
 			Usage: "will skip payment request confirmation",
 		},
+		cli.BoolFlag{
+			Name: "ignore_max_outbound_amt",
+			Usage: "ignore check for available outbound capacity " +
+				"in directly connected channels and attempt " +
+				"the payment anyway",
+		},
 	},
 	Action: sendPayment,
 }
@@ -2016,9 +2022,10 @@ func sendPayment(ctx *cli.Context) error {
 			}
 		}
 		req := &lnrpc.SendRequest{
-			PaymentRequest: ctx.String("pay_req"),
-			Amt:            ctx.Int64("amt"),
-			FeeLimit:       feeLimit,
+			PaymentRequest:       ctx.String("pay_req"),
+			Amt:                  ctx.Int64("amt"),
+			FeeLimit:             feeLimit,
+			IgnoreMaxOutboundAmt: ctx.Bool("ignore_max_outbound_amt"),
 		}
 
 		return sendPaymentRequest(client, req)
@@ -2060,9 +2067,10 @@ func sendPayment(ctx *cli.Context) error {
 	}
 
 	req := &lnrpc.SendRequest{
-		Dest:     destNode,
-		Amt:      amount,
-		FeeLimit: feeLimit,
+		Dest:                 destNode,
+		Amt:                  amount,
+		FeeLimit:             feeLimit,
+		IgnoreMaxOutboundAmt: ctx.Bool("ignore_max_outbound_amt"),
 	}
 
 	if ctx.Bool("debug_send") && (ctx.IsSet("payment_hash") || args.Present()) {

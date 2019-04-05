@@ -3505,7 +3505,8 @@ func testOfflineHopInvoice(net *lntest.NetworkHarness, t *harnessTest) {
 	// if the returned error is the expected one.
 	tryPayment := func(payReq string, srcNode *lntest.HarnessNode, expectedErr string) {
 		sendReq := &lnrpc.SendRequest{
-			PaymentRequest: payReq,
+			PaymentRequest:       payReq,
+			IgnoreMaxOutboundAmt: true,
 		}
 		ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
 		resp, err := srcNode.SendPaymentSync(ctxt, sendReq)
@@ -8093,7 +8094,8 @@ out:
 	}
 
 	sendReq = &lnrpc.SendRequest{
-		PaymentRequest: carolInvoice3.PaymentRequest,
+		PaymentRequest:       carolInvoice3.PaymentRequest,
+		IgnoreMaxOutboundAmt: true,
 	}
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
 	resp, err = net.Alice.SendPaymentSync(ctxt, sendReq)
@@ -13081,6 +13083,125 @@ func testAddReceiveInvoiceMaxInboundAmt(net *lntest.NetworkHarness, t *harnessTe
 	closeChannelAndAssert(ctxt, t, net, net.Alice, chanPointAlice, false)
 }
 
+// testSendPaymentMaxAmt tests whether trying to send an invoice fails under
+// various circumstances when taking into account the maximum outbound amount
+// available in directly connected channels.
+func testSendPaymentMaxOutboundAmt(net *lntest.NetworkHarness, t *harnessTest) {
+	ctxb := context.Background()
+
+	// Create a Carol node to use in tests. All invoices will be created on
+	// her node.
+	carol, err := net.NewNode("Carol", []string{"--unsafe-disconnect"})
+	if err != nil {
+		t.Fatalf("unable to create carol's node: %v", err)
+	}
+	defer shutdownAndAssert(net, t, carol)
+
+	ctxt, _ := context.WithTimeout(ctxb, defaultTimeout)
+	if err := net.ConnectNodes(ctxt, carol, net.Bob); err != nil {
+		t.Fatalf("unable to connect carol to bob: %v", err)
+	}
+	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	err = net.SendCoins(ctxt, dcrutil.AtomsPerCoin, carol)
+	if err != nil {
+		t.Fatalf("unable to send coins to bob: %v", err)
+	}
+
+	// Create an invoice with zero amount on Bob for the next tests.
+	invoice, err := net.Bob.AddInvoice(ctxt, &lnrpc.Invoice{IgnoreMaxInboundAmt: true})
+	if err != nil {
+		t.Fatalf("unable to create invoice in Bob: %v", err)
+	}
+
+	// Closure to help on tests.
+	sendPayment := func(value int64) error {
+		// Dummy send request to Bob node that fails due to wrong
+		// payment hash.
+		sendReq := &lnrpc.SendRequest{
+			PaymentRequest: invoice.PaymentRequest,
+			Amt:            value,
+		}
+		ctxt, _ := context.WithTimeout(ctxb, defaultTimeout)
+		resp, err := carol.SendPaymentSync(ctxt, sendReq)
+		if err != nil {
+			return err
+		}
+		if resp.PaymentError != "" {
+			return errors.New(resp.PaymentError)
+		}
+		return nil
+	}
+
+	// Test that adding an invoice when Carol doesn't have any open channels
+	// fails.
+	err = sendPayment(1)
+	if err == nil {
+		t.Fatalf("sending payment without open channels should return an error")
+	}
+	if !strings.Contains(err.Error(), "no open channels") {
+		t.Fatalf("sending payment without open channels should return " +
+			"correct error")
+	}
+
+	// Now open a channel from Carol -> Bob.
+	chanAmt := int64(1000000)
+	pushAmt := chanAmt / 2
+	chanReserve := chanAmt / 100
+	txFee := calcStaticFee(0)
+	htlcFee := 0 // relay fee of tests is 0
+	peerHtlcFee := calcStaticFee(1) - calcStaticFee(0)
+	localAmt := chanAmt - pushAmt - int64(txFee)
+	maxPayAmt := localAmt - chanReserve - int64(htlcFee)
+	channelParam := lntest.OpenChannelParams{
+		Amt:     dcrutil.Amount(chanAmt),
+		PushAmt: dcrutil.Amount(pushAmt),
+	}
+	ctxt, _ = context.WithTimeout(ctxb, channelOpenTimeout)
+	chanPoint := openChannelAndAssert(
+		ctxt, t, net, carol, net.Bob, channelParam)
+
+	// Try to send a payment for one atom more than the maximum possible
+	// amount.  It should fail due to not enough outbound capacity.
+	err = sendPayment(maxPayAmt + 1)
+	if err == nil {
+		t.Fatalf("payment higher than max amount should fail, but suceeded.")
+	}
+	if !strings.Contains(err.Error(), "not enough outbound capacity") {
+		t.Fatalf("payment failed for the wrong reason: %v", err)
+	}
+
+	// Try to send a payment for exactly the maximum possible amount. It
+	// should suceed.
+	err = sendPayment(maxPayAmt - int64(peerHtlcFee))
+	if err != nil {
+		t.Fatalf("payment should have suceeded, but failed with %v", err)
+	}
+
+	// Disconnect the nodes from one another. While their channel remains
+	// open, carol cannot send payments (since bob is offline from her
+	// POV).
+	err = net.DisconnectNodes(ctxb, carol, net.Bob)
+	if err != nil {
+		t.Fatalf("unable to disconnect carol and bob: %v", err)
+	}
+
+	// Now trying to send a payment with an offline peer should fail.
+	err = sendPayment(1)
+	if err == nil {
+		t.Fatalf("sending payment without online peer should return an error")
+	}
+	if !strings.Contains(err.Error(), "no online channels found") {
+		t.Fatalf("sending payment without online channels should return " +
+			"correct error")
+	}
+
+	// Force-close and cleanup the channel, since bob & carol are
+	// disconnected.
+	ctxt, _ = context.WithTimeout(ctxb, channelCloseTimeout)
+	closeChannelAndAssert(ctxt, t, net, carol, chanPoint, true)
+	cleanupForceClose(t, net, carol, chanPoint)
+}
+
 type testCase struct {
 	name string
 	test func(net *lntest.NetworkHarness, t *harnessTest)
@@ -13318,6 +13439,10 @@ var testsCases = []*testCase{
 	{
 		name: "add and receive invoice at max inbound amount",
 		test: testAddReceiveInvoiceMaxInboundAmt,
+	},
+	{
+		name: "send payment max outbound amt",
+		test: testSendPaymentMaxOutboundAmt,
 	},
 }
 

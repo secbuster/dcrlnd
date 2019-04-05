@@ -2492,12 +2492,13 @@ func (r *rpcServer) SendToRoute(stream lnrpc.Lightning_SendToRouteServer) error 
 // hints), or we'll get a fully populated route from the user that we'll pass
 // directly to the channel router for dispatching.
 type rpcPaymentIntent struct {
-	mat        lnwire.MilliAtom
-	feeLimit   lnwire.MilliAtom
-	dest       *secp256k1.PublicKey
-	rHash      [32]byte
-	cltvDelta  uint16
-	routeHints [][]routing.HopHint
+	mat                  lnwire.MilliAtom
+	feeLimit             lnwire.MilliAtom
+	dest                 *secp256k1.PublicKey
+	rHash                [32]byte
+	cltvDelta            uint16
+	routeHints           [][]routing.HopHint
+	ignoreMaxOutboundAmt bool
 
 	routes []*routing.Route
 }
@@ -2508,7 +2509,9 @@ type rpcPaymentIntent struct {
 // via manual details, or via a complete route.
 func extractPaymentIntent(rpcPayReq *rpcPaymentRequest) (rpcPaymentIntent, error) {
 	var err error
-	payIntent := rpcPaymentIntent{}
+	payIntent := rpcPaymentIntent{
+		ignoreMaxOutboundAmt: rpcPayReq.IgnoreMaxOutboundAmt,
+	}
 
 	// If a route was specified, then we can use that directly.
 	if len(rpcPayReq.routes) != 0 {
@@ -2657,6 +2660,103 @@ type paymentIntentResponse struct {
 	Err      error
 }
 
+// checkCanSendPayment verifies whether the minimum conditions for sending the
+// given payment from this node are met, such as having an open channel with a
+// live peer with enough outbound bandwidth for sending it.
+func (r *rpcServer) checkCanSendPayment(payIntent *rpcPaymentIntent) error {
+	// Return early if we've been instructed to ignore the available
+	// inbound bandwidth.
+	if payIntent.ignoreMaxOutboundAmt {
+		return nil
+	}
+
+	// Verify whether there is at least one channel with enough outbound
+	// capacity (after accounting for channel reserves) to receive the
+	// payment from this invoice.
+	openChannels, err := r.server.chanDB.FetchAllOpenChannels()
+	if err != nil {
+		return err
+	}
+
+	// If the node has no open channels, it can't possibly send payment for
+	// this.
+	if len(openChannels) == 0 {
+		return errors.New("no open channels")
+	}
+
+	// Determine how much we're likely to pay as tx fee for adding a new
+	// htlc. We use the minimum relay fee since this is just a quick
+	// estimate on whether we'll be able to fulfill the payment.
+	relayFee := r.server.cc.feeEstimator.RelayFeePerKB()
+	htlcFee := relayFee.FeeForSize(lnwallet.HTLCOutputSize)
+
+	// Convert the payment amount to atoms, since we can't have an open
+	// channel with less than 1 atom and milliatom payments might not alter
+	// the channel balances.
+	amt := payIntent.mat.ToAtoms() + htlcFee
+	graph := r.server.chanDB.ChannelGraph()
+
+	// Loop through all available channels, check for liveliness and
+	// capacity.
+	var maxChanCap dcrutil.Amount
+	var maxChanID uint64
+	for _, channel := range openChannels {
+		// Ensure the channel is active and the remote peer is online,
+		// which is required to send to this channel.
+		chanPoint := &channel.FundingOutpoint
+		if _, err := r.server.FindPeer(channel.IdentityPub); err != nil {
+			// We're not connected to the peer, therefore can't
+			// send htlcs to it.
+			continue
+		}
+
+		// Try to retrieve a the link from the htlc switch to verify we
+		// can currently use this channel for routing.
+		channelID := lnwire.NewChanIDFromOutPoint(chanPoint)
+		var link htlcswitch.ChannelLink
+		if link, err = r.server.htlcSwitch.GetLink(channelID); err != nil {
+			continue
+		}
+
+		// If this link isn' eligible for htcl forwarding, it means we
+		// can't send to it.
+		if !link.EligibleToForward() {
+			continue
+		}
+
+		// We have now verified the channel is online and can route
+		// htlcs through it. Verifiy if it has enough outbound capacity
+		// for this new invoice.
+		//
+		// Outbound capacity for a channel is how much the local node
+		// currently has minus what the remote node requires us to
+		// maintain at all times (chan_reserve).
+		capacity := channel.LocalCommitment.LocalBalance.ToAtoms() -
+			dcrutil.Amount(channel.LocalChanCfg.ChannelConstraints.ChanReserve)
+
+		if capacity >= amt {
+			// Found an online channel with enough capacity. Signal
+			// success.
+			return nil
+		}
+
+		// Not yet enough capacity. Store the largest channel to
+		// present a better error msg.
+		if capacity > maxChanCap {
+			maxChanCap = capacity
+			maxChanID, _ = graph.ChannelID(chanPoint)
+		}
+	}
+
+	if maxChanID == 0 {
+		return errors.New("no online channels found")
+	}
+
+	missingCap := amt - maxChanCap
+	return fmt.Errorf("not enough outbound capacity (missing %d atoms "+
+		"in channel %d)", missingCap, maxChanID)
+}
+
 // dispatchPaymentIntent attempts to fully dispatch an RPC payment intent.
 // We'll either pass the payment as a whole to the channel router, or give it a
 // pre-built route. The first error this method returns denotes if we were
@@ -2664,6 +2764,13 @@ type paymentIntentResponse struct {
 // didn't succeed.
 func (r *rpcServer) dispatchPaymentIntent(
 	payIntent *rpcPaymentIntent) (*paymentIntentResponse, error) {
+
+	// Perform a pre-flight check for sending this payment.
+	if err := r.checkCanSendPayment(payIntent); err != nil {
+		return &paymentIntentResponse{
+			Err: err,
+		}, nil
+	}
 
 	// Construct a payment request to send to the channel router. If the
 	// payment is successful, the route chosen will be returned. Otherwise,
