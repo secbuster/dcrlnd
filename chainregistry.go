@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/hex"
 	"fmt"
 	"io/ioutil"
@@ -61,6 +62,50 @@ func (c chainCode) String() string {
 	default:
 		return "kekcoin"
 	}
+}
+
+// checkDcrdNode checks whether the dcrd node reachable using the provided
+// config is usable as source of chain information, given the requirements of a
+// dcrlnd node.
+func checkDcrdNode(rpcConfig rpcclient.ConnConfig) error {
+	connectTimeout := 30 * time.Second
+	ctx, cancel := context.WithTimeout(context.Background(), connectTimeout)
+	defer cancel()
+
+	rpcConfig.DisableConnectOnNew = true
+	rpcConfig.DisableAutoReconnect = false
+	chainConn, err := rpcclient.New(&rpcConfig, nil)
+	if err != nil {
+		return err
+	}
+
+	// Try to connect to the given node.
+	if err := chainConn.Connect(ctx, true); err != nil {
+		return err
+	}
+	defer chainConn.Shutdown()
+
+	// Verify whether the node is on the correct network.
+	net, err := chainConn.GetCurrentNet()
+	if err != nil {
+		return err
+	}
+	if net != activeNetParams.Params.Net {
+		return fmt.Errorf("dcrd node network mismatch")
+	}
+
+	// Verify if the txindex is enabled on the node. This is currently
+	// required by several dcrlnd services to perform tx discovery. Try to
+	// fetch a dummy transaction and check if the error code specifies the
+	// index is not enabled.
+	var nullTxID chainhash.Hash
+	errNoTxIndexMsg := "The transaction index must be enabled"
+	_, err = chainConn.GetRawTransaction(&nullTxID)
+	if err != nil && strings.Contains(err.Error(), errNoTxIndexMsg) {
+		return fmt.Errorf("dcrd instance is not running with --txindex")
+	}
+
+	return nil
 }
 
 // chainControl couples the three primary interfaces lnd utilizes for a
@@ -222,6 +267,15 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 		chainRPC, err := chain.NewRPCClient(activeNetParams.Params, dcrdHost,
 			dcrdUser, dcrdPass, rpcCert, false)
 		if err != nil {
+			return nil, nil, err
+		}
+
+		// Verify that the provided dcrd instance exists, is reachable,
+		// it's on the correct network and has the features required
+		// for dcrlnd to perform its work.
+		if err = checkDcrdNode(*rpcConfig); err != nil {
+			srvrLog.Errorf("unable to use specified dcrd node: %v",
+				err)
 			return nil, nil, err
 		}
 

@@ -121,6 +121,8 @@ func (n *DcrdNotifier) Start() error {
 		return nil
 	}
 
+	chainntnfs.Log.Infof("Starting dcrd notifier")
+
 	// TODO(decred): Handle 20 retries...
 	//
 	// Connect to dcrd, and register for notifications on connected, and
