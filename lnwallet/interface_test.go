@@ -121,22 +121,6 @@ func assertProperBalance(t *testing.T, lw *lnwallet.LightningWallet,
 	}
 }
 
-func assertChannelOpen(t *testing.T, miner *rpctest.Harness, numConfs uint32,
-	c <-chan *lnwallet.LightningChannel) *lnwallet.LightningChannel {
-	// Mine a single block. After this block is mined, the channel should
-	// be considered fully open.
-	if _, err := generateBlocks(miner, 1); err != nil {
-		t.Fatalf("unable to generate block: %v", err)
-	}
-	select {
-	case lnc := <-c:
-		return lnc
-	case <-time.After(time.Second * 5):
-		t.Fatalf("channel never opened")
-		return nil
-	}
-}
-
 func assertReservationDeleted(res *lnwallet.ChannelReservation, t *testing.T) {
 	if err := res.Cancel(); err == nil {
 		t.Fatalf("reservation wasn't deleted from wallet")
@@ -146,7 +130,7 @@ func assertReservationDeleted(res *lnwallet.ChannelReservation, t *testing.T) {
 // mineAndAssertTxInBlock asserts that a transaction is included within the next
 // block mined.
 func mineAndAssertTxInBlock(t *testing.T, miner *rpctest.Harness,
-	txid chainhash.Hash) {
+	vw *rpctest.VotingWallet, txid chainhash.Hash) {
 
 	t.Helper()
 
@@ -156,7 +140,7 @@ func mineAndAssertTxInBlock(t *testing.T, miner *rpctest.Harness,
 	}
 
 	// We'll mined a block to confirm it.
-	blockHashes, err := generateBlocks(miner, 1)
+	blockHashes, err := vw.GenerateBlocks(1)
 	if err != nil {
 		t.Fatalf("unable to generate new block: %v", err)
 	}
@@ -200,7 +184,7 @@ func newPkScript(t *testing.T, w *lnwallet.LightningWallet,
 
 // sendCoins is a helper function that encompasses all the things needed for two
 // parties to send on-chain funds to each other.
-func sendCoins(t *testing.T, miner *rpctest.Harness,
+func sendCoins(t *testing.T, miner *rpctest.Harness, vw *rpctest.VotingWallet,
 	sender, receiver *lnwallet.LightningWallet, output *wire.TxOut,
 	feeRate lnwallet.AtomPerKByte) *wire.MsgTx {
 
@@ -211,7 +195,7 @@ func sendCoins(t *testing.T, miner *rpctest.Harness,
 		t.Fatalf("unable to send transaction: %v", err)
 	}
 
-	mineAndAssertTxInBlock(t, miner, tx.TxHash())
+	mineAndAssertTxInBlock(t, miner, vw, tx.TxHash())
 
 	if err := waitForWalletSync(miner, sender); err != nil {
 		t.Fatalf("unable to sync alice: %v", err)
@@ -431,7 +415,8 @@ func createTestWallet(tempTestDir string, miningNode *rpctest.Harness,
 }
 
 func testDualFundingReservationWorkflow(miner *rpctest.Harness,
-	alice, bob *lnwallet.LightningWallet, t *testing.T) {
+	vw *rpctest.VotingWallet, alice, bob *lnwallet.LightningWallet,
+	t *testing.T) {
 
 	fundingAmount, err := dcrutil.NewAmount(5)
 	if err != nil {
@@ -609,7 +594,7 @@ func testDualFundingReservationWorkflow(miner *rpctest.Harness,
 	if err != nil {
 		t.Fatalf("tx not relayed to miner: %v", err)
 	}
-	blockHashes, err := generateBlocks(miner, 1)
+	blockHashes, err := vw.GenerateBlocks(1)
 	if err != nil {
 		t.Fatalf("unable to generate block: %v", err)
 	}
@@ -640,7 +625,8 @@ func testDualFundingReservationWorkflow(miner *rpctest.Harness,
 }
 
 func testFundingTransactionLockedOutputs(miner *rpctest.Harness,
-	alice, _ *lnwallet.LightningWallet, t *testing.T) {
+	vw *rpctest.VotingWallet, alice, _ *lnwallet.LightningWallet,
+	t *testing.T) {
 
 	// Create a single channel asking for 16 DCR total.
 	fundingAmount := dcrutil.Amount(8 * 1e8)
@@ -695,18 +681,21 @@ func testFundingTransactionLockedOutputs(miner *rpctest.Harness,
 }
 
 func testFundingCancellationNotEnoughFunds(miner *rpctest.Harness,
-	alice, _ *lnwallet.LightningWallet, t *testing.T) {
+	vw *rpctest.VotingWallet, alice, _ *lnwallet.LightningWallet,
+	t *testing.T) {
 
 	feePerKB, err := alice.Cfg.FeeEstimator.EstimateFeePerKB(1)
 	if err != nil {
 		t.Fatalf("unable to query fee estimator: %v", err)
 	}
 
-	// Create a reservation for 44 DCR.
-	fundingAmount, err := dcrutil.NewAmount(44)
+	totalBalance, err := alice.ConfirmedBalance(0)
 	if err != nil {
-		t.Fatalf("unable to create amt: %v", err)
+		t.Fatalf("unable to fetch confirmed balance: %v", err)
 	}
+
+	// Create a reservation for almost the entire wallet amount.
+	fundingAmount := totalBalance - dcrutil.AtomsPerCoin
 	req := &lnwallet.InitFundingReserveMsg{
 		ChainHash:       chainHash,
 		NodeID:          bobPub,
@@ -723,7 +712,8 @@ func testFundingCancellationNotEnoughFunds(miner *rpctest.Harness,
 		t.Fatalf("unable to initialize funding reservation: %v", err)
 	}
 
-	// Attempt to create another channel with 44 DCR, this should fail.
+	// Attempt to create another channel spending the same amount. This
+	// should fail.
 	_, err = alice.InitChannelReservation(req)
 	if _, ok := err.(*lnwallet.ErrInsufficientFunds); !ok {
 		t.Fatalf("coin selection succeeded should have insufficient funds: %v",
@@ -759,7 +749,8 @@ func testFundingCancellationNotEnoughFunds(miner *rpctest.Harness,
 }
 
 func testCancelNonExistentReservation(miner *rpctest.Harness,
-	alice, _ *lnwallet.LightningWallet, t *testing.T) {
+	vw *rpctest.VotingWallet, alice, _ *lnwallet.LightningWallet,
+	t *testing.T) {
 
 	feePerKB, err := alice.Cfg.FeeEstimator.EstimateFeePerKB(1)
 	if err != nil {
@@ -785,7 +776,8 @@ func testCancelNonExistentReservation(miner *rpctest.Harness,
 }
 
 func testReservationInitiatorBalanceBelowDustCancel(miner *rpctest.Harness,
-	alice, _ *lnwallet.LightningWallet, t *testing.T) {
+	vw *rpctest.VotingWallet, alice, _ *lnwallet.LightningWallet,
+	t *testing.T) {
 
 	// We'll attempt to create a new reservation with an extremely high fee
 	// rate. This should push our balance into the negative and result in a
@@ -863,7 +855,8 @@ func assertContributionInitPopulated(t *testing.T, c *lnwallet.ChannelContributi
 }
 
 func testSingleFunderReservationWorkflow(miner *rpctest.Harness,
-	alice, bob *lnwallet.LightningWallet, t *testing.T) {
+	vw *rpctest.VotingWallet, alice, bob *lnwallet.LightningWallet,
+	t *testing.T) {
 
 	// For this scenario, Alice will be the channel initiator while bob
 	// will act as the responder to the workflow.
@@ -1075,7 +1068,7 @@ func testSingleFunderReservationWorkflow(miner *rpctest.Harness,
 	if err != nil {
 		t.Fatalf("tx not relayed to miner: %v", err)
 	}
-	blockHashes, err := generateBlocks(miner, 1)
+	blockHashes, err := vw.GenerateBlocks(1)
 	if err != nil {
 		t.Fatalf("unable to generate block: %v", err)
 	}
@@ -1097,7 +1090,8 @@ func testSingleFunderReservationWorkflow(miner *rpctest.Harness,
 }
 
 func testListTransactionDetails(miner *rpctest.Harness,
-	alice, _ *lnwallet.LightningWallet, t *testing.T) {
+	vw *rpctest.VotingWallet, alice, _ *lnwallet.LightningWallet,
+	t *testing.T) {
 
 	// Create 5 new outputs spendable by the wallet.
 	const numTxns = 5
@@ -1135,7 +1129,7 @@ func testListTransactionDetails(miner *rpctest.Harness,
 
 	// Generate 10 blocks to mine all the transactions created above.
 	const numBlocksMined = 10
-	blocks, err := generateBlocks(miner, numBlocksMined)
+	blocks, err := vw.GenerateBlocks(numBlocksMined)
 	if err != nil {
 		t.Fatalf("unable to mine blocks: %v", err)
 	}
@@ -1276,7 +1270,7 @@ func testListTransactionDetails(miner *rpctest.Harness,
 		t.Fatalf("unable to find mempool tx in tx details!")
 	}
 
-	burnBlock, err := generateBlocks(miner, 1)
+	burnBlock, err := vw.GenerateBlocks(1)
 	if err != nil {
 		t.Fatalf("unable to mine block: %v", err)
 	}
@@ -1322,7 +1316,8 @@ func testListTransactionDetails(miner *rpctest.Harness,
 }
 
 func testTransactionSubscriptions(miner *rpctest.Harness,
-	alice, _ *lnwallet.LightningWallet, t *testing.T) {
+	vw *rpctest.VotingWallet, alice, _ *lnwallet.LightningWallet,
+	t *testing.T) {
 
 	// First, check to see if this wallet meets the TransactionNotifier
 	// interface, if not then we'll skip this test for this particular
@@ -1432,7 +1427,7 @@ func testTransactionSubscriptions(miner *rpctest.Harness,
 
 	// Next mine a single block, all the transactions generated above
 	// should be included.
-	if _, err := generateBlocks(miner, 1); err != nil {
+	if _, err := vw.GenerateBlocks(1); err != nil {
 		t.Fatalf("unable to generate block: %v", err)
 	}
 
@@ -1489,7 +1484,8 @@ func testTransactionSubscriptions(miner *rpctest.Harness,
 // expected error types in case the transaction being published
 // conflicts with the current mempool or chain.
 func testPublishTransaction(r *rpctest.Harness,
-	alice, _ *lnwallet.LightningWallet, t *testing.T) {
+	vw *rpctest.VotingWallet, alice, _ *lnwallet.LightningWallet,
+	t *testing.T) {
 
 	// Base tx fee rate for the transactions in this test. This is lower
 	// than the defaultRate to allow various tests to modify the fee rate used
@@ -1499,7 +1495,7 @@ func testPublishTransaction(r *rpctest.Harness,
 	// mineAndAssert mines a block and ensures the passed TX
 	// is part of that block.
 	mineAndAssert := func(tx *wire.MsgTx) error {
-		blockHashes, err := generateBlocks(r, 1)
+		blockHashes, err := vw.GenerateBlocks(1)
 		if err != nil {
 			return fmt.Errorf("unable to generate block: %v", err)
 		}
@@ -1685,7 +1681,7 @@ func testPublishTransaction(r *rpctest.Harness,
 	}
 
 	// Mine the transaction.
-	if _, err := generateBlocks(r, 1); err != nil {
+	if _, err := vw.GenerateBlocks(1); err != nil {
 		t.Fatalf("unable to generate block: %v", err)
 	}
 
@@ -1822,7 +1818,8 @@ func testPublishTransaction(r *rpctest.Harness,
 }
 
 func testSignOutputUsingTweaks(r *rpctest.Harness,
-	alice, _ *lnwallet.LightningWallet, t *testing.T) {
+	avw *rpctest.VotingWallet, alice, _ *lnwallet.LightningWallet,
+	t *testing.T) {
 
 	// We'd like to test the ability of the wallet's Signer implementation
 	// to be able to sign with a private key derived from tweaking the
@@ -1968,8 +1965,9 @@ func testSignOutputUsingTweaks(r *rpctest.Harness,
 	}
 }
 
-func testReorgWalletBalance(r *rpctest.Harness, w *lnwallet.LightningWallet,
-	_ *lnwallet.LightningWallet, t *testing.T) {
+func testReorgWalletBalance(r *rpctest.Harness, vw *rpctest.VotingWallet,
+	w *lnwallet.LightningWallet, _ *lnwallet.LightningWallet,
+	t *testing.T) {
 
 	// We first mine a few blocks to ensure any transactions still in the
 	// mempool confirm, and then get the original balance, before a
@@ -2016,7 +2014,7 @@ func testReorgWalletBalance(r *rpctest.Harness, w *lnwallet.LightningWallet,
 	if err != nil {
 		t.Fatalf("tx not relayed to miner: %v", err)
 	}
-	_, err = generateBlocks(r, 50)
+	_, err = generateBlocks(r, 16)
 	if err != nil {
 		t.Fatalf("unable to generate blocks on passed node: %v", err)
 	}
@@ -2143,7 +2141,8 @@ func testReorgWalletBalance(r *rpctest.Harness, w *lnwallet.LightningWallet,
 // change output created by the wallet, the wallet receives its confirmation
 // once included in the chain.
 func testChangeOutputSpendConfirmation(r *rpctest.Harness,
-	alice, bob *lnwallet.LightningWallet, t *testing.T) {
+	vw *rpctest.VotingWallet, alice, bob *lnwallet.LightningWallet,
+	t *testing.T) {
 
 	// In order to test that we see the confirmation of a transaction that
 	// spends an output created by SendOutputs, we'll start by emptying
@@ -2170,7 +2169,7 @@ func testChangeOutputSpendConfirmation(r *rpctest.Harness,
 		Value:    int64(aliceBalance - txFee),
 		PkScript: bobPkScript,
 	}
-	tx := sendCoins(t, r, alice, bob, output, txFeeRate)
+	tx := sendCoins(t, r, vw, alice, bob, output, txFeeRate)
 	txHash := tx.TxHash()
 	assertTxInWallet(t, alice, txHash, true)
 	assertTxInWallet(t, bob, txHash, true)
@@ -2193,7 +2192,7 @@ func testChangeOutputSpendConfirmation(r *rpctest.Harness,
 		PkScript: alicePkScript,
 		Version:  txscript.DefaultScriptVersion,
 	}
-	tx = sendCoins(t, r, bob, alice, output, txFeeRate)
+	tx = sendCoins(t, r, vw, bob, alice, output, txFeeRate)
 	txHash = tx.TxHash()
 	assertTxInWallet(t, alice, txHash, true)
 	assertTxInWallet(t, bob, txHash, true)
@@ -2205,14 +2204,14 @@ func testChangeOutputSpendConfirmation(r *rpctest.Harness,
 		Value:    dcrutil.AtomsPerCent,
 		PkScript: bobPkScript,
 	}
-	tx = sendCoins(t, r, alice, bob, output, txFeeRate)
+	tx = sendCoins(t, r, vw, alice, bob, output, txFeeRate)
 	txHash = tx.TxHash()
 	assertTxInWallet(t, alice, txHash, true)
 	assertTxInWallet(t, bob, txHash, true)
 
 	// Then, we'll spend the change output and ensure we see its
 	// confirmation come in.
-	tx = sendCoins(t, r, alice, bob, output, txFeeRate)
+	tx = sendCoins(t, r, vw, alice, bob, output, txFeeRate)
 	txHash = tx.TxHash()
 	assertTxInWallet(t, alice, txHash, true)
 	assertTxInWallet(t, bob, txHash, true)
@@ -2226,8 +2225,8 @@ func testChangeOutputSpendConfirmation(r *rpctest.Harness,
 
 type walletTestCase struct {
 	name string
-	test func(miner *rpctest.Harness, alice, bob *lnwallet.LightningWallet,
-		test *testing.T)
+	test func(miner *rpctest.Harness, vw *rpctest.VotingWallet,
+		alice, bob *lnwallet.LightningWallet, test *testing.T)
 }
 
 var walletTests = []walletTestCase{
@@ -2237,6 +2236,13 @@ var walletTests = []walletTestCase{
 		// on-chain funds.
 		name: "change output spend confirmation",
 		test: testChangeOutputSpendConfirmation,
+	},
+	{
+		// This test also needs to happen at the start of testing, to
+		// prevent a reorg past SVH which could cause the voting wallet
+		// to misbehave.
+		name: "reorg wallet balance",
+		test: testReorgWalletBalance,
 	},
 	{
 		name: "insane fee reject",
@@ -2278,10 +2284,6 @@ var walletTests = []walletTestCase{
 		name: "test cancel non-existent reservation",
 		test: testCancelNonExistentReservation,
 	},
-	{
-		name: "reorg wallet balance",
-		test: testReorgWalletBalance,
-	},
 }
 
 func clearWalletStates(a, b *lnwallet.LightningWallet) error {
@@ -2305,6 +2307,10 @@ func generateBlocks(r *rpctest.Harness, nb uint32) ([]*chainhash.Hash, error) {
 			h, e := r.Node.Generate(1)
 			if len(h) > 0 {
 				blockHashes[i] = h[0]
+
+				// Give enough time for this block to be
+				// processed by connected nodes.
+				time.Sleep(time.Millisecond * 100)
 			}
 			genChan <- e
 		}()
@@ -2431,6 +2437,16 @@ func TestLightningWallet(t *testing.T) {
 		t.Fatalf("unable to set up mining node: %v", err)
 	}
 
+	// Setup a voting wallet for when the chain passes SVH.
+	votingWallet, err := rpctest.NewVotingWallet(miningNode)
+	if err != nil {
+		t.Fatalf("unable to create voting wallet: %v", err)
+	}
+	if err = votingWallet.Start(); err != nil {
+		t.Fatalf("unable to start voting wallet: %v", err)
+	}
+	defer votingWallet.Stop()
+
 	rpcConfig := miningNode.RPCConfig()
 
 	tempDir, err := ioutil.TempDir("", "channeldb")
@@ -2456,7 +2472,7 @@ func TestLightningWallet(t *testing.T) {
 	for _, walletDriver := range lnwallet.RegisteredWallets() {
 		for _, backEnd := range walletDriver.BackEnds() {
 			runTests(t, walletDriver, backEnd, miningNode,
-				rpcConfig, chainNotifier)
+				rpcConfig, chainNotifier, votingWallet)
 		}
 	}
 }
@@ -2468,7 +2484,8 @@ func TestLightningWallet(t *testing.T) {
 func runTests(t *testing.T, walletDriver *lnwallet.WalletDriver,
 	backEnd string, miningNode *rpctest.Harness,
 	rpcConfig rpcclient.ConnConfig,
-	chainNotifier *dcrdnotify.DcrdNotifier) {
+	chainNotifier *dcrdnotify.DcrdNotifier,
+	votingWallet *rpctest.VotingWallet) {
 	var (
 		bio lnwallet.BlockChainIO
 
@@ -2605,7 +2622,7 @@ func runTests(t *testing.T, walletDriver *lnwallet.WalletDriver,
 		testName := fmt.Sprintf("%v/%v:%v", walletType, backEnd,
 			walletTest.name)
 		success := t.Run(testName, func(t *testing.T) {
-			walletTest.test(miningNode, alice, bob, t)
+			walletTest.test(miningNode, votingWallet, alice, bob, t)
 		})
 		if !success {
 			break
