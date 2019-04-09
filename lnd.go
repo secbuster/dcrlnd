@@ -204,6 +204,7 @@ func lndMain() error {
 		birthday        = time.Now()
 		recoveryWindow  uint32
 		unlockedWallet  *wallet.Wallet
+		loader          *walletloader.Loader
 	)
 
 	// We wait until the user provides a password over RPC. In case lnd is
@@ -223,6 +224,7 @@ func lndMain() error {
 		birthday = walletInitParams.Birthday
 		recoveryWindow = walletInitParams.RecoveryWindow
 		unlockedWallet = walletInitParams.Wallet
+		loader = walletInitParams.Loader
 
 		if recoveryWindow > 0 {
 			ltndLog.Infof("Wallet recovery mode enabled with "+
@@ -271,7 +273,7 @@ func lndMain() error {
 	// Lightning Network Daemon.
 	activeChainControl, chainCleanUp, err := newChainControlFromConfig(
 		cfg, chanDB, privateWalletPw, publicWalletPw, birthday,
-		recoveryWindow, unlockedWallet,
+		recoveryWindow, unlockedWallet, loader,
 	)
 	if err != nil {
 		fmt.Printf("unable to create chain control: %v\n", err)
@@ -653,6 +655,10 @@ type WalletUnlockParams struct {
 	// later when lnd actually uses it). Because unlocking involves scrypt
 	// which is resource intensive, we want to avoid doing it twice.
 	Wallet *wallet.Wallet
+
+	// Loader is the wallet loader used to create or open the corresponding
+	// wallet.
+	Loader *walletloader.Loader
 }
 
 // waitForWalletPassword will spin up gRPC and REST endpoints for the
@@ -810,6 +816,7 @@ func waitForWalletPassword(grpcEndpoints, restEndpoints []net.Addr,
 			Birthday:       birthday,
 			RecoveryWindow: recoveryWindow,
 			Wallet:         newWallet,
+			Loader:         loader,
 		}
 
 		return walletInitParams, nil
@@ -821,6 +828,7 @@ func waitForWalletPassword(grpcEndpoints, restEndpoints []net.Addr,
 			Password:       unlockMsg.Passphrase,
 			RecoveryWindow: unlockMsg.RecoveryWindow,
 			Wallet:         unlockMsg.Wallet,
+			Loader:         unlockMsg.Loader,
 		}
 		return walletInitParams, nil
 

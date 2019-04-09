@@ -21,7 +21,7 @@ import (
 	"github.com/decred/dcrlnd/lnwallet/dcrwallet"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/routing/chainview"
-	"github.com/decred/dcrwallet/chain/v2"
+	walletloader "github.com/decred/dcrwallet/loader"
 	"github.com/decred/dcrwallet/wallet/v2"
 )
 
@@ -138,8 +138,8 @@ type chainControl struct {
 // one chainControl instance exists: one backed by a running dcrd full-node.
 func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 	privateWalletPw, publicWalletPw []byte, birthday time.Time,
-	recoveryWindow uint32,
-	wallet *wallet.Wallet) (*chainControl, func(), error) {
+	recoveryWindow uint32, wallet *wallet.Wallet,
+	loader *walletloader.Loader) (*chainControl, func(), error) {
 
 	// Set the RPC config from the "home" chain. Multi-chain isn't yet
 	// active, so we'll restrict usage to a particular chain for now.
@@ -165,6 +165,8 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 			"chain %v is unknown", registeredChains.PrimaryChain())
 	}
 
+	var chainIO lnwallet.BlockChainIO
+
 	walletConfig := &dcrwallet.Config{
 		PrivatePass:    privateWalletPw,
 		PublicPass:     publicWalletPw,
@@ -174,6 +176,7 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 		NetParams:      activeNetParams.Params,
 		FeeEstimator:   cc.feeEstimator,
 		Wallet:         wallet,
+		Loader:         loader,
 	}
 
 	var (
@@ -262,14 +265,6 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 			return nil, nil, err
 		}
 
-		// Create a special websockets rpc client for btcd which will be used
-		// by the wallet for notifications, calls, etc.
-		chainRPC, err := chain.NewRPCClient(activeNetParams.Params, dcrdHost,
-			dcrdUser, dcrdPass, rpcCert, false)
-		if err != nil {
-			return nil, nil, err
-		}
-
 		// Verify that the provided dcrd instance exists, is reachable,
 		// it's on the correct network and has the features required
 		// for dcrlnd to perform its work.
@@ -279,7 +274,15 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 			return nil, nil, err
 		}
 
-		walletConfig.ChainSource = chainRPC
+		// Initialize an RPC syncer for this wallet and use it as
+		// blockchain IO source.
+		syncer, err := dcrwallet.NewRPCSyncer(*rpcConfig,
+			activeNetParams.Params)
+		if err != nil {
+			return nil, nil, err
+		}
+		walletConfig.Syncer = syncer
+		chainIO = syncer
 
 		// If we're not in simnet or regtest mode, then we'll attempt
 		// to use a proper fee estimator for testnet.
@@ -316,7 +319,7 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 
 	cc.msgSigner = wc
 	cc.signer = wc
-	cc.chainIO = wc
+	cc.chainIO = chainIO
 	cc.wc = wc
 
 	// Select the default channel constraints for the primary chain.

@@ -2,7 +2,6 @@ package dcrwallet
 
 import (
 	"bytes"
-	"context"
 	"encoding/hex"
 	"fmt"
 	"strings"
@@ -13,15 +12,12 @@ import (
 	"github.com/decred/dcrd/chaincfg"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrd/rpcclient/v2"
 	"github.com/decred/dcrd/txscript"
 	"github.com/decred/dcrd/wire"
 
 	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lnwallet"
 
-	"github.com/decred/dcrwallet/chain/v2"
-	"github.com/decred/dcrwallet/errors"
 	walletloader "github.com/decred/dcrwallet/loader"
 	base "github.com/decred/dcrwallet/wallet/v2"
 	"github.com/decred/dcrwallet/wallet/v2/txrules"
@@ -39,14 +35,8 @@ const (
 type DcrWallet struct {
 	// wallet is an active instance of dcrwallet.
 	wallet             *base.Wallet
+	loader             *walletloader.Loader
 	atomicWalletSynced uint32 // CAS (synced=1) when wallet syncing complete
-
-	// cancelCtx is the func that signals all long running goroutines should
-	// end.
-	//
-	// wg is the wait group for long-running goroutines.
-	cancelCtx func()
-	wg        sync.WaitGroup
 
 	cfg *Config
 
@@ -57,8 +47,7 @@ type DcrWallet struct {
 	utxoCache map[wire.OutPoint]*wire.TxOut
 	cacheMtx  sync.RWMutex
 
-	chain            *chain.RPCClient
-	walletNetBackend base.NetworkBackend
+	syncer WalletSyncer
 
 	keyring keychain.SecretKeyRing
 }
@@ -72,11 +61,18 @@ var _ lnwallet.WalletController = (*DcrWallet)(nil)
 func New(cfg Config) (*DcrWallet, error) {
 
 	wallet := cfg.Wallet
-	if cfg.Wallet == nil {
-		// Ensure the wallet exists or create it when the create flag is set.
-		netDir := NetworkDir(cfg.DataDir, cfg.NetParams)
+	loader := cfg.Loader
+	syncer := cfg.Syncer
 
-		loader := walletloader.NewLoader(cfg.NetParams, netDir,
+	if cfg.Syncer == nil {
+		return nil, fmt.Errorf("cfg.Syncer needs to be specified")
+	}
+
+	if cfg.Wallet == nil {
+		// Ensure the wallet exists or create it when the create flag
+		// is specified
+		netDir := NetworkDir(cfg.DataDir, cfg.NetParams)
+		loader = walletloader.NewLoader(cfg.NetParams, netDir,
 			&walletloader.StakeOptions{}, base.DefaultGapLimit, false,
 			txrules.DefaultRelayFeePerKb.ToCoin(), base.DefaultAccountGapLimit,
 			false)
@@ -106,7 +102,8 @@ func New(cfg Config) (*DcrWallet, error) {
 	return &DcrWallet{
 		cfg:       &cfg,
 		wallet:    wallet,
-		chain:     cfg.ChainSource,
+		loader:    loader,
+		syncer:    syncer,
 		netParams: cfg.NetParams,
 		utxoCache: make(map[wire.OutPoint]*wire.TxOut),
 		keyring:   keychain.NewWalletKeyRing(wallet),
@@ -117,7 +114,7 @@ func New(cfg Config) (*DcrWallet, error) {
 //
 // This is a part of the WalletController interface.
 func (b *DcrWallet) BackEnd() string {
-	if b.chain != nil {
+	if _, is := b.syncer.(*RPCSyncer); is {
 		// This package only supports full node backends for the moment
 		return "dcrd"
 	}
@@ -144,37 +141,10 @@ func (b *DcrWallet) Start() error {
 		return err
 	}
 
-	// Establish an RPC connection in addition to starting the goroutines
-	// in the underlying wallet.
-	err := b.chain.Start(context.TODO(), true)
-	if err != nil && !errors.MatchAll(rpcclient.ErrClientAlreadyConnected, err) {
-		return fmt.Errorf("error starting chain client: %v", err)
+	// And then start the syncer backend for this wallet.
+	if err := b.syncer.start(b); err != nil {
+		return err
 	}
-
-	// Pass the rpc client into the wallet so it can sync up to the
-	// current main chain.
-	b.walletNetBackend = chain.BackendFromRPCClient(b.chain.Client)
-	b.wallet.SetNetworkBackend(b.walletNetBackend)
-
-	var ctx context.Context
-	ctx, b.cancelCtx = context.WithCancel(context.Background())
-	b.wg.Add(1)
-	go func() {
-		defer b.wg.Done()
-
-		dcrwLog.Debugf("Starting rpc syncer")
-		syncer := chain.NewRPCSyncer(b.wallet, b.chain)
-		syncer.SetNotifications(&chain.Notifications{
-			Synced: b.onRPCSyncerSynced,
-		})
-		err := syncer.Run(ctx, true)
-
-		if werr, is := err.(*errors.Error); is && werr.Err == context.Canceled {
-			// This was a graceful shutdown, so ignore the error.
-			return
-		}
-		dcrwLog.Errorf("Wallet RPC syncer failed: %v", err)
-	}()
 
 	return nil
 }
@@ -186,12 +156,9 @@ func (b *DcrWallet) Start() error {
 func (b *DcrWallet) Stop() error {
 	dcrwLog.Debug("Requesting wallet shutdown")
 	b.wallet.Stop()
-
+	b.syncer.stop()
 	b.wallet.WaitForShutdown()
 
-	b.cancelCtx()
-	b.wg.Wait()
-	b.chain.Stop()
 	dcrwLog.Debugf("Wallet has shut down")
 
 	return nil
@@ -366,7 +333,14 @@ func (b *DcrWallet) PublishTransaction(tx *wire.MsgTx) error {
 		return err
 	}
 
-	_, err = b.wallet.PublishTransaction(tx, serTx, b.walletNetBackend)
+	n, err := b.wallet.NetworkBackend()
+	if err != nil {
+		return err
+	}
+	if n == nil {
+		return fmt.Errorf("wallet does not have an active backend")
+	}
+	_, err = b.wallet.PublishTransaction(tx, serTx, n)
 	if err != nil {
 		// TODO(decred): review if the string messages are correct. Possible
 		// convert from checking the message to checking the op.
@@ -693,14 +667,14 @@ func (b *DcrWallet) IsSynced() (bool, int64, error) {
 
 	// Next, query the chain backend to grab the info about the tip of the
 	// main chain.
-	_, bestHeight, err := b.cfg.ChainSource.GetBestBlock()
+	_, bestHeight, err := b.syncer.GetBestBlock()
 	if err != nil {
 		return false, 0, err
 	}
 
 	// If the wallet hasn't yet fully synced to the node's best chain tip,
 	// then we're not yet fully synced.
-	if int64(walletBestHeight) < bestHeight {
+	if walletBestHeight < bestHeight {
 		return false, walletBestHeader.Timestamp.Unix(), nil
 	}
 

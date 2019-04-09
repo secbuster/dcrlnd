@@ -19,7 +19,6 @@ import (
 	"github.com/decred/dcrlnd/chainntnfs/dcrdnotify"
 	bolt "go.etcd.io/bbolt"
 
-	"github.com/decred/dcrwallet/chain/v2"
 	_ "github.com/decred/dcrwallet/wallet/v2/drivers/bdb"
 
 	"github.com/decred/dcrd/chaincfg"
@@ -2428,7 +2427,8 @@ func TestLightningWallet(t *testing.T) {
 	// dedicated miner to generate blocks, cause re-orgs, etc. We'll set
 	// up this node with a chain length of 125, so we have plenty of DCR
 	// to play around with.
-	miningNode, err := rpctest.New(netParams, nil, []string{"--txindex"})
+	minerArgs := []string{"--txindex"}
+	miningNode, err := rpctest.New(netParams, nil, minerArgs)
 	if err != nil {
 		t.Fatalf("unable to create mining node: %v", err)
 	}
@@ -2487,7 +2487,8 @@ func runTests(t *testing.T, walletDriver *lnwallet.WalletDriver,
 	chainNotifier *dcrdnotify.DcrdNotifier,
 	votingWallet *rpctest.VotingWallet) {
 	var (
-		bio lnwallet.BlockChainIO
+		aliceBio lnwallet.BlockChainIO
+		bobBio   lnwallet.BlockChainIO
 
 		aliceSigner lnwallet.Signer
 		bobSigner   lnwallet.Signer
@@ -2516,7 +2517,7 @@ func runTests(t *testing.T, walletDriver *lnwallet.WalletDriver,
 	walletType := walletDriver.WalletType
 	switch walletType {
 	case "dcrwallet":
-		var aliceClient, bobClient *chain.RPCClient
+		var aliceSyncer, bobSyncer dcrwallet.WalletSyncer
 		switch backEnd {
 		case "dcrd":
 			feeEstimator, err = lnwallet.NewDcrdFeeEstimator(
@@ -2525,18 +2526,19 @@ func runTests(t *testing.T, walletDriver *lnwallet.WalletDriver,
 				t.Fatalf("unable to create dcrd fee estimator: %v",
 					err)
 			}
-			aliceClient, err = chain.NewRPCClient(netParams,
-				rpcConfig.Host, rpcConfig.User, rpcConfig.Pass,
-				rpcConfig.Certificates, false)
+			aliceSyncer, err = dcrwallet.NewRPCSyncer(rpcConfig,
+				netParams)
 			if err != nil {
 				t.Fatalf("unable to make chain rpc: %v", err)
 			}
-			bobClient, err = chain.NewRPCClient(netParams,
-				rpcConfig.Host, rpcConfig.User, rpcConfig.Pass,
-				rpcConfig.Certificates, false)
+			bobSyncer, err = dcrwallet.NewRPCSyncer(rpcConfig,
+				netParams)
 			if err != nil {
 				t.Fatalf("unable to make chain rpc: %v", err)
 			}
+
+			aliceBio = aliceSyncer
+			bobBio = bobSyncer
 		default:
 			t.Fatalf("unknown chain driver: %v", backEnd)
 		}
@@ -2551,7 +2553,7 @@ func runTests(t *testing.T, walletDriver *lnwallet.WalletDriver,
 			HdSeed:       aliceSeedBytes,
 			DataDir:      tempTestDirAlice,
 			NetParams:    netParams,
-			ChainSource:  aliceClient,
+			Syncer:       aliceSyncer,
 			FeeEstimator: feeEstimator,
 		}
 		aliceWalletController, err = walletDriver.New(aliceWalletConfig)
@@ -2573,7 +2575,7 @@ func runTests(t *testing.T, walletDriver *lnwallet.WalletDriver,
 			HdSeed:       bobSeedBytes,
 			DataDir:      tempTestDirBob,
 			NetParams:    netParams,
-			ChainSource:  bobClient,
+			Syncer:       bobSyncer,
 			FeeEstimator: feeEstimator,
 		}
 		bobWalletController, err = walletDriver.New(bobWalletConfig)
@@ -2584,7 +2586,6 @@ func runTests(t *testing.T, walletDriver *lnwallet.WalletDriver,
 		bobKeyRing = keychain.NewWalletKeyRing(
 			bobSigner.(*dcrwallet.DcrWallet).InternalWallet(),
 		)
-		bio = bobWalletController.(*dcrwallet.DcrWallet)
 
 	default:
 		t.Fatalf("unknown wallet driver: %v", walletType)
@@ -2594,7 +2595,7 @@ func runTests(t *testing.T, walletDriver *lnwallet.WalletDriver,
 	alice, err := createTestWallet(
 		tempTestDirAlice, miningNode, netParams,
 		chainNotifier, aliceWalletController, aliceKeyRing,
-		aliceSigner, bio,
+		aliceSigner, aliceBio,
 	)
 	if err != nil {
 		t.Fatalf("unable to create test ln wallet: %v", err)
@@ -2604,7 +2605,7 @@ func runTests(t *testing.T, walletDriver *lnwallet.WalletDriver,
 	bob, err := createTestWallet(
 		tempTestDirBob, miningNode, netParams,
 		chainNotifier, bobWalletController, bobKeyRing,
-		bobSigner, bio,
+		bobSigner, bobBio,
 	)
 	if err != nil {
 		t.Fatalf("unable to create test ln wallet: %v", err)

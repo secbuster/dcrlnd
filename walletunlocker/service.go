@@ -62,6 +62,8 @@ type WalletUnlockMsg struct {
 	// later when lnd actually uses it). Because unlocking involves scrypt
 	// which is resource intensive, we want to avoid doing it twice.
 	Wallet *wallet.Wallet
+
+	Loader *walletloader.Loader
 }
 
 // UnlockerService implements the WalletUnlocker service used to provide lnd
@@ -207,7 +209,9 @@ func (u *UnlockerService) InitWallet(ctx context.Context,
 	}
 
 	// We'll then open up the directory that will be used to store the
-	// wallet's files so we can check if the wallet already exists.
+	// wallet's files so we can check if the wallet already exists. This
+	// loader is only used for this check and should not leak to the
+	// outside.
 	netDir := dcrwallet.NetworkDir(u.chainDir, u.netParams)
 	loader := walletloader.NewLoader(u.netParams, netDir,
 		&walletloader.StakeOptions{}, gapLimit, false,
@@ -295,6 +299,7 @@ func (u *UnlockerService) UnlockWallet(ctx context.Context,
 		Passphrase:     password,
 		RecoveryWindow: uint32(gapLimit),
 		Wallet:         unlockedWallet,
+		Loader:         loader,
 	}
 
 	// At this point we was able to open the existing wallet with the
