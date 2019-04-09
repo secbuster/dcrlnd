@@ -362,7 +362,7 @@ func TestDecodeEncode(t *testing.T) {
 		},
 		{
 			// The same, on testnet, with a fallback address TsR28UZRprhgQQhzWns2M6cAwchrNVvbYq2
-			encodedInvoice: "lndtnt20m1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqhp5p0y6smqsu95wrj2v9dzntwn88pmz4ck92063nkhxju832w0tr5hsfpp3qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqr96wyp42mwwxysac07wfrdgk79fyha2av9xvur7p86k57f3car3z2wn7ttgsm6adu3p5a5s3jszfs0upwepmw0f9lp4dnnywxpq4nmcq23dxja",
+			encodedInvoice: "lntdcr20m1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqhp5p0y6smqsu95wrj2v9dzntwn88pmz4ck92063nkhxju832w0tr5hsfpp3qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqpf094cd5v782dw6hu4uu2nadncanzy8emn3xzmp77n0nnzyrwzzxuel7sqyzgmrpvl4p3hncrztujznemavdwy38sa9wdmlrnzcdlscqytjln6",
 			valid:          true,
 			decodedInvoice: func() *Invoice {
 				return &Invoice{
@@ -603,7 +603,7 @@ func TestNewInvoice(t *testing.T) {
 					Destination(testPubKey))
 			},
 			valid:          true,
-			encodedInvoice: "lndsimn241pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdqqnp4q0n326hr8v9zprg8gsvezcch06gfaqqhde2aj730yg0durunfhv66kkt60cem78x6tfk24jsx6sa24vvhhawpczy0t45z5mp365jfjfm4u7x9l3kptccq78lzc5tjj9wudd8u26t8rash4pm084dnxjz6z8sp9h0pmp",
+			encodedInvoice: "lnsdcr241pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdqqnp4q0n326hr8v9zprg8gsvezcch06gfaqqhde2aj730yg0durunfhv66zh5xhvtchse36pt88lj4djy8g58lx26xfz3np7humcd9594rmgv92nws6vllf9mhq670x9nrwhjzw0shsklr6gq235whh9x9089ue7gpjur6cc",
 		},
 		{
 			// On regtest
@@ -615,7 +615,7 @@ func TestNewInvoice(t *testing.T) {
 					Destination(testPubKey))
 			},
 			valid:          true,
-			encodedInvoice: "lndregn241pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdqqnp4q0n326hr8v9zprg8gsvezcch06gfaqqhde2aj730yg0durunfhv66h0gzleds7hedz4ukdjzaftcg07tdy2pnyv0gg04sptdpq82a7mvxjwejtnuann8yg0gmt5dgq8xsprhzr53x33em73nf5lw8qyeem5qpgsyfy6",
+			encodedInvoice: "lnrdcr241pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdqqnp4q0n326hr8v9zprg8gsvezcch06gfaqqhde2aj730yg0durunfhv668eyx3hxz79l45wdm93chts7yvd7n5dd4peq0dwdkrdamnrylws34pynkyyw7dndfy047tcelp4l8w26j8jjht8urq204g3ca6tgm7ycpq5qkd2",
 		},
 	}
 

@@ -75,9 +75,9 @@ const (
 // readable part) section of ln addresses for each decred network.
 var decredHRPPrefixes = map[string]string{
 	chaincfg.MainNetParams.Name:  "dcr",
-	chaincfg.RegNetParams.Name:   "dregn",
-	chaincfg.SimNetParams.Name:   "dsimn",
-	chaincfg.TestNet3Params.Name: "dtnt",
+	chaincfg.RegNetParams.Name:   "rdcr",
+	chaincfg.SimNetParams.Name:   "sdcr",
+	chaincfg.TestNet3Params.Name: "tdcr",
 }
 
 // MessageSigner is passed to the Encode method to provide a signature
