@@ -261,7 +261,7 @@ func Decode(invoice string, net *chaincfg.Params) (*Invoice, error) {
 	decodedInvoice := Invoice{}
 
 	// Decode the invoice using the modified bech32 decoder.
-	hrp, data, err := decodeBech32(invoice)
+	hrp, data, err := bech32.DecodeNoLimit(invoice)
 	if err != nil {
 		return nil, err
 	}
