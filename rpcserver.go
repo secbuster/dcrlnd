@@ -3673,7 +3673,16 @@ func (r *rpcServer) ListInvoices(ctx context.Context,
 	for i, invoice := range invoiceSlice.Invoices {
 		resp.Invoices[i], err = createRPCInvoice(&invoice)
 		if err != nil {
-			return nil, err
+			// Instead of failing and returning an error, encode
+			// the error message into the payment request field
+			// (along with the original payment request stored in
+			// the source db invoice) so that we can keep listing
+			// the rest of the invoices even if a single invoice
+			// was encoded in an otherwise invalid state.
+			resp.Invoices[i] = &lnrpc.Invoice{
+				PaymentRequest: fmt.Sprintf("[ERROR] %s (%s)",
+					err.Error(), invoice.PaymentRequest),
+			}
 		}
 	}
 
