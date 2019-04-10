@@ -115,7 +115,7 @@ func createSweeperTestContext(t *testing.T) *sweeperTestContext {
 	ctx.sweeper = New(&UtxoSweeperConfig{
 		Notifier: notifier,
 		PublishTransaction: func(tx *wire.MsgTx) error {
-			log.Tracef("Publishing tx %v", tx.TxHash())
+			testLog.Tracef("Publishing tx %v", tx.TxHash())
 			err := backend.publishTransaction(tx)
 			select {
 			case publishChan <- *tx:
@@ -298,20 +298,33 @@ func TestSuccess(t *testing.T) {
 	}
 }
 
-// TODO(decred) review this test
 // TestDust asserts that inputs that are not big enough to raise above the dust
 // limit, are held back until the total set does surpass the limit.
 func TestDust(t *testing.T) {
 	ctx := createSweeperTestContext(t)
 
-	// Sweeping a single output produces a tx of 486 weight units. With the
-	// test fee rate, the sweep tx will pay 4860 atoms in fees.
-	//
-	// Create an input so that the output after paying fees is still
-	// positive (400 atoms), but less than the dust limit (537 atoms) for the
-	// sweep tx output script (P2WPKH).
-	dustInput := createTestInput(5260, lnwallet.CommitmentTimeLock)
+	// Calculate the dust limit for the test relay fee (1000 atoms/KB).
+	dustLimit := int64(lnwallet.DustThresholdForRelayFee(1000))
 
+	// Estimate the size of a transaction that will sweep a
+	// CommitmentTimeLock output and pay to a P2PKH output.
+	var se lnwallet.TxSizeEstimator
+	se.AddP2PKHOutput()
+	se.AddCustomInput(lnwallet.ToLocalTimeoutSigScriptSize)
+	txSize := se.Size()
+
+	// Calculate the fee to relay this tx, given the test relay fee of
+	// 10000 atoms/KB.
+	txFee := int64(lnwallet.AtomPerKByte(10000).FeeForSize(txSize))
+
+	// Calculate the maximum value an output in this type of tx can have,
+	// after which it will no longer be considered dust.
+	maxDustOutputValue := txFee + dustLimit - 1
+
+	// Now create an input exactly at this dust limit. While positive, this
+	// won't be swept immediately due to the resulting tx having an output
+	// value lower than the dust limit.
+	dustInput := createTestInput(maxDustOutputValue, lnwallet.CommitmentTimeLock)
 	_, err := ctx.sweeper.SweepInput(&dustInput)
 	if err != nil {
 		t.Fatal(err)
@@ -319,9 +332,14 @@ func TestDust(t *testing.T) {
 
 	// No sweep transaction is expected now. The sweeper should recognize
 	// that the sweep output will not be relayed and not generate the tx.
+	ctx.assertNoNewTimer()
 
 	// Sweep another input that brings the tx output above the dust limit.
-	largeInput := createTestInput(100000, lnwallet.CommitmentTimeLock)
+	// We'll create an output with 10 times the maximum considered dust -
+	// more than enough to sweep both the earlier dust input and this new
+	// one.
+	largeInput := createTestInput(maxDustOutputValue*10,
+		lnwallet.CommitmentTimeLock)
 
 	_, err = ctx.sweeper.SweepInput(&largeInput)
 	if err != nil {
