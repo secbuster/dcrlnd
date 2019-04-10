@@ -3,15 +3,18 @@ package lnwallet
 import (
 	"context"
 
+	"github.com/decred/dcrd/dcrjson/v2"
 	"github.com/decred/dcrd/dcrutil"
 	"github.com/decred/dcrd/rpcclient/v2"
 )
 
 const (
-	// FeePerKBFloor is the lowest fee rate in atom/kw that we should use for
-	// determining transaction fees.
-	// TODO(decred) determine this value.
-	FeePerKBFloor AtomPerKByte = 253
+	// FeePerKBFloor is the lowest fee rate in atom/KB that we should use
+	// for determining transaction fees. Originally, this was used due to
+	// the conversion from sats/KB => sats/KW causing a possible rounding
+	// error, but in Decred we use this to track the widely deployed
+	// minimum relay fee.
+	FeePerKBFloor AtomPerKByte = 1e4
 )
 
 // AtomPerKByte represents a fee rate in atom/kb.
@@ -176,6 +179,8 @@ func (b *DcrdFeeEstimator) Start() error {
 	// happens to be lower than our fee floor, we'll enforce that instead.
 	b.minFeePerKB = AtomPerKByte(relayFee)
 	if b.minFeePerKB < FeePerKBFloor {
+		walletLog.Warnf("Dcrd returned fee rate of %s which is "+
+			"lower than the floor rate", b.minFeePerKB)
 		b.minFeePerKB = FeePerKBFloor
 	}
 
@@ -227,15 +232,12 @@ func (b *DcrdFeeEstimator) EstimateFeePerKB(numBlocks uint32) (AtomPerKByte, err
 // fetchEstimate returns a fee estimate for a transaction to be confirmed in
 // confTarget blocks. The estimate is returned in atom/kw.
 func (b *DcrdFeeEstimator) fetchEstimate(confTarget uint32) (AtomPerKByte, error) {
-	// TODO(decred): Implement fee estimation.
-	//
 	// First, we'll fetch the estimate for our confirmation target.
-	// dcrPerKB, err := b.dcrdConn.EstimateSmartFee(int64(confTarget),
-	// 	dcrjson.EstimateSmartFeeConservative)
-	// if err != nil {
-	// 	return 0, err
-	// }
-	dcrPerKB := float64(0)
+	dcrPerKB, err := b.dcrdConn.EstimateSmartFee(int64(confTarget),
+		dcrjson.EstimateSmartFeeConservative)
+	if err != nil {
+		return 0, err
+	}
 
 	// Next, we'll convert the returned value to atoms, as it's
 	// currently returned in DCR.

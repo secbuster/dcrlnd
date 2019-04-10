@@ -68,6 +68,7 @@ replace (
 	github.com/decred/dcrd/connmgr => github.com/decred/dcrd/connmgr v0.0.0-20190306151227-8cbb5ae69df7
 	github.com/decred/dcrd/dcrjson/v2 => github.com/decred/dcrd/dcrjson/v2 v2.0.0-20190306151227-8cbb5ae69df7
 	github.com/decred/dcrd/peer => github.com/decred/dcrd/peer v0.0.0-20190306151227-8cbb5ae69df7
+	github.com/decred/dcrd/rpcclient/v2 => github.com/decred/dcrd/rpcclient/v2 v2.0.0-20190306151227-8cbb5ae69df7
 
 	github.com/decred/dcrwallet => github.com/decred/dcrwallet v0.0.0-20190322135901-7e0e5a4227d7
 	github.com/decred/dcrwallet/wallet/v2 => github.com/decred/dcrwallet/wallet/v2 v2.0.0-20190322135901-7e0e5a4227d7

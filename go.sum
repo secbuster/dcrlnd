@@ -93,6 +93,8 @@ github.com/decred/dcrd/mining v1.1.0 h1:9Wtla+i+pEjfYsNCfixsipmyyoB26DgL4LSXWAin
 github.com/decred/dcrd/mining v1.1.0/go.mod h1:NQEtX604XgNwKcPFId1hVTTiBqmVQDlnqV1yNqGl4oU=
 github.com/decred/dcrd/peer v0.0.0-20190306151227-8cbb5ae69df7 h1:Vg3rHq6zb5RGZGrvS2bGK5jM8JEEL4Mv8QG7DoHrut8=
 github.com/decred/dcrd/peer v0.0.0-20190306151227-8cbb5ae69df7/go.mod h1:5aT5oTf+/8DixHrsQ8fhpD1uqvlUzmvVStBEs7NfsGw=
+github.com/decred/dcrd/rpcclient/v2 v2.0.0-20190306151227-8cbb5ae69df7 h1:tibmjnVZH+GshwbkE/OiFzt5hZvinAj4C1kyW12eWPQ=
+github.com/decred/dcrd/rpcclient/v2 v2.0.0-20190306151227-8cbb5ae69df7/go.mod h1:M9vimgZXZ2E46MdMnzdlBaz22F7+oImLD8+5qRgFr70=
 github.com/decred/dcrd/rpcclient/v2 v2.0.0 h1:Zy9twdEaOGUdCj/89LAs/IrStm6FcabxzBve4UsA73A=
 github.com/decred/dcrd/rpcclient/v2 v2.0.0/go.mod h1:9XjbRHBSNqN+DXz8I47gUZszvVjvugqLGK8TZQ4c/u0=
 github.com/decred/dcrd/txscript v1.0.1/go.mod h1:FqUX07Y+u3cJ1eIGPoyWbJg+Wk1NTllln/TyDpx9KnY=

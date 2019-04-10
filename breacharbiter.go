@@ -1068,6 +1068,10 @@ func (b *breachArbiter) sweepSpendableOutputsTxn(txSize int64,
 	// Before signing the transaction, check to ensure that it meets some
 	// basic validity requirements.
 	if err := blockchain.CheckTransactionSanity(txn, b.cfg.NetParams); err != nil {
+		brarLog.Debugf("Sweep tx does not pass sanity check: %v. "+
+			"Tx=%s", logClosure(func() string {
+			return spew.Sdump(txn)
+		}))
 		return nil, err
 	}
 
