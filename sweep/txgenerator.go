@@ -195,6 +195,7 @@ func createSweepTx(inputs []Input, outputPkScript []byte,
 	// csvInput, we set the sequence number properly.
 	for _, input := range inputs {
 		sweepTx.AddTxIn(&wire.TxIn{
+			ValueIn:          input.SignDesc().Output.Value,
 			PreviousOutPoint: *input.OutPoint(),
 			Sequence:         input.BlocksToMaturity(),
 		})
