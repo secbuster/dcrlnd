@@ -476,11 +476,39 @@ const (
 	// MaxHTLCNumber is the maximum number HTLCs which can be included in a
 	// commitment transaction. This limit was chosen such that, in the case
 	// of a contract breach, the punishment transaction is able to sweep
-	// all the HTLC's yet still remain below the widely used standard
-	// weight limits.
+	// all the HTLC's yet still remain below the widely used standard size
+	// limits.
 	//
-	// TODO(decred) Review how this number was calculated
-	MaxHTLCNumber = 966
+	// This number is derived (as explained in BOLT-0005) by assuming a
+	// penalty transaction will redeem the following elements (along with
+	// their respective sizes):
+	//
+	// 		- base tx size				 12 bytes
+	//		- output count varint			  1 byte
+	//		- p2pkh output				 36 bytes
+	//		- input count prefix varint		  2 bytes
+	//		- input count witness varint		  2 bytes
+	//		- to_remote commitment output
+	//			- input 			 57 bytes
+	//			- sigscript varint		  1 byte
+	//			- 2-of-2 multisig sigscript 	220 bytes
+	//		- to_local commitment output
+	//			- input				 57 bytes
+	//			- sigscript varint		  1 byte
+	//			- to_local penalty sigscript	157 bytes
+	//		- n accepted_htlc_penalty inputs
+	//			- input				 57 bytes
+	//			- sigscript varint		  1 byte
+	//			- sigscript			250 bytes
+	//
+	// The "n" maximum number of redeemable htlcs can thus be calculated
+	// (where static_data is everything _except_ the variable number of
+	// htlc outputs):
+	//
+	//	= (max_tx_size - static_data) / accepted_htlc_penalty_size
+	//      = (  100000    -     546   )  /      308
+	//      = 322 htlcs
+	MaxHTLCNumber = 322
 )
 
 // EstimateCommitmentTxSize estimates the size of a commitment transaction
