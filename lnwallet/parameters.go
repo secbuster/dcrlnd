@@ -34,8 +34,10 @@ func DustThresholdForRelayFee(relayFeeRate AtomPerKByte) dcrutil.Amount {
 	scriptSize := P2PKHPkScriptSize
 	totalSize := outputSize + 1 + scriptSize + inputRedeemSize
 
+	// Calculate the relay fee for this test tx in atoms, given its
+	// estimated totalSize and the provided relayFeeRate in atoms/KB.
+	relayFee := totalSize * int64(relayFeeRate) / 1000
+
 	// Threshold for dustiness is determined as 3 times the relay fee.
-	byteFee := dcrutil.Amount(relayFeeRate) / 1000
-	minRelayFee := dcrutil.Amount(totalSize) * byteFee
-	return 3 * minRelayFee
+	return dcrutil.Amount(3 * relayFee)
 }
