@@ -10,19 +10,19 @@ type UpdateFee struct {
 	// ChanID is the channel that this UpdateFee is meant for.
 	ChanID ChannelID
 
-	// FeePerKw is the fee-per-kw on commit transactions that the sender of
+	// FeePerKB is the fee-per-kw on commit transactions that the sender of
 	// this message wants to use for this channel.
 	//
 	// TODO(halseth): make AtomsPerKWeight when fee estimation is moved to
 	// own package. Currently this will cause an import cycle.
-	FeePerKw uint32
+	FeePerKB uint32
 }
 
 // NewUpdateFee creates a new UpdateFee message.
-func NewUpdateFee(chanID ChannelID, feePerKw uint32) *UpdateFee {
+func NewUpdateFee(chanID ChannelID, feePerKB uint32) *UpdateFee {
 	return &UpdateFee{
 		ChanID:   chanID,
-		FeePerKw: feePerKw,
+		FeePerKB: feePerKB,
 	}
 }
 
@@ -37,7 +37,7 @@ var _ Message = (*UpdateFee)(nil)
 func (c *UpdateFee) Decode(r io.Reader, pver uint32) error {
 	return ReadElements(r,
 		&c.ChanID,
-		&c.FeePerKw,
+		&c.FeePerKB,
 	)
 }
 
@@ -48,7 +48,7 @@ func (c *UpdateFee) Decode(r io.Reader, pver uint32) error {
 func (c *UpdateFee) Encode(w io.Writer, pver uint32) error {
 	return WriteElements(w,
 		c.ChanID,
-		c.FeePerKw,
+		c.FeePerKB,
 	)
 }
 

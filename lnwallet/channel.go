@@ -497,9 +497,9 @@ type commitment struct {
 	// and recalculated for each new update to the channel state.
 	fee dcrutil.Amount
 
-	// feePerKw is the fee per kw used to calculate this commitment
+	// feePerKB is the fee per kw used to calculate this commitment
 	// transaction's fee.
-	feePerKw AtomPerKByte
+	feePerKB AtomPerKByte
 
 	// dustLimit is the limit on the commitment transaction such that no
 	// output values should be below this amount.
@@ -592,7 +592,7 @@ func (c *commitment) populateHtlcIndexes() error {
 	// populateIndex is a helper function that populates the necessary
 	// indexes within the commitment view for a particular HTLC.
 	populateIndex := func(htlc *PaymentDescriptor, incoming bool) error {
-		isDust := htlcIsDust(incoming, c.isOurs, c.feePerKw,
+		isDust := htlcIsDust(incoming, c.isOurs, c.feePerKB,
 			htlc.Amount.ToAtoms(), c.dustLimit)
 
 		var err error
@@ -682,7 +682,7 @@ func (c *commitment) toDiskCommit(ourCommit bool) *channeldb.ChannelCommitment {
 		LocalBalance:    c.ourBalance,
 		RemoteBalance:   c.theirBalance,
 		CommitFee:       c.fee,
-		FeePerKw:        dcrutil.Amount(c.feePerKw),
+		FeePerKB:        dcrutil.Amount(c.feePerKB),
 		CommitTx:        c.txn,
 		CommitSig:       c.sig,
 		Htlcs:           make([]channeldb.HTLC, 0, numHtlcs),
@@ -871,7 +871,7 @@ func (lc *LightningChannel) diskCommitToMemCommit(isLocal bool,
 	// HTLC"s into PaymentDescriptor's so we can re-insert them into our
 	// update log.
 	incomingHtlcs, outgoingHtlcs, err := lc.extractPayDescs(
-		diskCommit.CommitHeight, AtomPerKByte(diskCommit.FeePerKw),
+		diskCommit.CommitHeight, AtomPerKByte(diskCommit.FeePerKB),
 		diskCommit.Htlcs, localCommitKeys, remoteCommitKeys,
 	)
 	if err != nil {
@@ -892,7 +892,7 @@ func (lc *LightningChannel) diskCommitToMemCommit(isLocal bool,
 		txn:               diskCommit.CommitTx,
 		sig:               diskCommit.CommitSig,
 		fee:               diskCommit.CommitFee,
-		feePerKw:          AtomPerKByte(diskCommit.FeePerKw),
+		feePerKB:          AtomPerKByte(diskCommit.FeePerKB),
 		incomingHTLCs:     incomingHtlcs,
 		outgoingHTLCs:     outgoingHtlcs,
 	}
@@ -1789,14 +1789,14 @@ func (lc *LightningChannel) restoreStateLogs(
 		// entry within the updateLog, so we'll just apply it and move
 		// on.
 		if feeUpdate, ok := logUpdate.UpdateMsg.(*lnwire.UpdateFee); ok {
-			newFeeRate := AtomPerKByte(feeUpdate.FeePerKw)
+			newFeeRate := AtomPerKByte(feeUpdate.FeePerKB)
 			lc.pendingAckFeeUpdate = &newFeeRate
 			continue
 		}
 
 		payDesc, err := lc.logUpdateToPayDesc(
 			&logUpdate, lc.remoteUpdateLog, pendingHeight,
-			AtomPerKByte(pendingCommit.FeePerKw), pendingRemoteKeys,
+			AtomPerKByte(pendingCommit.FeePerKB), pendingRemoteKeys,
 			lc.channelState.RemoteChanCfg.DustLimit,
 		)
 		if err != nil {
@@ -2037,7 +2037,7 @@ func NewBreachRetribution(chanState *channeldb.OpenChannel, stateNum uint64,
 		// an output on the commitment transaction.
 		if htlcIsDust(
 			htlc.Incoming, false,
-			AtomPerKByte(revokedSnapshot.FeePerKw),
+			AtomPerKByte(revokedSnapshot.FeePerKB),
 			htlc.Amt.ToAtoms(), chanState.RemoteChanCfg.DustLimit,
 		) {
 			continue
@@ -2258,7 +2258,7 @@ func (lc *LightningChannel) fetchCommitmentView(remoteChain bool,
 		theirMessageIndex: theirLogIndex,
 		theirHtlcIndex:    theirHtlcIndex,
 		height:            nextHeight,
-		feePerKw:          feePerKB,
+		feePerKB:          feePerKB,
 		dustLimit:         dustLimit,
 		isOurs:            !remoteChain,
 	}
@@ -2303,7 +2303,7 @@ func (lc *LightningChannel) createCommitmentTx(c *commitment,
 
 	numHTLCs := int64(0)
 	for _, htlc := range filteredHTLCView.ourUpdates {
-		if htlcIsDust(false, c.isOurs, c.feePerKw,
+		if htlcIsDust(false, c.isOurs, c.feePerKB,
 			htlc.Amount.ToAtoms(), c.dustLimit) {
 
 			continue
@@ -2312,7 +2312,7 @@ func (lc *LightningChannel) createCommitmentTx(c *commitment,
 		numHTLCs++
 	}
 	for _, htlc := range filteredHTLCView.theirUpdates {
-		if htlcIsDust(true, c.isOurs, c.feePerKw,
+		if htlcIsDust(true, c.isOurs, c.feePerKB,
 			htlc.Amount.ToAtoms(), c.dustLimit) {
 
 			continue
@@ -2329,7 +2329,7 @@ func (lc *LightningChannel) createCommitmentTx(c *commitment,
 
 	// With the size known, we can now calculate the commitment fee,
 	// ensuring that we account for any dust outputs trimmed above.
-	commitFee := c.feePerKw.FeeForSize(totalCommitSize)
+	commitFee := c.feePerKB.FeeForSize(totalCommitSize)
 	commitFeeMAtoms := lnwire.NewMAtomsFromAtoms(commitFee)
 
 	// Currently, within the protocol, the initiator always pays the fees.
@@ -2377,7 +2377,7 @@ func (lc *LightningChannel) createCommitmentTx(c *commitment,
 	// need the objective local/remote keys for this particular commitment
 	// as well.
 	for _, htlc := range filteredHTLCView.ourUpdates {
-		if htlcIsDust(false, c.isOurs, c.feePerKw,
+		if htlcIsDust(false, c.isOurs, c.feePerKB,
 			htlc.Amount.ToAtoms(), c.dustLimit) {
 			continue
 		}
@@ -2388,7 +2388,7 @@ func (lc *LightningChannel) createCommitmentTx(c *commitment,
 		}
 	}
 	for _, htlc := range filteredHTLCView.theirUpdates {
-		if htlcIsDust(true, c.isOurs, c.feePerKw,
+		if htlcIsDust(true, c.isOurs, c.feePerKB,
 			htlc.Amount.ToAtoms(), c.dustLimit) {
 			continue
 		}
@@ -2664,7 +2664,7 @@ func genRemoteHtlcSigJobs(keyRing *CommitmentKeyRing,
 
 	txHash := remoteCommitView.txn.TxHash()
 	dustLimit := remoteChanCfg.DustLimit
-	feePerKB := remoteCommitView.feePerKw
+	feePerKB := remoteCommitView.feePerKB
 
 	// With the keys generated, we'll make a slice with enough capacity to
 	// hold potentially all the HTLCs. The actual slice may be a bit
@@ -2809,7 +2809,7 @@ func (lc *LightningChannel) createCommitDiff(
 		logUpdates = append(logUpdates, channeldb.LogUpdate{
 			UpdateMsg: &lnwire.UpdateFee{
 				ChanID:   chanID,
-				FeePerKw: uint32(*lc.pendingFeeUpdate),
+				FeePerKB: uint32(*lc.pendingFeeUpdate),
 			},
 		})
 	}
@@ -3528,7 +3528,7 @@ func (lc *LightningChannel) computeView(view *htlcView, remoteChain bool,
 	// Initiate feePerKB to the last committed fee for this chain as we'll
 	// need this to determine which HTLCs are dust, and also the final fee
 	// rate.
-	feePerKB := commitChain.tip().feePerKw
+	feePerKB := commitChain.tip().feePerKB
 
 	// Check if any fee updates have taken place since that last
 	// commitment.
@@ -3724,7 +3724,7 @@ func genHtlcSigValidationJobs(localCommitmentView *commitment,
 	localChanCfg, remoteChanCfg *channeldb.ChannelConfig) ([]VerifyJob, error) {
 
 	txHash := localCommitmentView.txn.TxHash()
-	feePerKB := localCommitmentView.feePerKw
+	feePerKB := localCommitmentView.feePerKB
 
 	// With the required state generated, we'll create a slice with large
 	// enough capacity to hold verification jobs for all HTLC's in this
@@ -5018,7 +5018,7 @@ func NewUnilateralCloseSummary(chanState *channeldb.OpenChannel, signer Signer,
 	// Next, we'll obtain HTLC resolutions for all the outgoing HTLC's we
 	// had on their commitment transaction.
 	htlcResolutions, err := extractHtlcResolutions(
-		AtomPerKByte(remoteCommit.FeePerKw), false, signer, remoteCommit.Htlcs,
+		AtomPerKByte(remoteCommit.FeePerKB), false, signer, remoteCommit.Htlcs,
 		keyRing, &chanState.LocalChanCfg, &chanState.RemoteChanCfg,
 		*commitSpend.SpenderTxHash, pCache,
 	)
@@ -5701,7 +5701,7 @@ func NewLocalForceCloseSummary(chanState *channeldb.OpenChannel, signer Signer,
 	// outgoing HTLC's that we'll need to claim as well.
 	txHash := commitTx.TxHash()
 	htlcResolutions, err := extractHtlcResolutions(
-		AtomPerKByte(localCommit.FeePerKw), true, signer,
+		AtomPerKByte(localCommit.FeePerKB), true, signer,
 		localCommit.Htlcs, keyRing, &chanState.LocalChanCfg,
 		&chanState.RemoteChanCfg, txHash, pCache)
 	if err != nil {
@@ -6171,7 +6171,7 @@ func (lc *LightningChannel) CommitFeeRate() AtomPerKByte {
 	lc.RLock()
 	defer lc.RUnlock()
 
-	return AtomPerKByte(lc.channelState.LocalCommitment.FeePerKw)
+	return AtomPerKByte(lc.channelState.LocalCommitment.FeePerKB)
 }
 
 // IsPending returns true if the channel's funding transaction has been fully

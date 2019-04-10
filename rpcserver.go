@@ -633,12 +633,12 @@ func (r *rpcServer) sendCoinsOnChain(paymentMap map[string]int64,
 	return &txHash, err
 }
 
-// determineFeePerKw will determine the fee in atom/kw that should be paid given
+// determineFeePerKB will determine the fee in atom/kw that should be paid given
 // an estimator, a confirmation target, and a manual value for atom/byte. A value
 // is chosen based on the two free parameters as one, or both of them can be
 // zero.
 // TODO(decred) remove duplicated stuff
-func determineFeePerKw(feeEstimator lnwallet.FeeEstimator, targetConf int32,
+func determineFeePerKB(feeEstimator lnwallet.FeeEstimator, targetConf int32,
 	feePerByte int64) (lnwallet.AtomPerKByte, error) {
 
 	switch {
@@ -795,19 +795,18 @@ func (r *rpcServer) SendCoins(ctx context.Context,
 
 	// Based on the passed fee related parameters, we'll determine an
 	// appropriate fee rate for this transaction.
-	feePerKw, err := determineFeePerKw(
+	feePerKB, err := determineFeePerKB(
 		r.server.cc.feeEstimator, in.TargetConf, in.AtomsPerByte,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO(decred): No weight and atoms...
-	rpcsLog.Infof("[sendcoins] addr=%v, amt=%v, atom/kw=%v", in.Addr,
-		dcrutil.Amount(in.Amount), int64(feePerKw))
+	rpcsLog.Infof("[sendcoins] addr=%v, amt=%v, atom/kb=%v", in.Addr,
+		dcrutil.Amount(in.Amount), int64(feePerKB))
 
 	paymentMap := map[string]int64{in.Addr: in.Amount}
-	txid, err := r.sendCoinsOnChain(paymentMap, feePerKw)
+	txid, err := r.sendCoinsOnChain(paymentMap, feePerKB)
 	if err != nil {
 		return nil, err
 	}
@@ -824,17 +823,17 @@ func (r *rpcServer) SendMany(ctx context.Context,
 
 	// Based on the passed fee related parameters, we'll determine an
 	// appropriate fee rate for this transaction.
-	feePerKw, err := determineFeePerKw(
+	feePerKB, err := determineFeePerKB(
 		r.server.cc.feeEstimator, in.TargetConf, in.AtomsPerByte,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	rpcsLog.Infof("[sendmany] outputs=%v, atom/kw=%v",
-		spew.Sdump(in.AddrToAmount), int64(feePerKw))
+	rpcsLog.Infof("[sendmany] outputs=%v, atom/kb=%v",
+		spew.Sdump(in.AddrToAmount), int64(feePerKB))
 
-	txid, err := r.sendCoinsOnChain(in.AddrToAmount, feePerKw)
+	txid, err := r.sendCoinsOnChain(in.AddrToAmount, feePerKB)
 	if err != nil {
 		return nil, err
 	}
@@ -1163,7 +1162,7 @@ func (r *rpcServer) OpenChannel(in *lnrpc.OpenChannelRequest,
 
 	// Based on the passed fee related parameters, we'll determine an
 	// appropriate fee rate for the funding transaction.
-	feeRate, err := determineFeePerKw(
+	feeRate, err := determineFeePerKB(
 		r.server.cc.feeEstimator, in.TargetConf, in.AtomsPerByte,
 	)
 	if err != nil {
@@ -1182,7 +1181,7 @@ func (r *rpcServer) OpenChannel(in *lnrpc.OpenChannelRequest,
 		localFundingAmt: localFundingAmt,
 		pushAmt:         lnwire.NewMAtomsFromAtoms(remoteInitialBalance),
 		minHtlc:         minHtlc,
-		fundingFeePerKw: feeRate,
+		fundingFeePerKB: feeRate,
 		private:         in.Private,
 		remoteCsvDelay:  remoteCsvDelay,
 		minConfs:        minConfs,
@@ -1310,7 +1309,7 @@ func (r *rpcServer) OpenChannelSync(ctx context.Context,
 
 	// Based on the passed fee related parameters, we'll determine an
 	// appropriate fee rate for the funding transaction.
-	feeRate, err := determineFeePerKw(
+	feeRate, err := determineFeePerKB(
 		r.server.cc.feeEstimator, in.TargetConf, in.AtomsPerByte,
 	)
 	if err != nil {
@@ -1326,7 +1325,7 @@ func (r *rpcServer) OpenChannelSync(ctx context.Context,
 		localFundingAmt: localFundingAmt,
 		pushAmt:         lnwire.NewMAtomsFromAtoms(remoteInitialBalance),
 		minHtlc:         minHtlc,
-		fundingFeePerKw: feeRate,
+		fundingFeePerKB: feeRate,
 		private:         in.Private,
 		remoteCsvDelay:  remoteCsvDelay,
 		minConfs:        minConfs,
@@ -1499,7 +1498,7 @@ func (r *rpcServer) CloseChannel(in *lnrpc.CloseChannelRequest,
 		// Based on the passed fee related parameters, we'll determine
 		// an appropriate fee rate for the cooperative closure
 		// transaction.
-		feeRate, err := determineFeePerKw(
+		feeRate, err := determineFeePerKB(
 			r.server.cc.feeEstimator, in.TargetConf, in.AtomsPerByte,
 		)
 		if err != nil {
@@ -1939,13 +1938,12 @@ func (r *rpcServer) PendingChannels(ctx context.Context,
 		pub := pendingChan.IdentityPub.SerializeCompressed()
 
 		// As this is required for display purposes, we'll calculate
-		// the weight of the commitment transaction. We also add on the
-		// estimated weight of the witness to calculate the weight of
-		// the transaction if it were to be immediately unilaterally
+		// the size of the commitment transaction. We also add on the
+		// estimated size of the witness to calculate the size of the
+		// transaction if it were to be immediately unilaterally
 		// broadcast.
 		// TODO(roasbeef): query for funding tx from wallet, display
 		// that also?
-		// TODO(decred) review usage of weight vs size
 		localCommitment := pendingChan.LocalCommitment
 		utx := localCommitment.CommitTx
 		commitBaseSize := int64(utx.SerializeSize())
@@ -1959,9 +1957,9 @@ func (r *rpcServer) PendingChannels(ctx context.Context,
 				LocalBalance:  int64(localCommitment.LocalBalance.ToAtoms()),
 				RemoteBalance: int64(localCommitment.RemoteBalance.ToAtoms()),
 			},
-			CommitWeight: commitSize,
-			CommitFee:    int64(localCommitment.CommitFee),
-			FeePerKw:     int64(localCommitment.FeePerKw),
+			CommitSize: commitSize,
+			CommitFee:  int64(localCommitment.CommitFee),
+			FeePerKb:   int64(localCommitment.FeePerKB),
 			// TODO(roasbeef): need to track confirmation height
 		}
 	}
@@ -2271,9 +2269,9 @@ func (r *rpcServer) ListChannels(ctx context.Context,
 		}
 
 		// As this is required for display purposes, we'll calculate
-		// the weight of the commitment transaction. We also add on the
-		// estimated weight of the witness to calculate the weight of
-		// the transaction if it were to be immediately unilaterally
+		// the size of the commitment transaction. We also add on the
+		// estimated size of the witness to calculate the size of the
+		// transaction if it were to be immediately unilaterally
 		// broadcast.
 		localCommit := dbChannel.LocalCommitment
 		utx := localCommit.CommitTx
@@ -2309,8 +2307,8 @@ func (r *rpcServer) ListChannels(ctx context.Context,
 			LocalBalance:         int64(localBalance.ToAtoms()),
 			RemoteBalance:        int64(remoteBalance.ToAtoms()),
 			CommitFee:            int64(externalCommitFee),
-			CommitWeight:         commitSize,
-			FeePerKw:             int64(localCommit.FeePerKw),
+			CommitSize:           commitSize,
+			FeePerKb:             int64(localCommit.FeePerKB),
 			TotalAtomsSent:       int64(dbChannel.TotalMAtomsSent.ToAtoms()),
 			TotalAtomsReceived:   int64(dbChannel.TotalMAtomsReceived.ToAtoms()),
 			NumUpdates:           localCommit.CommitHeight,

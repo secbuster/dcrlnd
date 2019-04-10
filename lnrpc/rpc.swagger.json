@@ -1229,15 +1229,15 @@
           "format": "int64",
           "description": "*\nThe amount calculated to be paid in fees for the current set of\ncommitment transactions. The fee amount is persisted with the channel\nin order to allow the fee amount to be removed and recalculated with\neach channel state update, including updates that happen after a system\nrestart."
         },
-        "commit_weight": {
+        "commit_size": {
           "type": "string",
           "format": "int64",
-          "title": "/ The weight of the commitment transaction"
+          "title": "/ The size of the commitment transaction"
         },
-        "fee_per_kw": {
+        "fee_per_kb": {
           "type": "string",
           "format": "int64",
-          "description": "*\nThe required number of atoms per kilo-weight that the requester will\npay at all times, for both the funding transaction and commitment\ntransaction. This value can later be updated once the channel is open."
+          "description": "*\nThe required number of atoms per kilobyte that the requester will\npay at all times, for both the funding transaction and commitment\ntransaction. This value can later be updated once the channel is open."
         }
       }
     },
@@ -1360,15 +1360,15 @@
           "format": "int64",
           "description": "*\nThe amount calculated to be paid in fees for the current set of commitment\ntransactions. The fee amount is persisted with the channel in order to\nallow the fee amount to be removed and recalculated with each channel state\nupdate, including updates that happen after a system restart."
         },
-        "commit_weight": {
+        "commit_size": {
           "type": "string",
           "format": "int64",
-          "title": "/ The weight of the commitment transaction"
+          "title": "/ The size of the commitment transaction"
         },
-        "fee_per_kw": {
+        "fee_per_kb": {
           "type": "string",
           "format": "int64",
-          "description": "*\nThe required number of atoms per kilo-weight that the requester will pay\nat all times, for both the funding transaction and commitment transaction.\nThis value can later be updated once the channel is open."
+          "description": "*\nThe required number of atoms per kilobyte that the requester will pay\nat all times, for both the funding transaction and commitment transaction.\nThis value can later be updated once the channel is open."
         },
         "unsettled_balance": {
           "type": "string",

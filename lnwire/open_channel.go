@@ -65,13 +65,13 @@ type OpenChannel struct {
 	// will accept.
 	HtlcMinimum MilliAtom
 
-	// FeePerKiloWeight is the initial fee rate that the initiator suggests
-	// for both commitment transaction. This value is expressed in atoms per
-	// kilo-weight.
+	// FeePerKiloByte is the initial fee rate that the initiator suggests
+	// for both commitment transaction. This value is expressed in atoms
+	// per kilobyte.
 	//
 	// TODO(halseth): make AtomsPerKWeight when fee estimation is in own
 	// package. Currently this will cause an import cycle.
-	FeePerKiloWeight uint32
+	FeePerKiloByte uint32
 
 	// CsvDelay is the number of blocks to use for the relative time lock
 	// in the pay-to-self output of both commitment transactions.
@@ -143,7 +143,7 @@ func (o *OpenChannel) Encode(w io.Writer, pver uint32) error {
 		o.MaxValueInFlight,
 		o.ChannelReserve,
 		o.HtlcMinimum,
-		o.FeePerKiloWeight,
+		o.FeePerKiloByte,
 		o.CsvDelay,
 		o.MaxAcceptedHTLCs,
 		o.FundingKey,
@@ -171,7 +171,7 @@ func (o *OpenChannel) Decode(r io.Reader, pver uint32) error {
 		&o.MaxValueInFlight,
 		&o.ChannelReserve,
 		&o.HtlcMinimum,
-		&o.FeePerKiloWeight,
+		&o.FeePerKiloByte,
 		&o.CsvDelay,
 		&o.MaxAcceptedHTLCs,
 		&o.FundingKey,

@@ -55,7 +55,7 @@ type testContext struct {
 	localCsvDelay uint16
 	fundingAmount dcrutil.Amount
 	dustLimit     dcrutil.Amount
-	feePerKW      dcrutil.Amount
+	FeePerKB      dcrutil.Amount
 }
 
 // htlcDesc is a description used to construct each HTLC in each test case.
@@ -282,7 +282,7 @@ func newTestContext() (tc *testContext, err error) {
 	tc.localCsvDelay = 144
 	tc.fundingAmount = 10000000
 	tc.dustLimit = 546
-	tc.feePerKW = 15000
+	tc.FeePerKB = 15000
 
 	return
 }
@@ -465,7 +465,7 @@ func TestCommitmentAndHTLCTransactions(t *testing.T) {
 				CommitHeight:  42,
 				LocalBalance:  7000000000,
 				RemoteBalance: 3000000000,
-				FeePerKw:      15000,
+				FeePerKB:      15000,
 			},
 			htlcDescs:               []htlcDesc{},
 			expectedCommitmentTxHex: "0200000001c402e4061d82e9d8cc5b653813bc4cd5afebeffdc71c664258f41275804d4af9000000000038b02b8002c0c62d000000000000001976a914f682e6254058108032264237a8e62b4777400d4e88ac6cba6a0000000000000017a91496fbabc4e9b687c24342b316586fc2cc8f70dda0873e1952200000000001000000000000000000000000ffffffffd847304402204005c5116474be52f7f40192583d258e771727cf8a6f2f301bc53d7a12bfcd0b0220427ab29fc5807b938a3356f591e1f876ef65f18a2b713de1277f2156c5f3fe68014730440220774e8670eab7b7ded6e37fad1d3ce74ed8278b47a522ddd7a0f5de2aa74519aa02206f628efb5acb9242f6ee725ee3e14eb916f2c9294ff87f439575b1d79441891b01475221023da092f6980e58d2c037173180e9a465476026ee50f96695963e8efe436f54eb21037f6fc2b0e0d63fab64424ef15991dfb76151ba0cf60dd2992015bf81b2eafdd552ae",
@@ -476,7 +476,7 @@ func TestCommitmentAndHTLCTransactions(t *testing.T) {
 				CommitHeight:  42,
 				LocalBalance:  6988000000,
 				RemoteBalance: 3000000000,
-				FeePerKw:      0,
+				FeePerKB:      0,
 			},
 			htlcDescs: []htlcDesc{
 				{ // 1,0
@@ -513,7 +513,7 @@ func TestCommitmentAndHTLCTransactions(t *testing.T) {
 				CommitHeight:  42,
 				LocalBalance:  6988000000,
 				RemoteBalance: 3000000000,
-				FeePerKw:      647,
+				FeePerKB:      647,
 			},
 			htlcDescs: []htlcDesc{
 				{ // 2,0
@@ -550,7 +550,7 @@ func TestCommitmentAndHTLCTransactions(t *testing.T) {
 				CommitHeight:  42,
 				LocalBalance:  6988000000,
 				RemoteBalance: 3000000000,
-				FeePerKw:      648,
+				FeePerKB:      648,
 			},
 			htlcDescs: []htlcDesc{
 				{ // 3,0
@@ -582,7 +582,7 @@ func TestCommitmentAndHTLCTransactions(t *testing.T) {
 				CommitHeight:  42,
 				LocalBalance:  6988000000,
 				RemoteBalance: 3000000000,
-				FeePerKw:      2069,
+				FeePerKB:      2069,
 			},
 			htlcDescs: []htlcDesc{
 				{ // 4,0
@@ -613,7 +613,7 @@ func TestCommitmentAndHTLCTransactions(t *testing.T) {
 				CommitHeight:  42,
 				LocalBalance:  6988000000,
 				RemoteBalance: 3000000000,
-				FeePerKw:      2070,
+				FeePerKB:      2070,
 			},
 			htlcDescs: []htlcDesc{
 				{ // 5,0
@@ -638,7 +638,7 @@ func TestCommitmentAndHTLCTransactions(t *testing.T) {
 				CommitHeight:  42,
 				LocalBalance:  6988000000,
 				RemoteBalance: 3000000000,
-				FeePerKw:      2194,
+				FeePerKB:      2194,
 			},
 			htlcDescs: []htlcDesc{
 				{ // 6,0
@@ -663,7 +663,7 @@ func TestCommitmentAndHTLCTransactions(t *testing.T) {
 				CommitHeight:  42,
 				LocalBalance:  6988000000,
 				RemoteBalance: 3000000000,
-				FeePerKw:      2195,
+				FeePerKB:      2195,
 			},
 			htlcDescs: []htlcDesc{
 				{ // 7,0
@@ -684,7 +684,7 @@ func TestCommitmentAndHTLCTransactions(t *testing.T) {
 				CommitHeight:  42,
 				LocalBalance:  6988000000,
 				RemoteBalance: 3000000000,
-				FeePerKw:      3702,
+				FeePerKB:      3702,
 			},
 			htlcDescs: []htlcDesc{
 				{ // 8,0
@@ -705,7 +705,7 @@ func TestCommitmentAndHTLCTransactions(t *testing.T) {
 				CommitHeight:  42,
 				LocalBalance:  6988000000,
 				RemoteBalance: 3000000000,
-				FeePerKw:      3703,
+				FeePerKB:      3703,
 			},
 			htlcDescs: []htlcDesc{
 				{ // 9,0
@@ -722,7 +722,7 @@ func TestCommitmentAndHTLCTransactions(t *testing.T) {
 				CommitHeight:  42,
 				LocalBalance:  6988000000,
 				RemoteBalance: 3000000000,
-				FeePerKw:      4914,
+				FeePerKB:      4914,
 			},
 			htlcDescs: []htlcDesc{
 				{ // 10,0
@@ -739,7 +739,7 @@ func TestCommitmentAndHTLCTransactions(t *testing.T) {
 				CommitHeight:  42,
 				LocalBalance:  6988000000,
 				RemoteBalance: 3000000000,
-				FeePerKw:      4915,
+				FeePerKB:      4915,
 			},
 			htlcDescs:               []htlcDesc{},
 			expectedCommitmentTxHex: "0200000001c402e4061d82e9d8cc5b653813bc4cd5afebeffdc71c664258f41275804d4af9000000000038b02b8002c0c62d000000000000001976a914f682e6254058108032264237a8e62b4777400d4e88ace3996a0000000000000017a91496fbabc4e9b687c24342b316586fc2cc8f70dda0873e1952200000000001000000000000000000000000ffffffffda483045022100e7fdcfb6a28ea2191e4c5147cc8f127a34915eef373d785ed691bb4acecbd9c70220323bdb4aa9ab743f76d4fa41a6266c0097674a67395358070c4ed2f758e080aa01483045022100ab3723ed562027a17f33f3a2c3bd1a958c7dd8e3e7476f7cef4416a7dc592ee2022021c9c97b998719be84f520415e9905a5cd7dbcad54c0b620ab5afd19e660ae6101475221023da092f6980e58d2c037173180e9a465476026ee50f96695963e8efe436f54eb21037f6fc2b0e0d63fab64424ef15991dfb76151ba0cf60dd2992015bf81b2eafdd552ae",
@@ -750,7 +750,7 @@ func TestCommitmentAndHTLCTransactions(t *testing.T) {
 				CommitHeight:  42,
 				LocalBalance:  6988000000,
 				RemoteBalance: 3000000000,
-				FeePerKw:      9651180,
+				FeePerKB:      9651180,
 			},
 			htlcDescs:               []htlcDesc{},
 			expectedCommitmentTxHex: "0200000001c402e4061d82e9d8cc5b653813bc4cd5afebeffdc71c664258f41275804d4af9000000000038b02b8002c0c62d000000000000001976a914f682e6254058108032264237a8e62b4777400d4e88ac1b06350000000000000017a91496fbabc4e9b687c24342b316586fc2cc8f70dda0873e1952200000000001000000000000000000000000ffffffffd9473044022057d1b2bd4375e82a07147157e2ce5315d59aacd36750b75e0a135052c7ffec2902206c6fba9f71bc9c8a92c7d65238d687bda31285b343ad65ce8784e2d589f3004501483045022100c7b4ee1c16739013fb0274838a3a4b80b6e01887e20dfc6629c291bcf5fbcf5c02204bba54deaedd44b06783561fe61f7ea261d341b3ea577efdc53ce99c1bd3824901475221023da092f6980e58d2c037173180e9a465476026ee50f96695963e8efe436f54eb21037f6fc2b0e0d63fab64424ef15991dfb76151ba0cf60dd2992015bf81b2eafdd552ae",
@@ -761,7 +761,7 @@ func TestCommitmentAndHTLCTransactions(t *testing.T) {
 				CommitHeight:  42,
 				LocalBalance:  6988000000,
 				RemoteBalance: 3000000000,
-				FeePerKw:      9651181,
+				FeePerKB:      9651181,
 			},
 			htlcDescs:               []htlcDesc{},
 			expectedCommitmentTxHex: "0200000001c402e4061d82e9d8cc5b653813bc4cd5afebeffdc71c664258f41275804d4af9000000000038b02b8002c0c62d000000000000001976a914f682e6254058108032264237a8e62b4777400d4e88ac1b06350000000000000017a91496fbabc4e9b687c24342b316586fc2cc8f70dda0873e1952200000000001000000000000000000000000ffffffffd9473044022057d1b2bd4375e82a07147157e2ce5315d59aacd36750b75e0a135052c7ffec2902206c6fba9f71bc9c8a92c7d65238d687bda31285b343ad65ce8784e2d589f3004501483045022100c7b4ee1c16739013fb0274838a3a4b80b6e01887e20dfc6629c291bcf5fbcf5c02204bba54deaedd44b06783561fe61f7ea261d341b3ea577efdc53ce99c1bd3824901475221023da092f6980e58d2c037173180e9a465476026ee50f96695963e8efe436f54eb21037f6fc2b0e0d63fab64424ef15991dfb76151ba0cf60dd2992015bf81b2eafdd552ae",
@@ -772,7 +772,7 @@ func TestCommitmentAndHTLCTransactions(t *testing.T) {
 				CommitHeight:  42,
 				LocalBalance:  6988000000,
 				RemoteBalance: 3000000000,
-				FeePerKw:      9651936,
+				FeePerKB:      9651936,
 			},
 			htlcDescs:               []htlcDesc{},
 			expectedCommitmentTxHex: "0200000001c402e4061d82e9d8cc5b653813bc4cd5afebeffdc71c664258f41275804d4af9000000000038b02b8002c0c62d000000000000001976a914f682e6254058108032264237a8e62b4777400d4e88ac0805350000000000000017a91496fbabc4e9b687c24342b316586fc2cc8f70dda0873e1952200000000001000000000000000000000000ffffffffd94830450221008e8e2f2d046e8349873dff6636823c1aebf12f2247ec1fdd95d1dd30d5a150380220123ab652499bd4e874d407fb22b981eaf00b1bb60831771cf3b1fc779d52c2a501473044022020ee4a24358d5f06bac9e1595f415fb4c700ea4e5f9e86963aa433a9b2ce3465022012186c1308621a7e400b13d8f8e96b7894a594de174093ac526b5776ef5827f201475221023da092f6980e58d2c037173180e9a465476026ee50f96695963e8efe436f54eb21037f6fc2b0e0d63fab64424ef15991dfb76151ba0cf60dd2992015bf81b2eafdd552ae",
@@ -809,7 +809,7 @@ func TestCommitmentAndHTLCTransactions(t *testing.T) {
 			height:       test.commitment.CommitHeight,
 			ourBalance:   test.commitment.LocalBalance,
 			theirBalance: test.commitment.RemoteBalance,
-			feePerKw:     AtomPerKByte(test.commitment.FeePerKw),
+			feePerKB:     AtomPerKByte(test.commitment.FeePerKB),
 			dustLimit:    tc.dustLimit,
 			isOurs:       true,
 		}
@@ -857,7 +857,7 @@ func TestCommitmentAndHTLCTransactions(t *testing.T) {
 		// Generate second-level HTLC transactions for HTLCs in
 		// commitment tx.
 		htlcResolutions, err := extractHtlcResolutions(
-			AtomPerKByte(test.commitment.FeePerKw), true, signer,
+			AtomPerKByte(test.commitment.FeePerKB), true, signer,
 			htlcs, keys, channel.localChanCfg, channel.remoteChanCfg,
 			commitTx.TxHash(), pCache,
 		)

@@ -76,15 +76,15 @@ type InitFundingReserveMsg struct {
 	// amount of funds the remote party contributes (if any).
 	Capacity dcrutil.Amount
 
-	// CommitFeePerKw is the starting accepted atom/Kw fee for the set
-	// of initial commitment transactions. In order to ensure timely
+	// CommitFeePerKB is the starting accepted atom/Kw fee for the set of
+	// initial commitment transactions. In order to ensure timely
 	// confirmation, it is recommended that this fee should be generous,
 	// paying some multiple of the accepted base fee rate of the network.
-	CommitFeePerKw AtomPerKByte
+	CommitFeePerKB AtomPerKByte
 
-	// FundingFeePerKw is the fee rate in atom/kw to use for the initial
+	// FundingFeePerKB is the fee rate in atom/kw to use for the initial
 	// funding transaction.
-	FundingFeePerKw AtomPerKByte
+	FundingFeePerKB AtomPerKByte
 
 	// PushMAtoms is the number of milli-atoms that should be pushed over
 	// the responder as part of the initial channel creation.
@@ -448,7 +448,7 @@ func (l *LightningWallet) handleFundingReserveRequest(req *InitFundingReserveMsg
 
 	id := atomic.AddUint64(&l.nextFundingID, 1)
 	reservation, err := NewChannelReservation(
-		req.Capacity, req.FundingAmount, req.CommitFeePerKw, l, id,
+		req.Capacity, req.FundingAmount, req.CommitFeePerKB, l, id,
 		req.PushMAtoms, l.Cfg.NetParams.GenesisHash, req.Flags,
 	)
 	if err != nil {
@@ -471,7 +471,7 @@ func (l *LightningWallet) handleFundingReserveRequest(req *InitFundingReserveMsg
 		// Coin selection is done on the basis of atom/kw, so we'll use
 		// the fee rate passed in to perform coin selection.
 		err := l.selectCoinsAndChange(
-			req.FundingFeePerKw, req.FundingAmount, req.MinConfs,
+			req.FundingFeePerKB, req.FundingAmount, req.MinConfs,
 			reservation.ourContribution,
 		)
 		if err != nil {

@@ -260,15 +260,15 @@ type ChannelCommitment struct {
 	// happen after a system restart.
 	CommitFee dcrutil.Amount
 
-	// FeePerKw is the min atoms/kilo-weight that should be paid within
-	// the commitment transaction for the entire duration of the channel's
+	// FeePerKB is the min atoms/kilobyte that should be paid within the
+	// commitment transaction for the entire duration of the channel's
 	// lifetime. This field may be updated during normal operation of the
 	// channel as on-chain conditions change.
 	//
-	// TODO(halseth): make this AtomsPerKWeight. Cannot be done atm because
+	// TODO(halseth): make this AtomsPerKByte. Cannot be done atm because
 	// this will cause the import cycle lnwallet<->channeldb. Fee
 	// estimation stuff should be in its own package.
-	FeePerKw dcrutil.Amount
+	FeePerKB dcrutil.Amount
 
 	// CommitTx is the latest version of the commitment state, broadcast
 	// able by us.
@@ -2251,7 +2251,7 @@ func serializeChanCommit(w io.Writer, c *ChannelCommitment) error {
 	if err := WriteElements(w,
 		c.CommitHeight, c.LocalLogIndex, c.LocalHtlcIndex,
 		c.RemoteLogIndex, c.RemoteHtlcIndex, c.LocalBalance,
-		c.RemoteBalance, c.CommitFee, c.FeePerKw, c.CommitTx,
+		c.RemoteBalance, c.CommitFee, c.FeePerKB, c.CommitTx,
 		c.CommitSig,
 	); err != nil {
 		return err
@@ -2365,7 +2365,7 @@ func deserializeChanCommit(r io.Reader) (ChannelCommitment, error) {
 	err := ReadElements(r,
 		&c.CommitHeight, &c.LocalLogIndex, &c.LocalHtlcIndex, &c.RemoteLogIndex,
 		&c.RemoteHtlcIndex, &c.LocalBalance, &c.RemoteBalance,
-		&c.CommitFee, &c.FeePerKw, &c.CommitTx, &c.CommitSig,
+		&c.CommitFee, &c.FeePerKB, &c.CommitTx, &c.CommitSig,
 	)
 	if err != nil {
 		return c, err

@@ -269,7 +269,7 @@ func TestLightningWireProtocol(t *testing.T) {
 				MaxValueInFlight: MilliAtom(r.Int63()),
 				ChannelReserve:   dcrutil.Amount(r.Int63()),
 				HtlcMinimum:      MilliAtom(r.Int31()),
-				FeePerKiloWeight: uint32(r.Int63()),
+				FeePerKiloByte:   uint32(r.Int63()),
 				CsvDelay:         uint16(r.Int31()),
 				MaxAcceptedHTLCs: uint16(r.Int31()),
 				ChannelFlags:     FundingFlag(uint8(r.Int31())),

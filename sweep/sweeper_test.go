@@ -357,9 +357,9 @@ func TestNegativeInput(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Sweep an additional input with a negative net yield. The weight of
-	// the HtlcAcceptedRemoteSuccess input type adds more in fees than its
-	// value at the current fee level.
+	// Sweep an additional input with a negative net yield. The size of the
+	// HtlcOfferedRemoteTimeout input type adds more in fees than its value
+	// at the current fee level.
 	negInput := createTestInput(2500, lnwallet.HtlcOfferedRemoteTimeout)
 	negInputResult, err := ctx.sweeper.SweepInput(&negInput)
 	if err != nil {
@@ -367,7 +367,7 @@ func TestNegativeInput(t *testing.T) {
 	}
 
 	// Sweep a third input that has a smaller output than the previous one,
-	// but yields positively because of its lower weight.
+	// but yields positively because of its lower size.
 	positiveInput := createTestInput(2200, lnwallet.CommitmentNoDelay)
 	positiveInputResult, err := ctx.sweeper.SweepInput(&positiveInput)
 	if err != nil {

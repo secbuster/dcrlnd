@@ -1254,7 +1254,7 @@ func messageSummary(msg lnwire.Message) string {
 
 	case *lnwire.UpdateFee:
 		return fmt.Sprintf("chan_id=%v, fee_update_at=%v",
-			msg.ChanID, int64(msg.FeePerKw))
+			msg.ChanID, int64(msg.FeePerKB))
 
 	case *lnwire.ChannelReestablish:
 		return fmt.Sprintf("next_local_height=%v, remote_tail_height=%v",

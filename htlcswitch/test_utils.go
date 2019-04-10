@@ -275,11 +275,11 @@ func createTestChannel(alicePrivKey, bobPrivKey []byte,
 	}
 
 	estimator := lnwallet.NewStaticFeeEstimator(6000, 0)
-	feePerKw, err := estimator.EstimateFeePerKB(1)
+	feePerKB, err := estimator.EstimateFeePerKB(1)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
-	commitFee := feePerKw.FeeForSize(lnwallet.CommitmentTxSize)
+	commitFee := feePerKB.FeeForSize(lnwallet.CommitmentTxSize)
 
 	const broadcastHeight = 1
 	bobAddr := &net.TCPAddr{
@@ -297,7 +297,7 @@ func createTestChannel(alicePrivKey, bobPrivKey []byte,
 		LocalBalance:  lnwire.NewMAtomsFromAtoms(aliceAmount - commitFee),
 		RemoteBalance: lnwire.NewMAtomsFromAtoms(bobAmount),
 		CommitFee:     commitFee,
-		FeePerKw:      dcrutil.Amount(feePerKw),
+		FeePerKB:      dcrutil.Amount(feePerKB),
 		CommitTx:      aliceCommitTx,
 		CommitSig:     bytes.Repeat([]byte{1}, 71),
 	}
@@ -306,7 +306,7 @@ func createTestChannel(alicePrivKey, bobPrivKey []byte,
 		LocalBalance:  lnwire.NewMAtomsFromAtoms(bobAmount),
 		RemoteBalance: lnwire.NewMAtomsFromAtoms(aliceAmount - commitFee),
 		CommitFee:     commitFee,
-		FeePerKw:      dcrutil.Amount(feePerKw),
+		FeePerKB:      dcrutil.Amount(feePerKB),
 		CommitTx:      bobCommitTx,
 		CommitSig:     bytes.Repeat([]byte{1}, 71),
 	}

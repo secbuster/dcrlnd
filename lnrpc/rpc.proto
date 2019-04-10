@@ -981,15 +981,15 @@ message Channel {
     */
     int64 commit_fee = 8 [json_name = "commit_fee"];
 
-    /// The weight of the commitment transaction
-    int64 commit_weight = 9 [json_name = "commit_weight"];
+    /// The size of the commitment transaction
+    int64 commit_size = 9 [json_name = "commit_size"];
 
     /**
-    The required number of atoms per kilo-weight that the requester will pay
+    The required number of atoms per kilobyte that the requester will pay
     at all times, for both the funding transaction and commitment transaction.
     This value can later be updated once the channel is open.
     */
-    int64 fee_per_kw = 10 [json_name = "fee_per_kw"];
+    int64 fee_per_kb = 10 [json_name = "fee_per_kb"];
 
     /// The unsettled balance in this channel
     int64 unsettled_balance = 11 [json_name = "unsettled_balance"];
@@ -1339,15 +1339,15 @@ message PendingChannelsResponse {
         */
         int64 commit_fee = 4 [json_name = "commit_fee" ];
 
-        /// The weight of the commitment transaction
-        int64 commit_weight = 5 [ json_name = "commit_weight" ];
+        /// The size of the commitment transaction
+        int64 commit_size = 5 [ json_name = "commit_size" ];
 
         /**
-        The required number of atoms per kilo-weight that the requester will
+        The required number of atoms per kilobyte that the requester will
         pay at all times, for both the funding transaction and commitment
         transaction. This value can later be updated once the channel is open.
         */
-        int64 fee_per_kw = 6 [ json_name = "fee_per_kw" ];
+        int64 fee_per_kb = 6 [ json_name = "fee_per_kb" ];
     }
 
     message WaitingCloseChannel {

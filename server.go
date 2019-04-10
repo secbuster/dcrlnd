@@ -2655,7 +2655,7 @@ type openChanReq struct {
 
 	pushAmt lnwire.MilliAtom
 
-	fundingFeePerKw lnwallet.AtomPerKByte
+	fundingFeePerKB lnwallet.AtomPerKByte
 
 	private bool
 
@@ -2829,14 +2829,14 @@ func (s *server) OpenChannel(
 
 	// If the fee rate wasn't specified, then we'll use a default
 	// confirmation target.
-	if req.fundingFeePerKw == 0 {
+	if req.fundingFeePerKB == 0 {
 		estimator := s.cc.feeEstimator
 		feeRate, err := estimator.EstimateFeePerKB(6)
 		if err != nil {
 			req.err <- err
 			return req.updates, req.err
 		}
-		req.fundingFeePerKw = feeRate
+		req.fundingFeePerKB = feeRate
 	}
 
 	// Spawn a goroutine to send the funding workflow request to the funding

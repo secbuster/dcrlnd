@@ -243,7 +243,7 @@ func CreateTestChannels() (*LightningChannel, *LightningChannel, func(), error) 
 	// The rate for this estimator must be the same as what is returned by
 	// calcStaticFee().
 	estimator := NewStaticFeeEstimator(6000, 0)
-	feePerKw, err := estimator.EstimateFeePerKB(1)
+	feePerKB, err := estimator.EstimateFeePerKB(1)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -254,7 +254,7 @@ func CreateTestChannels() (*LightningChannel, *LightningChannel, func(), error) 
 		LocalBalance:  lnwire.NewMAtomsFromAtoms(channelBal - commitFee),
 		RemoteBalance: lnwire.NewMAtomsFromAtoms(channelBal),
 		CommitFee:     commitFee,
-		FeePerKw:      dcrutil.Amount(feePerKw),
+		FeePerKB:      dcrutil.Amount(feePerKB),
 		CommitTx:      aliceCommitTx,
 		CommitSig:     bytes.Repeat([]byte{1}, 71),
 	}
@@ -263,7 +263,7 @@ func CreateTestChannels() (*LightningChannel, *LightningChannel, func(), error) 
 		LocalBalance:  lnwire.NewMAtomsFromAtoms(channelBal),
 		RemoteBalance: lnwire.NewMAtomsFromAtoms(channelBal - commitFee),
 		CommitFee:     commitFee,
-		FeePerKw:      dcrutil.Amount(feePerKw),
+		FeePerKB:      dcrutil.Amount(feePerKB),
 		CommitTx:      bobCommitTx,
 		CommitSig:     bytes.Repeat([]byte{1}, 71),
 	}
