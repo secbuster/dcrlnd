@@ -13202,6 +13202,200 @@ func testSendPaymentMaxOutboundAmt(net *lntest.NetworkHarness, t *harnessTest) {
 	cleanupForceClose(t, net, carol, chanPoint)
 }
 
+// testMaxIOChannelBalances tests whether the max inbound/outbound amounts for
+// channel balances are consistent.
+func testMaxIOChannelBalances(net *lntest.NetworkHarness, t *harnessTest) {
+	ctxb := context.Background()
+
+	// Create a new Carol node to ensure no older channels interfere with
+	// the test. Connect Carol to Bob and fund her.
+	carol, err := net.NewNode("Carol", []string{"--unsafe-disconnect"})
+	if err != nil {
+		t.Fatalf("unable to create carol's node: %v", err)
+	}
+	defer shutdownAndAssert(net, t, carol)
+
+	ctxt, _ := context.WithTimeout(ctxb, defaultTimeout)
+	if err := net.ConnectNodes(ctxt, carol, net.Bob); err != nil {
+		t.Fatalf("unable to connect carol to bob: %v", err)
+	}
+	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	err = net.SendCoins(ctxt, dcrutil.AtomsPerCoin, carol)
+	if err != nil {
+		t.Fatalf("unable to send coins to bob: %v", err)
+	}
+
+	// Closures to help with tests.
+
+	openChan := func(chanAmt, pushAmt int64, reverse bool) *lnrpc.ChannelPoint {
+		channelParam := lntest.OpenChannelParams{
+			Amt:     dcrutil.Amount(chanAmt),
+			PushAmt: dcrutil.Amount(pushAmt),
+		}
+		ctxt, _ := context.WithTimeout(ctxb, channelOpenTimeout)
+		if reverse {
+			return openChannelAndAssert(
+				ctxt, t, net, net.Bob, carol, channelParam,
+			)
+		}
+		return openChannelAndAssert(
+			ctxt, t, net, carol, net.Bob, channelParam,
+		)
+	}
+
+	assertBalances := func(balance, maxInbound, maxOutbound, otherBalance,
+		otherMaxInbound, otherMaxOutbound int64) {
+
+		ctxt, _ := context.WithTimeout(ctxb, defaultTimeout)
+		b, err := carol.ChannelBalance(ctxt, &lnrpc.ChannelBalanceRequest{})
+		if err != nil {
+			t.t.Errorf("unable to read channel balance: %v", err)
+			return
+		}
+		if b.Balance != balance {
+			t.t.Errorf("balance mismatch; expected=%d actual=%d ",
+				balance, b.Balance)
+		}
+		if b.MaxInboundAmount != maxInbound {
+			t.t.Errorf("maxInbound mismatch: expected=%d actual=%d",
+				maxInbound, b.MaxInboundAmount)
+		}
+		if b.MaxOutboundAmount != maxOutbound {
+			t.t.Errorf("maxOutbound mismatch: expected=%d, actual=%d",
+				maxOutbound, b.MaxOutboundAmount)
+		}
+
+		// Now check the balance from bob's pov
+		ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+		b, err = net.Bob.ChannelBalance(ctxt, &lnrpc.ChannelBalanceRequest{})
+		if err != nil {
+			t.t.Errorf("unable to read bob channel balance: %v", err)
+			return
+		}
+		if b.Balance != otherBalance {
+			t.t.Errorf("otherBalance mismatch; expected=%d actual=%d ",
+				otherBalance, b.Balance)
+		}
+		if b.MaxInboundAmount != otherMaxInbound {
+			t.t.Errorf("otherMaxInbound mismatch: expected=%d actual=%d",
+				otherMaxInbound, b.MaxInboundAmount)
+		}
+		if b.MaxOutboundAmount != otherMaxOutbound {
+			t.t.Errorf("otherMaxOutbound mismatch: expected=%d, actual=%d",
+				otherMaxOutbound, b.MaxOutboundAmount)
+		}
+	}
+
+	chanAmt := int64(1000000)
+	txFee := int64(calcStaticFee(0))
+	chanReserve := chanAmt / 100
+	dustLimit := int64(6030) // dust limit at the network relay fee rate
+
+	// Define the test scenarios. All of them use the same total channel
+	// amount (chanAmt) and reserve. For each test, a new channel will be
+	// opened, the balance will be verified, then the channel will be
+	// closed.
+	testCases := []struct {
+		pushAmt          int64
+		balance          int64
+		maxInbound       int64
+		maxOutbound      int64
+		otherBalance     int64
+		otherMaxInbound  int64
+		otherMaxOutbound int64
+		reverse          bool
+		descr            string
+	}{
+		{
+			balance:         chanAmt - txFee,
+			maxOutbound:     chanAmt - txFee - chanReserve,
+			otherMaxInbound: chanAmt - txFee - chanReserve,
+			descr:           "all funds remain in Carol",
+		},
+		{
+			pushAmt:         chanReserve / 2,
+			balance:         chanAmt - txFee - chanReserve/2,
+			maxOutbound:     chanAmt - txFee - chanReserve/2 - chanReserve,
+			otherBalance:    chanReserve / 2,
+			otherMaxInbound: chanAmt - txFee - chanReserve - chanReserve/2,
+			descr:           "carol sent half the remote reserve amount",
+		},
+		{
+			pushAmt:         chanReserve,
+			balance:         chanAmt - txFee - chanReserve,
+			maxOutbound:     chanAmt - txFee - chanReserve - chanReserve,
+			otherBalance:    chanReserve,
+			otherMaxInbound: chanAmt - txFee - chanReserve - chanReserve,
+			descr:           "carol sent exactly the remote chan reserve",
+		},
+		{
+			pushAmt:          chanReserve + 1,
+			balance:          chanAmt - txFee - chanReserve - 1,
+			maxOutbound:      chanAmt - txFee - chanReserve - chanReserve - 1,
+			maxInbound:       1,
+			otherBalance:     chanReserve + 1,
+			otherMaxOutbound: 1,
+			otherMaxInbound:  chanAmt - txFee - chanReserve - chanReserve - 1,
+			descr:            "carol sent one more than the remote chan reserve",
+		},
+		{
+			pushAmt:          chanReserve + 20000,
+			balance:          chanAmt - txFee - chanReserve - 20000,
+			maxOutbound:      chanAmt - txFee - chanReserve - chanReserve - 20000,
+			maxInbound:       20000,
+			otherBalance:     chanReserve + 20000,
+			otherMaxOutbound: 20000,
+			otherMaxInbound:  chanAmt - txFee - chanReserve - chanReserve - 20000,
+			descr:            "carol sent 20k atoms over the chan reserve",
+		},
+		{
+			pushAmt:          chanAmt - txFee - chanReserve - 2*dustLimit - 1,
+			balance:          chanReserve + 2*dustLimit + 1,
+			maxOutbound:      2*dustLimit + 1,
+			maxInbound:       chanAmt - txFee - chanReserve*2 - 2*dustLimit - 1,
+			otherBalance:     chanAmt - txFee - chanReserve - 2*dustLimit - 1,
+			otherMaxOutbound: chanAmt - txFee - chanReserve*2 - 2*dustLimit - 1,
+			otherMaxInbound:  2*dustLimit + 1,
+			descr:            "carol sent one less than the maximum pushable during funding",
+		},
+		{
+			pushAmt:          chanAmt - txFee - chanReserve - 2*dustLimit,
+			balance:          chanReserve + 2*dustLimit,
+			maxOutbound:      2 * dustLimit,
+			maxInbound:       chanAmt - txFee - chanReserve*2 - 2*dustLimit,
+			otherBalance:     chanAmt - txFee - chanReserve - 2*dustLimit,
+			otherMaxOutbound: chanAmt - txFee - chanReserve*2 - 2*dustLimit,
+			otherMaxInbound:  2 * dustLimit,
+			descr:            "carol sent exactly the maximum pushable during funding",
+		},
+	}
+
+	for _, tc := range testCases {
+		// Sanity check before opening the channel that all balances
+		// are zero.
+		assertBalances(0, 0, 0, 0, 0, 0)
+		if t.t.Failed() {
+			t.Fatalf("case '%s' returned error in zero sanity check",
+				tc.descr)
+		}
+
+		// Open the channel, perform the balance check, then close the
+		// channel again.
+		chanPoint := openChan(chanAmt, tc.pushAmt, tc.reverse)
+		assertBalances(
+			tc.balance, tc.maxInbound, tc.maxOutbound,
+			tc.otherBalance, tc.otherMaxInbound,
+			tc.otherMaxOutbound,
+		)
+		if t.t.Failed() {
+			t.Fatalf("Case '%s' failed", tc.descr)
+		}
+		ctxt, _ = context.WithTimeout(ctxb, channelCloseTimeout)
+		closeChannelAndAssert(ctxt, t, net, carol, chanPoint, false)
+	}
+
+}
+
 type testCase struct {
 	name string
 	test func(net *lntest.NetworkHarness, t *harnessTest)
@@ -13443,6 +13637,10 @@ var testsCases = []*testCase{
 	{
 		name: "send payment max outbound amt",
 		test: testSendPaymentMaxOutboundAmt,
+	},
+	{
+		name: "max io channel balance",
+		test: testMaxIOChannelBalances,
 	},
 }
 
