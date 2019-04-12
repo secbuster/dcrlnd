@@ -64,11 +64,16 @@ type LinkNode struct {
 func (db *DB) NewLinkNode(bitNet wire.CurrencyNet, pub *secp256k1.PublicKey,
 	addr net.Addr) *LinkNode {
 
+	var addrs []net.Addr
+	if addr != nil {
+		addrs = []net.Addr{addr}
+	}
+
 	return &LinkNode{
 		Network:     bitNet,
 		IdentityPub: pub,
 		LastSeen:    time.Now(),
-		Addresses:   []net.Addr{addr},
+		Addresses:   addrs,
 		db:          db,
 	}
 }

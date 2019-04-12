@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"net"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -1034,6 +1035,13 @@ func (f *fundingManager) handleFundingOpen(fmsg *fundingOpenMsg) {
 		msg.CsvDelay, msg.PendingChannelID,
 		fmsg.peer.IdentityKey().SerializeCompressed())
 
+	// Record the peer address only for outbound connections, since inbound
+	// connections are unlikely to be recoverable from our end.
+	var peerAddr net.Addr
+	if !fmsg.peer.Inbound() {
+		peerAddr = fmsg.peer.Address()
+	}
+
 	// Attempt to initialize a reservation within the wallet. If the wallet
 	// has insufficient resources to create the channel, then the
 	// reservation attempt may be rejected. Note that since we're on the
@@ -1043,7 +1051,7 @@ func (f *fundingManager) handleFundingOpen(fmsg *fundingOpenMsg) {
 	req := &lnwallet.InitFundingReserveMsg{
 		ChainHash:       &chainHash,
 		NodeID:          fmsg.peer.IdentityKey(),
-		NodeAddr:        fmsg.peer.Address(),
+		NodeAddr:        peerAddr,
 		FundingAmount:   0,
 		Capacity:        amt,
 		CommitFeePerKB:  lnwallet.AtomPerKByte(msg.FeePerKiloByte),
@@ -2676,13 +2684,20 @@ func (f *fundingManager) handleInitFundingMsg(msg *initFundingMsg) {
 		channelFlags = lnwire.FFAnnounceChannel
 	}
 
+	// Record the peer address only for outbound connections, since inbound
+	// connections are unlikely to be recoverable from our end.
+	var peerAddr net.Addr
+	if !msg.peer.Inbound() {
+		peerAddr = msg.peer.Address()
+	}
+
 	// Initialize a funding reservation with the local wallet. If the
 	// wallet doesn't have enough funds to commit to this channel, then the
 	// request will fail, and be aborted.
 	req := &lnwallet.InitFundingReserveMsg{
 		ChainHash:       &msg.chainHash,
 		NodeID:          peerKey,
-		NodeAddr:        msg.peer.Address(),
+		NodeAddr:        peerAddr,
 		FundingAmount:   localAmt,
 		Capacity:        capacity,
 		CommitFeePerKB:  commitFeePerKB,

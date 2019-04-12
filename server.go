@@ -2556,9 +2556,15 @@ func (s *server) peerTerminationWatcher(p *peer, ready chan struct{}) {
 				srvrLog.Errorf("Unable to retrieve advertised "+
 					"address for node %x: %v",
 					pubKey.SerializeCompressed(), err)
-			} else {
-				p.addr.Address = advertisedAddr
+
+				// Do not attempt to re-connect if the only
+				// address we have for this peer was due to an
+				// inbound connection, since this is unlikely
+				// to succeed.
+				return
 			}
+
+			p.addr.Address = advertisedAddr
 		}
 
 		// Otherwise, we'll launch a new connection request in order to
