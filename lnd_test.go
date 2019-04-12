@@ -11698,6 +11698,13 @@ func testSwitchOfflineDeliveryPersistence(net *lntest.NetworkHarness, t *harness
 		t.Fatalf("unable to reconnect dave and carol: %v", err)
 	}
 
+	// Also ensure Alice and Bob have reconnected.
+	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	err = net.EnsureConnected(ctxt, net.Alice, net.Bob)
+	if err != nil {
+		t.Fatalf("unable to reconnect alice and bob: %v", err)
+	}
+
 	// After reconnection succeeds, the settles should be propagated all
 	// the way back to the sender. All nodes should report no active htlcs.
 	err = lntest.WaitPredicate(func() bool {
