@@ -158,6 +158,10 @@ func (n *testNode) Address() net.Addr {
 	return n.addr.Address
 }
 
+func (n *testNode) Inbound() bool {
+	return false
+}
+
 func (n *testNode) PubKey() [33]byte {
 	return newSerializedKey(n.addr.IdentityKey)
 }
