@@ -546,6 +546,10 @@ func (s *mockServer) Address() net.Addr {
 	return nil
 }
 
+func (s *mockServer) Inbound() bool {
+	return false
+}
+
 func (s *mockServer) AddNewChannel(channel *channeldb.OpenChannel,
 	cancel <-chan struct{}) error {
 

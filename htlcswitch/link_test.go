@@ -1496,6 +1496,9 @@ func (m *mockPeer) IdentityKey() *secp256k1.PublicKey {
 func (m *mockPeer) Address() net.Addr {
 	return nil
 }
+func (m *mockPeer) Inbound() bool {
+	return false
+}
 
 func newSingleLinkTestHarness(chanAmt, chanReserve dcrutil.Amount) (
 	ChannelLink, *lnwallet.LightningChannel, chan time.Time, func() error,

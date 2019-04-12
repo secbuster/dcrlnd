@@ -2253,6 +2253,13 @@ func (p *peer) Address() net.Addr {
 	return p.addr.Address
 }
 
+// Inbound returns whether the remote peer initiated a connection.
+//
+// NOTE: Part of the lnpeer.Peer interface.
+func (p *peer) Inbound() bool {
+	return p.inbound
+}
+
 // AddNewChannel adds a new channel to the peer. The channel should fail to be
 // added if the cancel channel is closed.
 //
