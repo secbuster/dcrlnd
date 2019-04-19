@@ -2550,6 +2550,10 @@ func extractPaymentIntent(rpcPayReq *rpcPaymentRequest) (rpcPaymentIntent, error
 			return payIntent, err
 		}
 
+		// Copy the decoded payment hash so that callers can identify
+		// the original payreq in case of errors.
+		copy(payIntent.rHash[:], payReq.PaymentHash[:])
+
 		// Next, we'll ensure that this payreq hasn't already expired.
 		err = validatePayReqExpiry(payReq)
 		if err != nil {
@@ -2579,7 +2583,6 @@ func extractPaymentIntent(rpcPayReq *rpcPaymentRequest) (rpcPaymentIntent, error
 			rpcPayReq.FeeLimit, payIntent.mat,
 		)
 
-		copy(payIntent.rHash[:], payReq.PaymentHash[:])
 		payIntent.dest = payReq.Destination
 		payIntent.cltvDelta = uint16(payReq.MinFinalCLTVExpiry())
 		payIntent.routeHints = payReq.RouteHints
