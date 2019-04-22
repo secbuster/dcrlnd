@@ -46,8 +46,9 @@ import (
 
 const (
 	// maxDcrPaymentMAtoms is the maximum allowed Decred payment currently
-	// permitted as defined in BOLT-0002.
-	maxDcrPaymentMAtoms = lnwire.MilliAtom(math.MaxUint32)
+	// permitted as defined in BOLT-0002. This is the same as the maximum
+	// channel size.
+	maxDcrPaymentMAtoms = lnwire.MilliAtom(maxDecredFundingAmount * 1000)
 )
 
 var (

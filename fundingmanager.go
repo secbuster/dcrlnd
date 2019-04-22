@@ -42,8 +42,8 @@ const (
 
 	// maxWaitNumBlocksFundingConf is the maximum number of blocks to wait
 	// for the funding transaction to be confirmed before forgetting about
-	// the channel. 288 blocks is ~48 hrs
-	maxWaitNumBlocksFundingConf = 288
+	// the channel. 576 blocks is ~48 hrs
+	maxWaitNumBlocksFundingConf = 576
 
 	// minChanFundingSize is the smallest channel that we'll allow to be
 	// created over the RPC interface.
@@ -54,7 +54,7 @@ const (
 	// Protocol. This limit is defined in BOLT-0002, and serves as an
 	// initial precautionary limit while implementations are battle tested
 	// in the real world.
-	maxDecredFundingAmount = dcrutil.Amount(1<<24) - 1
+	maxDecredFundingAmount = dcrutil.Amount(1<<30) - 1
 )
 
 var (
@@ -62,9 +62,6 @@ var (
 	// currently accepted within the Lightning Protocol. This limit is
 	// defined in BOLT-0002, and serves as an initial precautionary limit
 	// while implementations are battle tested in the real world.
-	//
-	// At the moment, this value depends on which chain is active. It is set
-	// to the value under the Bitcoin chain as default.
 	//
 	// TODO(roasbeef): add command line param to modify
 	maxFundingAmount = maxDecredFundingAmount
