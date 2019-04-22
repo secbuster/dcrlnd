@@ -1558,17 +1558,17 @@ func TestFundingManagerFundingTimeout(t *testing.T) {
 			len(pendingChannels))
 	}
 
-	// We expect Bob to forget the channel after 288 blocks (48 hours), so
-	// mine 287, and check that it is still pending.
+	// We expect Bob to forget the channel after 576 blocks (48 hours), so
+	// mine 577, and check that it is still pending.
 	bob.mockNotifier.epochChan <- &chainntnfs.BlockEpoch{
-		Height: fundingBroadcastHeight + 287,
+		Height: fundingBroadcastHeight + 577,
 	}
 
 	// Bob should still be waiting for the channel to open.
 	assertNumPendingChannelsRemains(t, bob, 1)
 
 	bob.mockNotifier.epochChan <- &chainntnfs.BlockEpoch{
-		Height: fundingBroadcastHeight + 288,
+		Height: fundingBroadcastHeight + 588,
 	}
 
 	// Bob should have sent an Error message to Alice.

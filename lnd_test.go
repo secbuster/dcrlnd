@@ -49,6 +49,13 @@ const (
 	minerMempoolTimeout = lntest.MinerMempoolTimeout
 	channelOpenTimeout  = lntest.ChannelOpenTimeout
 	channelCloseTimeout = lntest.ChannelCloseTimeout
+
+	// defaultChanAmt is the default channel capacity for channels opened
+	// for testing. This is an amount that should allow a large number of
+	// channels to be opened among the default test nodes (Alice and Bob)
+	// of the lntest harness, assuming the harness initializes those nodes
+	// with 10 outputs of 1 DCR each.
+	defaultChanAmt = dcrutil.Amount(1<<24) - 1
 )
 
 // harnessTest wraps a regular testing.T providing enhanced error detection
@@ -780,7 +787,7 @@ func testOnchainFundRecovery(net *lntest.NetworkHarness, t *harnessTest) {
 func testBasicChannelFunding(net *lntest.NetworkHarness, t *harnessTest) {
 	ctxb := context.Background()
 
-	chanAmt := maxDecredFundingAmount
+	chanAmt := defaultChanAmt
 	pushAmt := dcrutil.Amount(100000)
 
 	// First establish a channel with a capacity of 0.5 DCR between Alice
@@ -850,7 +857,7 @@ func testUnconfirmedChannelFunding(net *lntest.NetworkHarness, t *harnessTest) {
 	ctxb := context.Background()
 
 	const (
-		chanAmt = maxDecredFundingAmount
+		chanAmt = defaultChanAmt
 		pushAmt = dcrutil.Amount(100000)
 	)
 
@@ -1229,7 +1236,7 @@ func testUpdateChannelPolicy(net *lntest.NetworkHarness, t *harnessTest) {
 	bobSub := subscribeGraphNotifications(t, ctxb, net.Bob)
 	defer close(bobSub.quit)
 
-	chanAmt := maxDecredFundingAmount
+	chanAmt := defaultChanAmt
 	pushAmt := chanAmt / 2
 
 	// Create a channel Alice->Bob.
@@ -1705,7 +1712,7 @@ func testOpenChannelAfterReorg(net *lntest.NetworkHarness, t *harnessTest) {
 
 	// Create a new channel that requires 1 confs before it's considered
 	// open, then broadcast the funding transaction
-	chanAmt := maxDecredFundingAmount
+	chanAmt := defaultChanAmt
 	pushAmt := dcrutil.Amount(0)
 	ctxt, _ := context.WithTimeout(ctxb, channelOpenTimeout)
 	pendingUpdate, err := net.OpenPendingChannel(ctxt, net.Alice, net.Bob,
@@ -1856,7 +1863,7 @@ func testDisconnectingTargetPeer(net *lntest.NetworkHarness, t *harnessTest) {
 	// Check existing connection.
 	assertNumConnections(t, net.Alice, net.Bob, 1)
 
-	chanAmt := maxDecredFundingAmount
+	chanAmt := defaultChanAmt
 	pushAmt := dcrutil.Amount(0)
 
 	// Create a new channel that requires 1 confs before it's considered
@@ -1986,7 +1993,7 @@ func testDisconnectingTargetPeer(net *lntest.NetworkHarness, t *harnessTest) {
 func testChannelFundingPersistence(net *lntest.NetworkHarness, t *harnessTest) {
 	ctxb := context.Background()
 
-	chanAmt := maxDecredFundingAmount
+	chanAmt := defaultChanAmt
 	pushAmt := dcrutil.Amount(0)
 
 	// As we need to create a channel that requires more than 1
@@ -2118,7 +2125,7 @@ func testChannelBalance(net *lntest.NetworkHarness, t *harnessTest) {
 
 	// Open a channel with 0.16 DCR between Alice and Bob, ensuring the
 	// channel has been opened properly.
-	amount := maxDecredFundingAmount
+	amount := defaultChanAmt
 
 	// Creates a helper closure to be used below which asserts the proper
 	// response to a channel balance RPC.
@@ -4627,7 +4634,7 @@ func testSendToRouteErrorPropagation(net *lntest.NetworkHarness, t *harnessTest)
 func testUnannouncedChannels(net *lntest.NetworkHarness, t *harnessTest) {
 	ctxb := context.Background()
 
-	amount := maxDecredFundingAmount
+	amount := defaultChanAmt
 
 	// Open a channel between Alice and Bob, ensuring the
 	// channel has been opened properly.
@@ -5776,7 +5783,7 @@ func testBasicChannelCreation(net *lntest.NetworkHarness, t *harnessTest) {
 
 	const (
 		numChannels = 2
-		amount      = maxDecredFundingAmount
+		amount      = defaultChanAmt
 	)
 
 	// Open the channel between Alice and Bob, asserting that the
@@ -5807,7 +5814,7 @@ func testMaxPendingChannels(net *lntest.NetworkHarness, t *harnessTest) {
 	ctxb := context.Background()
 
 	maxPendingChannels := defaultMaxPendingChannels + 1
-	amount := maxDecredFundingAmount
+	amount := defaultChanAmt
 
 	// Create a new node (Carol) with greater number of max pending
 	// channels.
@@ -5978,7 +5985,7 @@ func testFailingChannel(net *lntest.NetworkHarness, t *harnessTest) {
 		paymentAmt = 10000
 	)
 
-	chanAmt := maxFundingAmount
+	chanAmt := defaultChanAmt
 
 	// We'll introduce Carol, which will settle any incoming invoice with a
 	// totally unrelated preimage.
@@ -6436,7 +6443,7 @@ func testRevokedCloseRetribution(net *lntest.NetworkHarness, t *harnessTest) {
 	ctxb := context.Background()
 
 	const (
-		chanAmt     = maxDecredFundingAmount
+		chanAmt     = defaultChanAmt
 		paymentAmt  = 10000
 		numInvoices = 6
 	)
@@ -6701,7 +6708,7 @@ func testRevokedCloseRetributionZeroValueRemoteOutput(net *lntest.NetworkHarness
 	ctxb := context.Background()
 
 	const (
-		chanAmt     = maxDecredFundingAmount
+		chanAmt     = defaultChanAmt
 		paymentAmt  = 10000
 		numInvoices = 6
 	)
@@ -6948,7 +6955,7 @@ func testRevokedCloseRetributionRemoteHodl(net *lntest.NetworkHarness,
 	ctxb := context.Background()
 
 	const (
-		chanAmt     = maxDecredFundingAmount
+		chanAmt     = defaultChanAmt
 		pushAmt     = 400000
 		paymentAmt  = 20000
 		numInvoices = 6
@@ -6994,7 +7001,7 @@ func testRevokedCloseRetributionRemoteHodl(net *lntest.NetworkHarness,
 
 	// In order to test Dave's response to an uncooperative channel closure
 	// by Carol, we'll first open up a channel between them with a
-	// maxDecredFundingAmount (2^24) atoms value.
+	// defaultChanAmt (2^24) atoms value.
 	ctxt, _ = context.WithTimeout(ctxb, channelOpenTimeout)
 	chanPoint := openChannelAndAssert(
 		ctxt, t, net, dave, carol,
@@ -7407,7 +7414,7 @@ func assertNumPendingChannels(t *harnessTest, node *lntest.HarnessNode,
 func testDataLossProtection(net *lntest.NetworkHarness, t *harnessTest) {
 	ctxb := context.Background()
 	const (
-		chanAmt     = maxDecredFundingAmount
+		chanAmt     = defaultChanAmt
 		paymentAmt  = 10000
 		numInvoices = 6
 	)
@@ -7857,7 +7864,7 @@ func testHtlcErrorPropagation(net *lntest.NetworkHarness, t *harnessTest) {
 	// In this test we wish to exercise the daemon's correct parsing,
 	// handling, and propagation of errors that occur while processing a
 	// multi-hop payment.
-	const chanAmt = maxDecredFundingAmount
+	const chanAmt = defaultChanAmt
 
 	// First establish a channel with a capacity of 0.5 DCR between Alice
 	// and Bob.
@@ -7912,7 +7919,7 @@ func testHtlcErrorPropagation(net *lntest.NetworkHarness, t *harnessTest) {
 		t.Fatalf("unable to connect bob to carol: %v", err)
 	}
 	ctxt, _ = context.WithTimeout(ctxb, channelOpenTimeout)
-	const bobChanAmt = maxDecredFundingAmount
+	const bobChanAmt = defaultChanAmt
 	chanPointBob := openChannelAndAssert(
 		ctxt, t, net, net.Bob, carol,
 		lntest.OpenChannelParams{
@@ -8232,7 +8239,7 @@ func subscribeGraphNotifications(t *harnessTest, ctxb context.Context,
 func testGraphTopologyNotifications(net *lntest.NetworkHarness, t *harnessTest) {
 	ctxb := context.Background()
 
-	const chanAmt = maxDecredFundingAmount
+	const chanAmt = defaultChanAmt
 
 	// Let Alice subscribe to graph notifications.
 	graphSub := subscribeGraphNotifications(
@@ -8552,7 +8559,7 @@ func testNodeAnnouncement(net *lntest.NetworkHarness, t *harnessTest) {
 func testNodeSignVerify(net *lntest.NetworkHarness, t *harnessTest) {
 	ctxb := context.Background()
 
-	chanAmt := maxDecredFundingAmount
+	chanAmt := defaultChanAmt
 	pushAmt := dcrutil.Amount(100000)
 
 	// Create a channel between alice and bob.
@@ -12765,7 +12772,7 @@ func testAbandonChannel(net *lntest.NetworkHarness, t *harnessTest) {
 
 	// First establish a channel between Alice and Bob.
 	channelParam := lntest.OpenChannelParams{
-		Amt:     maxDecredFundingAmount,
+		Amt:     defaultChanAmt,
 		PushAmt: dcrutil.Amount(100000),
 	}
 
