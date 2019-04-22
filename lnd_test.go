@@ -6726,7 +6726,10 @@ func testRevokedCloseRetributionZeroValueRemoteOutput(net *lntest.NetworkHarness
 	// protection logic automatically.
 	dave, err := net.NewNode(
 		"Dave",
-		[]string{"--debughtlc", "--hodl.exit-settle", "--nolisten"},
+		[]string{
+			"--debughtlc", "--hodl.exit-settle", "--nolisten",
+			"--unsafe-disconnect",
+		},
 	)
 	if err != nil {
 		t.Fatalf("unable to create new node: %v", err)
@@ -6822,6 +6825,14 @@ func testRevokedCloseRetributionZeroValueRemoteOutput(net *lntest.NetworkHarness
 	carolChan, err = getChanInfo(ctxt, carol)
 	if err != nil {
 		t.Fatalf("unable to get carol chan info: %v", err)
+	}
+
+	// Disconnect Dave from Carol, so that upon Carol's restart he doesn't
+	// try to automatically reconnect and alert her of the changed state.
+	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	err = net.DisconnectNodes(ctxt, dave, carol)
+	if err != nil {
+		t.Fatalf("unable to disconnect dave and carol: %v", err)
 	}
 
 	// Now we shutdown Carol, copying over the his temporary database state
