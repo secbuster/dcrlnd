@@ -24,16 +24,16 @@
 
     **Note**: The minimum version of Go supported is Go 1.11. We recommend that
     users use the latest version of Go, which at the time of writing is
-    [`1.11`](https://blog.golang.org/go1.11).
+    [`1.12`](https://blog.golang.org/go1.12).
 
 
     On Linux:
     ```
-    sudo apt-get install golang-1.11-go
+    sudo apt-get install golang-1.12-go
     ```
-    > Note that golang-1.11-go puts binaries in /usr/lib/go-1.11/bin. If you want them on your PATH, you need to make that change yourself. Alternatively, you can run:
+    > Note that golang-1.12-go puts binaries in /usr/lib/go-1.12/bin. If you want them on your PATH, you need to make that change yourself. Alternatively, you can run:
     ```
-    sudo ln -s /usr/lib/go-1.11/bin/go /usr/local/bin/go
+    sudo ln -s /usr/lib/go-1.12/bin/go /usr/local/bin/go
     ```
 
     On Mac OS X:
@@ -67,7 +67,7 @@
   * **go modules:** This project uses [go modules](https://github.com/golang/go/wiki/Modules) 
     to manage dependencies as well as to provide *reproducible builds*.
 
-    Usage of go modules (with go 1.11) means that you no longer need to clone
+    Usage of go modules (with go 1.12) means that you no longer need to clone
     `dcrlnd` into your `$GOPATH` for development purposes. Instead, your
     `dcrlnd` repo can now live anywhere!
 
@@ -134,14 +134,8 @@ make check
 
 In order to run, `dcrlnd` requires, that the user specify a chain backend. At
 the time of writing of this document, only the `dcrd` backend can be used. We
-don't require `--txindex` when running with `dcrd` but activating the `txindex`
-will generally make `dcrlnd` run faster.
+currently *require* `--txindex` when running with `dcrd`.
 
-**NOTE: WE DO NOT FULLY SUPPORT PRUNED OPERATING MODES FOR FULL NODES.** It's
-possible to run a node in a pruned mode and have it serve lnd, however one must
-take care to ensure that `dcrlnd` has all blocks on disk since the birth of the
-wallet, and the age of the earliest channels (which were created around March
-2018).
 
 The set of arguments for each of the backend modes is as follows:
 
@@ -162,7 +156,7 @@ dcrd:
 
 On FreeBSD, use gmake instead of make.
 
-To install btcd, run the following commands:
+To install dcrd, run the following commands:
 
 Install **dcrd**:
 ```
@@ -177,13 +171,10 @@ repo](https://github.com/decred/dcrd).
 Running the following command will create `rpc.cert` and default `dcrd.conf`.
 
 ```
-dcrd --testnet --rpcuser=REPLACEME --rpcpass=REPLACEME
+dcrd --testnet --rpcuser=REPLACEME --rpcpass=REPLACEME --txindex
 ```
 If you want to use `dcrlnd` on testnet, `dcrd` needs to first fully sync the
 testnet blockchain. Depending on your hardware, this may take up to a few hours.
-Note that adding `--txindex` is optional, as it will take longer to sync the
-node, but then `dcrlnd` will generally operate faster as it can hit the index
-directly, rather than scanning blocks or BIP 158 filters for relevant items.
 
 While `dcrd` is syncing you can check on its progress using dcrd's `getinfo`
 RPC command:
@@ -211,7 +202,7 @@ You can test your `dcrd` node's connectivity using the `getpeerinfo` command:
 dcrctl --testnet --rpcuser=REPLACEME --rpcpass=REPLACEME getpeerinfo | more
 ```
 
-### Running lnd using the dcrd backend
+### Running dcrlnd using the dcrd backend
 
 If you are on testnet, run this command after `dcrd` has finished syncing.
 Otherwise, replace `--decred.testnet` with `--decred.simnet`. If you are
@@ -226,7 +217,7 @@ dcrlnd --decred.active --decred.testnet --debuglevel=debug --dcrd.rpcuser=kek --
 `dcrlnd`'s authentication system is called **macaroons**, which are
 decentralized bearer credentials allowing for delegation, attenuation, and other
 cool features. You can learn more about them in Alex Akselrod's [writeup on
-Github](https://github.com/decred/dcrlnd/issues/20).
+ the original lnd issue](https://github.com/lightningnetwork/lnd/issues/20).
 
 Running `dcrlnd` for the first time will by default generate the
 `admin.macaroon`, `read_only.macaroon`, and `macaroons.db` files that are used
