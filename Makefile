@@ -4,6 +4,7 @@
 # instead of trying to execute them against the official repo module's.
 #PKG := github.com/decred/dcrlnd
 PKG := .
+FULLPKG := github.com/decred/dcrlnd
 ESCPKG := github.com\/decred\/dcrlnd
 
 DCRD_PKG := github.com/decred/dcrd
@@ -18,7 +19,7 @@ LINT_BIN := $(GO_BIN)/gometalinter.v2
 DCRD_DIR :=${GOPATH}/src/$(DCRD_PKG)
 
 COMMIT := $(shell git describe --abbrev=40 --dirty)
-LDFLAGS := -ldflags "-X $(PKG)/build.Commit=$(COMMIT)"
+LDFLAGS := -ldflags "-X $(FULLPKG)/build.Commit=$(COMMIT)"
 
 DCRD_COMMIT := $(shell cat go.mod | \
 		grep $(DCRD_PKG) | \
