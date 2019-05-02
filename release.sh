@@ -18,8 +18,9 @@ fi
 
 PACKAGE=dcrlnd
 MAINDIR=$PACKAGE-$TAG
-mkdir -p $MAINDIR
-cd $MAINDIR
+
+mkdir -p releases/$MAINDIR
+cd releases/$MAINDIR
 
 # If LNDBUILDSYS is set the default list is ignored. Useful to release
 # for a subset of systems/architectures.
@@ -46,7 +47,7 @@ for i in $SYS; do
     cd $PACKAGE-$i-$TAG
     echo "Building:" $OS $ARCH $ARM
     env GOOS=$OS GOARCH=$ARCH GOARM=$ARM go build -v -ldflags "$COMMITFLAGS" github.com/decred/dcrlnd
-    env GOOS=$OS GOARCH=$ARCH GOARM=$ARM go build -v -ldflags "$COMMITFLAGS" github.com/decred/dcrlnd/cmd/lncli
+    env GOOS=$OS GOARCH=$ARCH GOARM=$ARM go build -v -ldflags "$COMMITFLAGS" github.com/decred/dcrlnd/cmd/dcrlncli
     cd ..
     if [[ $OS = "windows" ]]; then
 	zip -r $PACKAGE-$i-$TAG.zip $PACKAGE-$i-$TAG
@@ -56,4 +57,4 @@ for i in $SYS; do
     rm -r $PACKAGE-$i-$TAG
 done
 
-shasum -a 256 * > manifest-$TAG.txt
+shasum -a 256 * > manifest-$PACKAGE-$TAG.txt
