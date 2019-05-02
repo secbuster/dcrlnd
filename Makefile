@@ -152,7 +152,7 @@ goveralls: $(GOVERALLS_BIN)
 
 travis-race: dcrd unit-race
 
-travis-cover: dcrd lint unit-cover goveralls
+travis-cover: dcrd unit-cover goveralls
 
 # =============
 # FLAKE HUNTING
