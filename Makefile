@@ -9,12 +9,12 @@ ESCPKG := github.com\/decred\/dcrlnd
 
 DCRD_PKG := github.com/decred/dcrd
 GOVERALLS_PKG := github.com/mattn/goveralls
-LINT_PKG := gopkg.in/alecthomas/gometalinter.v2
+LINT_PKG := github.com/golangci/golangci-lint/cmd/golangci-lint
 
 GO_BIN := ${GOPATH}/bin
 DCRD_BIN := $(GO_BIN)/dcrd
 GOVERALLS_BIN := $(GO_BIN)/goveralls
-LINT_BIN := $(GO_BIN)/gometalinter.v2
+LINT_BIN := $(GO_BIN)/golangci-lint
 
 DCRD_DIR :=${GOPATH}/src/$(DCRD_PKG)
 
@@ -34,7 +34,6 @@ GOTEST := GO111MODULE=on go test -v
 GOFILES_NOVENDOR = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
 GOLIST := go list $(PKG)/... | grep -v '/vendor/'
 GOLISTCOVER := $(shell go list -f '{{.ImportPath}}' ./... | sed -e 's/^$(ESCPKG)/./')
-GOLISTLINT := $(shell go list -f '{{.Dir}}' ./... | grep -v 'lnrpc')
 
 RM := rm -f
 CP := cp
@@ -63,14 +62,14 @@ COVER = for dir in $(GOLISTCOVER); do \
 	done
 
 LINT = $(LINT_BIN) \
+	run \
 	--disable-all \
 	--enable=gofmt \
 	--enable=vet \
-	--enable=golint \
-	--line-length=72 \
-	--deadline=4m $(GOLISTLINT) 2>&1 | \
-	grep -v 'ALL_CAPS\|OP_' 2>&1 | \
-	tee /dev/stderr
+	--enable=gosimple \
+	--enable=unconvert \
+	--enable=ineffassign \
+	--deadline=10m
 
 GREEN := "\\033[0;32m"
 NC := "\\033[0m"
@@ -91,8 +90,8 @@ $(GOVERALLS_BIN):
 	go get -u $(GOVERALLS_PKG)
 
 $(LINT_BIN):
-	@$(call print, "Fetching gometalinter.v2")
-	GO111MODULE=off go get -u $(LINT_PKG)
+	@$(call print, "Fetching golangci-lint")
+	GO111MODULE=on go get -u $(LINT_PKG)
 
 dcrd:
 	@$(call print, "Installing dcrd $(DCRD_COMMIT).")
@@ -178,8 +177,7 @@ fmt:
 
 lint: $(LINT_BIN)
 	@$(call print, "Linting source.")
-	GO111MODULE=off $(LINT_BIN) --install 1> /dev/null
-	test -z "$$($(LINT))"
+	$(LINT)
 
 list:
 	@$(call print, "Listing commands.")
