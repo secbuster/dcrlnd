@@ -14,14 +14,12 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"syscall"
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrlnd/lnrpc"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
 	"github.com/urfave/cli"
-	"golang.org/x/crypto/ssh/terminal"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -1276,14 +1274,14 @@ func create(ctx *cli.Context) error {
 	// First, we'll prompt the user for their passphrase twice to ensure
 	// both attempts match up properly.
 	fmt.Printf("Input wallet password: ")
-	pw1, err := terminal.ReadPassword(syscall.Stdin)
+	pw1, err := readPassword()
 	if err != nil {
 		return err
 	}
 	fmt.Println()
 
 	fmt.Printf("Confirm wallet password: ")
-	pw2, err := terminal.ReadPassword(syscall.Stdin)
+	pw2, err := readPassword()
 	if err != nil {
 		return err
 	}
@@ -1364,7 +1362,7 @@ mnemonicCheck:
 		// cipher seed.
 		fmt.Printf("Input your cipher seed passphrase (press enter if " +
 			"your seed doesn't have a passphrase): ")
-		passphrase, err := terminal.ReadPassword(syscall.Stdin)
+		passphrase, err := readPassword()
 		if err != nil {
 			return err
 		}
@@ -1410,7 +1408,7 @@ mnemonicCheck:
 		fmt.Printf("Input your passphrase if you wish to encrypt it " +
 			"(or press enter to proceed without a cipher seed " +
 			"passphrase): ")
-		aezeedPass1, err := terminal.ReadPassword(syscall.Stdin)
+		aezeedPass1, err := readPassword()
 		if err != nil {
 			return err
 		}
@@ -1418,7 +1416,7 @@ mnemonicCheck:
 
 		if len(aezeedPass1) != 0 {
 			fmt.Printf("Confirm cipher seed passphrase: ")
-			aezeedPass2, err := terminal.ReadPassword(syscall.Stdin)
+			aezeedPass2, err := readPassword()
 			if err != nil {
 				return err
 			}
@@ -1516,7 +1514,7 @@ func unlock(ctx *cli.Context) error {
 	defer cleanUp()
 
 	fmt.Printf("Input wallet password: ")
-	pw, err := terminal.ReadPassword(syscall.Stdin)
+	pw, err := readPassword()
 	if err != nil {
 		return err
 	}
@@ -1576,21 +1574,21 @@ func changePassword(ctx *cli.Context) error {
 	defer cleanUp()
 
 	fmt.Printf("Input current wallet password: ")
-	currentPw, err := terminal.ReadPassword(syscall.Stdin)
+	currentPw, err := readPassword()
 	if err != nil {
 		return err
 	}
 	fmt.Println()
 
 	fmt.Printf("Input new wallet password: ")
-	newPw, err := terminal.ReadPassword(syscall.Stdin)
+	newPw, err := readPassword()
 	if err != nil {
 		return err
 	}
 	fmt.Println()
 
 	fmt.Printf("Confirm new wallet password: ")
-	confirmPw, err := terminal.ReadPassword(syscall.Stdin)
+	confirmPw, err := readPassword()
 	if err != nil {
 		return err
 	}
