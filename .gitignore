@@ -27,12 +27,12 @@ _testmain.go
 *.test
 *.prof
 
-/lnd
-/lnd-debug
-/lncli
-/lncli-debug
-/lnd-itest
-/lncli-itest
+/dcrlnd
+/dcrlnd-debug
+/dcrlncli
+/dcrlncli-debug
+/dcrlnd-itest
+/dcrlncli-itest
 
 # Integration test log files
 output*.log

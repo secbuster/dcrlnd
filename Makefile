@@ -104,13 +104,13 @@ dcrd:
 
 build:
 	@$(call print, "Building debug dcrlnd and dcrlncli.")
-	$(GOBUILD) -tags="$(DEV_TAGS)" -o lnd-debug $(LDFLAGS) $(PKG)
-	$(GOBUILD) -tags="$(DEV_TAGS)" -o lncli-debug $(LDFLAGS) $(PKG)/cmd/dcrlncli
+	$(GOBUILD) -tags="$(DEV_TAGS)" -o dcrlnd-debug $(LDFLAGS) $(PKG)
+	$(GOBUILD) -tags="$(DEV_TAGS)" -o dcrlncli-debug $(LDFLAGS) $(PKG)/cmd/dcrlncli
 
 build-itest:
 	@$(call print, "Building itest dcrlnd and dcrlncli.")
-	$(GOBUILD) -tags="$(ITEST_TAGS)" -o lnd-itest $(LDFLAGS) $(PKG)
-	$(GOBUILD) -tags="$(ITEST_TAGS)" -o lncli-itest $(LDFLAGS) $(PKG)/cmd/dcrlncli
+	$(GOBUILD) -tags="$(ITEST_TAGS)" -o dcrlnd-itest $(LDFLAGS) $(PKG)
+	$(GOBUILD) -tags="$(ITEST_TAGS)" -o dcrlncli-itest $(LDFLAGS) $(PKG)/cmd/dcrlncli
 
 install:
 	@$(call print, "Installing dcrlnd and dcrlncli.")
@@ -194,9 +194,8 @@ rpc:
 
 clean:
 	@$(call print, "Cleaning source.$(NC)")
-	$(RM) ./lnd-debug ./lncli-debug
-	$(RM) ./lnd-itest ./lncli-itest
-	$(RM) -r ./vendor .vendor-new
+	$(RM) ./dcrlnd-debug ./dcrlncli-debug
+	$(RM) ./dcrlnd-itest ./dcrlncli-itest
 
 
 .PHONY: all \

@@ -279,7 +279,7 @@ func (hn *HarnessNode) start(lndError chan<- error) error {
 
 	args := hn.cfg.genArgs()
 	args = append(args, fmt.Sprintf("--profile=%d", 9000+hn.NodeID))
-	hn.cmd = exec.Command("./lnd-itest", args...)
+	hn.cmd = exec.Command("./dcrlnd-itest", args...)
 
 	// Redirect stderr output to buffer
 	var errb bytes.Buffer
@@ -345,7 +345,7 @@ func (hn *HarnessNode) start(lndError chan<- error) error {
 	}
 
 	if err := hn.cmd.Start(); err != nil {
-		return fmt.Errorf("unable to start %s's lnd-itest: %v", hn.Name(), err)
+		return fmt.Errorf("unable to start %s's dcrlnd-itest: %v", hn.Name(), err)
 	}
 
 	// Launch a new goroutine which that bubbles up any potential fatal
