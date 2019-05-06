@@ -143,7 +143,6 @@ func (cfg nodeConfig) genArgs() []string {
 	}
 
 	encodedCert := hex.EncodeToString(cfg.RPCConfig.Certificates)
-	args = append(args, "--decred.active")
 	args = append(args, "--nobootstrap")
 	args = append(args, "--debuglevel=debug")
 	args = append(args, "--decred.defaultchanconfs=1")

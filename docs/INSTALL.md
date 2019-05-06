@@ -209,7 +209,7 @@ Otherwise, replace `--decred.testnet` with `--decred.simnet`. If you are
 installing `dcrlnd` in preparation for the
 [tutorial](http://dev.lightning.community/tutorial), you may skip this step.
 ```
-dcrlnd --decred.active --decred.testnet --debuglevel=debug --dcrd.rpcuser=kek --dcrd.rpcpass=kek --externalip=X.X.X.X
+dcrlnd --decred.testnet --debuglevel=debug --dcrd.rpcuser=kek --dcrd.rpcpass=kek --externalip=X.X.X.X
 ```
 
 # Macaroons
@@ -258,7 +258,7 @@ command at the end of your `sendpayment` commands.
 # Creating a dcrlnd.conf (Optional)
 
 Optionally, if you'd like to have a persistent configuration between `dcrlnd`
-launches, allowing you to simply type `dcrlnd --decred.testnet --decred.active`
+launches, allowing you to simply type `dcrlnd --decred.testnet`
 at the command line, you can create an `dcrlnd.conf`.
 
 **On MacOS, located at:**
@@ -274,7 +274,7 @@ debuglevel=trace
 maxpendingchannels=10
 
 [Decred]
-decred.active=1
+decred.testnet=1
 ```
 
 Notice the `[Decred]` section. This section houses the parameters for the

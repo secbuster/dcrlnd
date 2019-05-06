@@ -199,13 +199,7 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 		// connection. If a raw cert was specified in the config, then
 		// we'll set that directly. Otherwise, we attempt to read the
 		// cert from the path specified in the config.
-		var dcrdMode *dcrdConfig
-		switch {
-		case cfg.Decred.Active:
-			dcrdMode = cfg.DcrdMode
-		default:
-			return nil, nil, fmt.Errorf("no active mode specified")
-		}
+		dcrdMode := cfg.DcrdMode
 		var rpcCert []byte
 		if dcrdMode.RawRPCCert != "" {
 			rpcCert, err = hex.DecodeString(dcrdMode.RawRPCCert)

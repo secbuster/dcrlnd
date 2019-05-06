@@ -91,7 +91,6 @@ var (
 )
 
 type chainConfig struct {
-	Active   bool   `long:"active" description:"If the chain should be active or not."`
 	ChainDir string `long:"chaindir" description:"The directory to store the chain's data within."`
 
 	Node string `long:"node" description:"The blockchain interface to use." choice:"dcrd"`
@@ -489,90 +488,80 @@ func loadConfig() (*config, error) {
 			"listening is disabled")
 	}
 
-	// Determine the active chain configuration and its parameters.
-	switch {
-	// Either Bitcoin must be active, or Litecoin must be active.
-	// Otherwise, we don't know which chain we're on.
-	case !cfg.Decred.Active:
-		return nil, fmt.Errorf("%s: decred.active must be set to 1 (true)",
-			funcName)
-
-	case cfg.Decred.Active:
-		// Multiple networks can't be selected simultaneously.  Count
-		// number of network flags passed; assign active network params
-		// while we're at it.
-		numNets := 0
-		if cfg.Decred.MainNet {
-			numNets++
-			activeNetParams = decredMainNetParams
-		}
-		if cfg.Decred.TestNet3 {
-			numNets++
-			activeNetParams = decredTestNetParams
-		}
-		if cfg.Decred.RegTest {
-			numNets++
-			activeNetParams = regTestNetParams
-		}
-		if cfg.Decred.SimNet {
-			numNets++
-			activeNetParams = decredSimNetParams
-		}
-		if numNets > 1 {
-			str := "%s: The mainnet, testnet, regtest, and " +
-				"simnet params can't be used together -- " +
-				"choose one of the four"
-			err := fmt.Errorf(str, funcName)
-			return nil, err
-		}
-
-		// The target network must be provided, otherwise, we won't
-		// know how to initialize the daemon.
-		if numNets == 0 {
-			str := "%s: either --decred.mainnet, or " +
-				"decred.testnet, decred.simnet, or decred.regtest " +
-				"must be specified"
-			err := fmt.Errorf(str, funcName)
-			return nil, err
-		}
-
-		if cfg.Decred.MainNet && cfg.DebugHTLC {
-			str := "%s: debug-htlc mode cannot be used " +
-				"on decred mainnet"
-			err := fmt.Errorf(str, funcName)
-			return nil, err
-		}
-
-		if cfg.Decred.TimeLockDelta < minTimeLockDelta {
-			return nil, fmt.Errorf("timelockdelta must be at least %v",
-				minTimeLockDelta)
-		}
-
-		switch cfg.Decred.Node {
-		case "dcrd":
-			err := parseRPCParams(
-				cfg.Decred, cfg.DcrdMode, decredChain, funcName,
-			)
-			if err != nil {
-				err := fmt.Errorf("unable to load RPC "+
-					"credentials for dcrd: %v", err)
-				return nil, err
-			}
-
-		default:
-			str := "%s: only dcrd mode supported for Decred at " +
-				"this time"
-			return nil, fmt.Errorf(str, funcName)
-		}
-
-		cfg.Decred.ChainDir = filepath.Join(cfg.DataDir,
-			defaultChainSubDirname,
-			decredChain.String())
-
-		// Finally we'll register the decred chain as our current
-		// primary chain.
-		registeredChains.RegisterPrimaryChain(decredChain)
+	// Multiple networks can't be selected simultaneously.  Count
+	// number of network flags passed; assign active network params
+	// while we're at it.
+	numNets := 0
+	if cfg.Decred.MainNet {
+		numNets++
+		activeNetParams = decredMainNetParams
 	}
+	if cfg.Decred.TestNet3 {
+		numNets++
+		activeNetParams = decredTestNetParams
+	}
+	if cfg.Decred.RegTest {
+		numNets++
+		activeNetParams = regTestNetParams
+	}
+	if cfg.Decred.SimNet {
+		numNets++
+		activeNetParams = decredSimNetParams
+	}
+	if numNets > 1 {
+		str := "%s: The mainnet, testnet, regtest, and " +
+			"simnet params can't be used together -- " +
+			"choose one of the four"
+		err := fmt.Errorf(str, funcName)
+		return nil, err
+	}
+
+	// The target network must be provided, otherwise, we won't
+	// know how to initialize the daemon.
+	if numNets == 0 {
+		str := "%s: either --decred.mainnet, or " +
+			"decred.testnet, decred.simnet, or decred.regtest " +
+			"must be specified"
+		err := fmt.Errorf(str, funcName)
+		return nil, err
+	}
+
+	if cfg.Decred.MainNet && cfg.DebugHTLC {
+		str := "%s: debug-htlc mode cannot be used " +
+			"on decred mainnet"
+		err := fmt.Errorf(str, funcName)
+		return nil, err
+	}
+
+	if cfg.Decred.TimeLockDelta < minTimeLockDelta {
+		return nil, fmt.Errorf("timelockdelta must be at least %v",
+			minTimeLockDelta)
+	}
+
+	switch cfg.Decred.Node {
+	case "dcrd":
+		err := parseRPCParams(
+			cfg.Decred, cfg.DcrdMode, decredChain, funcName,
+		)
+		if err != nil {
+			err := fmt.Errorf("unable to load RPC "+
+				"credentials for dcrd: %v", err)
+			return nil, err
+		}
+
+	default:
+		str := "%s: only dcrd mode supported for Decred at " +
+			"this time"
+		return nil, fmt.Errorf(str, funcName)
+	}
+
+	cfg.Decred.ChainDir = filepath.Join(cfg.DataDir,
+		defaultChainSubDirname,
+		decredChain.String())
+
+	// Finally we'll register the decred chain as our current
+	// primary chain.
+	registeredChains.RegisterPrimaryChain(decredChain)
 
 	// Ensure that the user didn't attempt to specify negative values for
 	// any of the autopilot params.
