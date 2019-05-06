@@ -2395,14 +2395,6 @@ func (f *fundingManager) handleFundingLocked(fmsg *fundingLockedMsg) {
 	}
 }
 
-// channelProof is one half of the proof necessary to create an authenticated
-// announcement on the network. The two signatures individually sign a
-// statement of the existence of a channel.
-type channelProof struct {
-	nodeSig    *secp256k1.Signature
-	bitcoinSig *secp256k1.Signature
-}
-
 // chanAnnouncement encapsulates the two authenticated announcements that we
 // send out to the network after a new channel has been created locally.
 type chanAnnouncement struct {
@@ -2521,7 +2513,7 @@ func (f *fundingManager) newChanAnnouncement(localPubKey, remotePubKey,
 	}
 	decredSig, err := f.cfg.SignMessage(localFundingKey, chanAnnMsg)
 	if err != nil {
-		return nil, errors.Errorf("unable to generate bitcoin "+
+		return nil, errors.Errorf("unable to generate decred "+
 			"signature for node public key: %v", err)
 	}
 

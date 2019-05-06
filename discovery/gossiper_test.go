@@ -38,14 +38,14 @@ var (
 	_, _ = testSig.R.SetString("63724406601629180062774974542967536251589935445068131219452686511677818569431", 10)
 	_, _ = testSig.S.SetString("18801056069249825825291287104931333862866033135609736119018462340006816851118", 10)
 
-	bitcoinKeyPriv1, _ = secp256k1.GeneratePrivateKey()
-	bitcoinKeyPub1     = bitcoinKeyPriv1.PubKey()
+	decredKeyPriv1, _ = secp256k1.GeneratePrivateKey()
+	decredKeyPub1     = decredKeyPriv1.PubKey()
 
 	nodeKeyPriv1, _ = secp256k1.GeneratePrivateKey()
 	nodeKeyPub1     = nodeKeyPriv1.PubKey()
 
-	bitcoinKeyPriv2, _ = secp256k1.GeneratePrivateKey()
-	bitcoinKeyPub2     = bitcoinKeyPriv2.PubKey()
+	decredKeyPriv2, _ = secp256k1.GeneratePrivateKey()
+	decredKeyPub2     = decredKeyPriv2.PubKey()
 
 	nodeKeyPriv2, _ = secp256k1.GeneratePrivateKey()
 	nodeKeyPub2     = nodeKeyPriv2.PubKey()
@@ -485,8 +485,8 @@ func createAnnouncementWithoutProof(blockHeight uint32,
 	}
 	copy(a.NodeID1[:], nodeKeyPub1.SerializeCompressed())
 	copy(a.NodeID2[:], nodeKeyPub2.SerializeCompressed())
-	copy(a.DecredKey1[:], bitcoinKeyPub1.SerializeCompressed())
-	copy(a.DecredKey2[:], bitcoinKeyPub2.SerializeCompressed())
+	copy(a.DecredKey1[:], decredKeyPub1.SerializeCompressed())
+	copy(a.DecredKey2[:], decredKeyPub2.SerializeCompressed())
 	if len(extraBytes) == 1 {
 		a.ExtraOpaqueData = extraBytes[0]
 	}
@@ -521,8 +521,8 @@ func createRemoteChannelAnnouncement(blockHeight uint32,
 		return nil, err
 	}
 
-	pub = bitcoinKeyPriv1.PubKey()
-	signer = mockSigner{bitcoinKeyPriv1}
+	pub = decredKeyPriv1.PubKey()
+	signer = mockSigner{decredKeyPriv1}
 	sig, err = SignAnnouncement(&signer, pub, a)
 	if err != nil {
 		return nil, err
@@ -532,8 +532,8 @@ func createRemoteChannelAnnouncement(blockHeight uint32,
 		return nil, err
 	}
 
-	pub = bitcoinKeyPriv2.PubKey()
-	signer = mockSigner{bitcoinKeyPriv2}
+	pub = decredKeyPriv2.PubKey()
+	signer = mockSigner{decredKeyPriv2}
 	sig, err = SignAnnouncement(&signer, pub, a)
 	if err != nil {
 		return nil, err
@@ -1949,7 +1949,7 @@ func TestDeDuplicatedAnnouncements(t *testing.T) {
 		t.Fatalf("can't create remote channel announcement: %v", err)
 	}
 
-	nodePeer := &mockPeer{bitcoinKeyPub2, nil, nil}
+	nodePeer := &mockPeer{decredKeyPub2, nil, nil}
 	announcements.AddMsgs(networkMsg{
 		msg:    ca,
 		peer:   nodePeer,

@@ -20,7 +20,7 @@ const (
 	// protocolName is the precise instantiation of the Noise protocol
 	// handshake at the center of Brontide. This value will be used as part
 	// of the prologue. If the initiator and responder aren't using the
-	// exact same string for this value, along with prologue of the Bitcoin
+	// exact same string for this value, along with prologue of the Decred
 	// network, then the initial handshake will fail.
 	protocolName = "Noise_XK_secp256k1_ChaChaPoly_SHA256"
 

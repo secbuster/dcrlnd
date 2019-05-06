@@ -288,7 +288,7 @@ func testSpendNotification(miner *rpctest.Harness,
 	// all the spend clients, such that we can wait for them all in
 	// parallel.
 	//
-	// Since bitcoind is at times very slow at notifying about txs in the
+	// Since dcrd is at times very slow at notifying about txs in the
 	// mempool, we use a quite large timeout of 10 seconds.
 	// TODO(halseth): change this when mempool spends are removed.
 	mempoolSpendTimeout := 10 * time.Second

@@ -7,7 +7,7 @@ import (
 )
 
 // activeNetParams is a pointer to the parameters specific to the currently
-// active bitcoin network.
+// active decred network.
 var activeNetParams = decredTestNetParams
 
 // decredNetParams couples the p2p parameters of a network with the
@@ -18,7 +18,7 @@ type decredNetParams struct {
 	CoinType uint32
 }
 
-// bitcoinTestNetParams contains parameters specific to the 3rd version of the
+// decredTestNetParams contains parameters specific to the 3rd version of the
 // test network.
 var decredTestNetParams = decredNetParams{
 	Params:   &chaincfg.TestNet3Params,

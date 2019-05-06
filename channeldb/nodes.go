@@ -20,10 +20,10 @@ var (
 )
 
 // LinkNode stores metadata related to node's that we have/had a direct
-// channel open with. Information such as the Bitcoin network the node
+// channel open with. Information such as the Decred network the node
 // advertised, and its identity public key are also stored. Additionally, this
 // struct and the bucket its stored within have store data similar to that of
-// Bitcoin's addrmanager. The TCP address information stored within the struct
+// Decred's addrmanager. The TCP address information stored within the struct
 // can be used to establish persistent connections will all channel
 // counterparties on daemon startup.
 //
@@ -31,7 +31,7 @@ var (
 // TODO(roasbeef): add bitfield for supported services
 //  * possibly add a wire.NetAddress type, type
 type LinkNode struct {
-	// Network indicates the Bitcoin network that the LinkNode advertises
+	// Network indicates the Decred network that the LinkNode advertises
 	// for incoming channel creation.
 	Network wire.CurrencyNet
 

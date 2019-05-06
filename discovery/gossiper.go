@@ -2095,7 +2095,7 @@ func (d *AuthenticatedGossiper) processNetworkAnnouncement(
 
 		// By the specification, channel announcement proofs should be
 		// sent after some number of confirmations after channel was
-		// registered in bitcoin blockchain. Therefore, we check if the
+		// registered in decred blockchain. Therefore, we check if the
 		// proof is premature.  If so we'll halt processing until the
 		// expected announcement height.  This allows us to be tolerant
 		// to other clients if this constraint was changed.
@@ -2307,9 +2307,9 @@ func (d *AuthenticatedGossiper) processNetworkAnnouncement(
 		}
 
 		// If the channel was returned by the router it means that
-		// existence of funding point and inclusion of nodes bitcoin
+		// existence of funding point and inclusion of nodes decred
 		// keys in it already checked by the router. In this stage we
-		// should check that node keys are attest to the bitcoin keys
+		// should check that node keys are attest to the decred keys
 		// by validating the signatures of announcement.  If proof is
 		// valid then we'll populate the channel edge with it, so we
 		// can announce it on peer connect.

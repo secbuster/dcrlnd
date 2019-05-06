@@ -576,10 +576,10 @@ func assertEdgeInfoEqual(t *testing.T, e1 *ChannelEdgeInfo,
 		t.Fatalf("nodekey2 doesn't match")
 	}
 	if !bytes.Equal(e1.DecredKey1Bytes[:], e2.DecredKey1Bytes[:]) {
-		t.Fatalf("bitcoinkey1 doesn't match")
+		t.Fatalf("decredkey1 doesn't match")
 	}
 	if !bytes.Equal(e1.DecredKey2Bytes[:], e2.DecredKey2Bytes[:]) {
-		t.Fatalf("bitcoinkey2 doesn't match")
+		t.Fatalf("decredkey2 doesn't match")
 	}
 
 	if !bytes.Equal(e1.Features, e2.Features) {
@@ -596,10 +596,10 @@ func assertEdgeInfoEqual(t *testing.T, e1 *ChannelEdgeInfo,
 		t.Fatalf("nodesig2 doesn't match")
 	}
 	if !bytes.Equal(e1.AuthProof.DecredSig1Bytes, e2.AuthProof.DecredSig1Bytes) {
-		t.Fatalf("bitcoinsig1 doesn't match")
+		t.Fatalf("decredsig1 doesn't match")
 	}
 	if !bytes.Equal(e1.AuthProof.DecredSig2Bytes, e2.AuthProof.DecredSig2Bytes) {
-		t.Fatalf("bitcoinsig2 doesn't match")
+		t.Fatalf("decredsig2 doesn't match")
 	}
 
 	if e1.ChannelPoint != e2.ChannelPoint {

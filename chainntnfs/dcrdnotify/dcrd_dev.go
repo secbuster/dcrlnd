@@ -16,7 +16,7 @@ import (
 // UnsafeStart starts the notifier with a specified best height and optional
 // best hash. Its bestBlock and txNotifier are initialized with bestHeight and
 // optionally bestHash. The parameter generateBlocks is necessary for the
-// bitcoind notifier to ensure we drain all notifications up to syncHeight,
+// dcrd notifier to ensure we drain all notifications up to syncHeight,
 // since if they are generated ahead of UnsafeStart the chainConn may start up
 // with an outdated best block and miss sending ntfns. Used for testing.
 func (b *DcrdNotifier) UnsafeStart(bestHeight int64, bestHash *chainhash.Hash,

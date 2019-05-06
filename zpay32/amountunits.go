@@ -97,11 +97,11 @@ func decodeAmount(amount string) (lnwire.MilliAtom, error) {
 	char := amount[len(amount)-1]
 	digit := char - '0'
 	if digit <= 9 {
-		btc, err := strconv.ParseUint(amount, 10, 64)
+		dcr, err := strconv.ParseUint(amount, 10, 64)
 		if err != nil {
 			return 0, err
 		}
-		return lnwire.MilliAtom(btc) * mAtPerDcr, nil
+		return lnwire.MilliAtom(dcr) * mAtPerDcr, nil
 	}
 
 	// If not a digit, it must be part of the known units.

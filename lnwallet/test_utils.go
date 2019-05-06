@@ -519,7 +519,7 @@ func (m *mockPreimageCache) AddPreimage(preimage []byte) error {
 	return nil
 }
 
-// pubkeyFromHex parses a Bitcoin public key from a hex encoded string.
+// pubkeyFromHex parses a Decred public key from a hex encoded string.
 func pubkeyFromHex(keyHex string) (*secp256k1.PublicKey, error) {
 	bytes, err := hex.DecodeString(keyHex)
 	if err != nil {
@@ -528,7 +528,7 @@ func pubkeyFromHex(keyHex string) (*secp256k1.PublicKey, error) {
 	return secp256k1.ParsePubKey(bytes)
 }
 
-// privkeyFromHex parses a Bitcoin private key from a hex encoded string.
+// privkeyFromHex parses a Decred private key from a hex encoded string.
 func privkeyFromHex(keyHex string) (*secp256k1.PrivateKey, error) {
 	bytes, err := hex.DecodeString(keyHex)
 	if err != nil {
@@ -539,17 +539,17 @@ func privkeyFromHex(keyHex string) (*secp256k1.PrivateKey, error) {
 
 }
 
-// pubkeyToHex serializes a Bitcoin public key to a hex encoded string.
+// pubkeyToHex serializes a Decred public key to a hex encoded string.
 func pubkeyToHex(key *secp256k1.PublicKey) string {
 	return hex.EncodeToString(key.SerializeCompressed())
 }
 
-// privkeyFromHex serializes a Bitcoin private key to a hex encoded string.
+// privkeyFromHex serializes a Decred private key to a hex encoded string.
 func privkeyToHex(key *secp256k1.PrivateKey) string {
 	return hex.EncodeToString(key.Serialize())
 }
 
-// signatureFromHex parses a Bitcoin signature from a hex encoded string.
+// signatureFromHex parses a Decred signature from a hex encoded string.
 func signatureFromHex(sigHex string) (*secp256k1.Signature, error) {
 	bytes, err := hex.DecodeString(sigHex)
 	if err != nil {
@@ -558,7 +558,7 @@ func signatureFromHex(sigHex string) (*secp256k1.Signature, error) {
 	return secp256k1.ParseSignature(bytes)
 }
 
-// blockFromHex parses a full Bitcoin block from a hex encoded string.
+// blockFromHex parses a full Decred block from a hex encoded string.
 func blockFromHex(blockHex string) (*dcrutil.Block, error) {
 	bytes, err := hex.DecodeString(blockHex)
 	if err != nil {
@@ -567,7 +567,7 @@ func blockFromHex(blockHex string) (*dcrutil.Block, error) {
 	return dcrutil.NewBlockFromBytes(bytes)
 }
 
-// txFromHex parses a full Bitcoin transaction from a hex encoded string.
+// txFromHex parses a full Decred transaction from a hex encoded string.
 func txFromHex(txHex string) (*dcrutil.Tx, error) {
 	bytes, err := hex.DecodeString(txHex)
 	if err != nil {

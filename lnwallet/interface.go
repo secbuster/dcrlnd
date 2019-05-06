@@ -162,7 +162,7 @@ type WalletController interface {
 	// IsOurAddress checks if the passed address belongs to this wallet
 	IsOurAddress(a dcrutil.Address) bool
 
-	// SendOutputs funds, signs, and broadcasts a Bitcoin transaction paying
+	// SendOutputs funds, signs, and broadcasts a Decred transaction paying
 	// out to the specified outputs. In the case the wallet has insufficient
 	// funds, or the outputs are non-standard, an error should be returned.
 	// This method also takes the target fee expressed in atoms/kw that should
@@ -194,7 +194,7 @@ type WalletController interface {
 	UnlockOutpoint(o wire.OutPoint)
 
 	// PublishTransaction performs cursory validation (dust checks, etc),
-	// then finally broadcasts the passed transaction to the Bitcoin network.
+	// then finally broadcasts the passed transaction to the Decred network.
 	// If the transaction is rejected because it is conflicting with an
 	// already known transaction, ErrDoubleSpend is returned. If the
 	// transaction is already known (published already), no error will be

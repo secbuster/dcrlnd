@@ -141,10 +141,10 @@ func newAddress(ctx *cli.Context) error {
 var sendCoinsCommand = cli.Command{
 	Name:      "sendcoins",
 	Category:  "On-chain",
-	Usage:     "Send bitcoin on-chain to an address.",
+	Usage:     "Send decred on-chain to an address.",
 	ArgsUsage: "addr amt",
 	Description: `
-	Send amt coins in atoms to the BASE58 encoded bitcoin address addr.
+	Send amt coins in atoms to the BASE58 encoded decred address addr.
 
 	Fees used when sending the transaction can be specified via the --conf_target, or
 	--atoms_per_byte optional flags.
@@ -154,12 +154,12 @@ var sendCoinsCommand = cli.Command{
 	Flags: []cli.Flag{
 		cli.StringFlag{
 			Name:  "addr",
-			Usage: "the BASE58 encoded bitcoin address to send coins to on-chain",
+			Usage: "the BASE58 encoded decred address to send coins to on-chain",
 		},
 		// TODO(roasbeef): switch to DCR on command line? int may not be sufficient
 		cli.Int64Flag{
 			Name:  "amt",
-			Usage: "the number of bitcoin denominated in atoms to send",
+			Usage: "the number of decred denominated in atoms to send",
 		},
 		cli.Int64Flag{
 			Name: "conf_target",
@@ -335,7 +335,7 @@ func listUnspent(ctx *cli.Context) error {
 var sendManyCommand = cli.Command{
 	Name:      "sendmany",
 	Category:  "On-chain",
-	Usage:     "Send bitcoin on-chain to multiple addresses.",
+	Usage:     "Send decred on-chain to multiple addresses.",
 	ArgsUsage: "send-json-string [--conf_target=N] [--atoms_per_byte=P]",
 	Description: `
 	Create and broadcast a transaction paying the specified amount(s) to the passed address(es).

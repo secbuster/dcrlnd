@@ -219,7 +219,7 @@ func (b *DcrWallet) IsOurAddress(a dcrutil.Address) bool {
 	return result && (err == nil)
 }
 
-// SendOutputs funds, signs, and broadcasts a Bitcoin transaction paying out to
+// SendOutputs funds, signs, and broadcasts a Decred transaction paying out to
 // the specified outputs. In the case the wallet has insufficient funds, or the
 // outputs are non-standard, a non-nil error will be returned.
 //
@@ -322,7 +322,7 @@ func (b *DcrWallet) ListUnspentWitness(minConfs, maxConfs int32) (
 }
 
 // PublishTransaction performs cursory validation (dust checks, etc), then
-// finally broadcasts the passed transaction to the Bitcoin network. If
+// finally broadcasts the passed transaction to the Decred network. If
 // publishing the transaction fails, an error describing the reason is
 // returned (currently ErrDoubleSpend). If the transaction is already
 // published to the network (either in the mempool or chain) no error

@@ -26,7 +26,7 @@ func ValidateChannelAnn(a *lnwire.ChannelAnnouncement) error {
 
 	// First we'll verify that the passed bitcoin key signature is indeed a
 	// signature over the computed hash digest.
-	bitcoinSig1, err := a.DecredSig1.ToSignature()
+	decredSig1, err := a.DecredSig1.ToSignature()
 	if err != nil {
 		return err
 	}
@@ -34,14 +34,14 @@ func ValidateChannelAnn(a *lnwire.ChannelAnnouncement) error {
 	if err != nil {
 		return err
 	}
-	if !bitcoinSig1.Verify(dataHash, bitcoinKey1) {
+	if !decredSig1.Verify(dataHash, bitcoinKey1) {
 		return errors.New("can't verify first bitcoin signature")
 	}
 
 	// If that checks out, then we'll verify that the second bitcoin
 	// signature is a valid signature of the bitcoin public key over hash
 	// digest as well.
-	bitcoinSig2, err := a.DecredSig2.ToSignature()
+	decredSig2, err := a.DecredSig2.ToSignature()
 	if err != nil {
 		return err
 	}
@@ -49,7 +49,7 @@ func ValidateChannelAnn(a *lnwire.ChannelAnnouncement) error {
 	if err != nil {
 		return err
 	}
-	if !bitcoinSig2.Verify(dataHash, bitcoinKey2) {
+	if !decredSig2.Verify(dataHash, bitcoinKey2) {
 		return errors.New("can't verify second bitcoin signature")
 	}
 

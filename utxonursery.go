@@ -204,7 +204,7 @@ type NurseryConfig struct {
 // considered mature after the relative time-lock within the pkScript has
 // passed. As outputs reach their maturity age, they're swept in batches into
 // the source wallet, returning the outputs so they can be used within future
-// channels, or regular Bitcoin transactions.
+// channels, or regular Decred transactions.
 type utxoNursery struct {
 	started uint32 // To be used atomically.
 	stopped uint32 // To be used atomically.

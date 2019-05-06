@@ -2071,11 +2071,11 @@ type ChannelEdgeInfo struct {
 
 	// DecredKey1Bytes is the raw public key of the first node.
 	DecredKey1Bytes [33]byte
-	bitcoinKey1     *secp256k1.PublicKey
+	decredKey1      *secp256k1.PublicKey
 
 	// DecredKey2Bytes is the raw public key of the first node.
 	DecredKey2Bytes [33]byte
-	bitcoinKey2     *secp256k1.PublicKey
+	decredKey2      *secp256k1.PublicKey
 
 	// Features is an opaque byte slice that encodes the set of channel
 	// specific features that this channel edge supports.
@@ -2107,8 +2107,8 @@ type ChannelEdgeInfo struct {
 
 // AddNodeKeys is a setter-like method that can be used to replace the set of
 // keys for the target ChannelEdgeInfo.
-func (c *ChannelEdgeInfo) AddNodeKeys(nodeKey1, nodeKey2, bitcoinKey1,
-	bitcoinKey2 *secp256k1.PublicKey) {
+func (c *ChannelEdgeInfo) AddNodeKeys(nodeKey1, nodeKey2, decredKey1,
+	decredKey2 *secp256k1.PublicKey) {
 
 	c.nodeKey1 = nodeKey1
 	copy(c.NodeKey1Bytes[:], c.nodeKey1.SerializeCompressed())
@@ -2116,11 +2116,11 @@ func (c *ChannelEdgeInfo) AddNodeKeys(nodeKey1, nodeKey2, bitcoinKey1,
 	c.nodeKey2 = nodeKey2
 	copy(c.NodeKey2Bytes[:], nodeKey2.SerializeCompressed())
 
-	c.bitcoinKey1 = bitcoinKey1
-	copy(c.DecredKey1Bytes[:], c.bitcoinKey1.SerializeCompressed())
+	c.decredKey1 = decredKey1
+	copy(c.DecredKey1Bytes[:], c.decredKey1.SerializeCompressed())
 
-	c.bitcoinKey2 = bitcoinKey2
-	copy(c.DecredKey2Bytes[:], bitcoinKey2.SerializeCompressed())
+	c.decredKey2 = decredKey2
+	copy(c.DecredKey2Bytes[:], decredKey2.SerializeCompressed())
 }
 
 // NodeKey1 is the identity public key of the "first" node that was involved in
@@ -2173,15 +2173,15 @@ func (c *ChannelEdgeInfo) NodeKey2() (*secp256k1.PublicKey, error) {
 // NOTE: By having this method to access an attribute, we ensure we only need
 // to fully deserialize the pubkey if absolutely necessary.
 func (c *ChannelEdgeInfo) DecredKey1() (*secp256k1.PublicKey, error) {
-	if c.bitcoinKey1 != nil {
-		return c.bitcoinKey1, nil
+	if c.decredKey1 != nil {
+		return c.decredKey1, nil
 	}
 
 	key, err := secp256k1.ParsePubKey(c.DecredKey1Bytes[:])
 	if err != nil {
 		return nil, err
 	}
-	c.bitcoinKey1 = key
+	c.decredKey1 = key
 
 	return key, nil
 }
@@ -2193,15 +2193,15 @@ func (c *ChannelEdgeInfo) DecredKey1() (*secp256k1.PublicKey, error) {
 // NOTE: By having this method to access an attribute, we ensure we only need
 // to fully deserialize the pubkey if absolutely necessary.
 func (c *ChannelEdgeInfo) DecredKey2() (*secp256k1.PublicKey, error) {
-	if c.bitcoinKey2 != nil {
-		return c.bitcoinKey2, nil
+	if c.decredKey2 != nil {
+		return c.decredKey2, nil
 	}
 
 	key, err := secp256k1.ParsePubKey(c.DecredKey2Bytes[:])
 	if err != nil {
 		return nil, err
 	}
-	c.bitcoinKey2 = key
+	c.decredKey2 = key
 
 	return key, nil
 }
@@ -2275,7 +2275,7 @@ func (c *ChannelEdgeInfo) FetchOtherNode(tx *bolt.Tx, thisNodeKey []byte) (*Ligh
 // auxiliary knowledge (the funding script, node identities, and outpoint) nodes
 // on the network are able to validate the authenticity and existence of a
 // channel. Each of these signatures signs the following digest: chanID ||
-// nodeID1 || nodeID2 || bitcoinKey1|| bitcoinKey2 || 2-byte-feature-len ||
+// nodeID1 || nodeID2 || decredKey1|| decredKey2 || 2-byte-feature-len ||
 // features.
 type ChannelAuthProof struct {
 	// nodeSig1 is a cached instance of the first node signature.
@@ -3023,12 +3023,12 @@ func putChanEdgeInfo(edgeIndex *bolt.Bucket, edgeInfo *ChannelEdgeInfo, chanID [
 	}
 
 	authProof := edgeInfo.AuthProof
-	var nodeSig1, nodeSig2, bitcoinSig1, bitcoinSig2 []byte
+	var nodeSig1, nodeSig2, decredSig1, decredSig2 []byte
 	if authProof != nil {
 		nodeSig1 = authProof.NodeSig1Bytes
 		nodeSig2 = authProof.NodeSig2Bytes
-		bitcoinSig1 = authProof.DecredSig1Bytes
-		bitcoinSig2 = authProof.DecredSig2Bytes
+		decredSig1 = authProof.DecredSig1Bytes
+		decredSig2 = authProof.DecredSig2Bytes
 	}
 
 	if err := wire.WriteVarBytes(&b, 0, nodeSig1); err != nil {
@@ -3037,10 +3037,10 @@ func putChanEdgeInfo(edgeIndex *bolt.Bucket, edgeInfo *ChannelEdgeInfo, chanID [
 	if err := wire.WriteVarBytes(&b, 0, nodeSig2); err != nil {
 		return err
 	}
-	if err := wire.WriteVarBytes(&b, 0, bitcoinSig1); err != nil {
+	if err := wire.WriteVarBytes(&b, 0, decredSig1); err != nil {
 		return err
 	}
-	if err := wire.WriteVarBytes(&b, 0, bitcoinSig2); err != nil {
+	if err := wire.WriteVarBytes(&b, 0, decredSig2); err != nil {
 		return err
 	}
 

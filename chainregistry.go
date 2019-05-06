@@ -36,11 +36,11 @@ const (
 	defaultDecredStaticFeePerKB = lnwallet.AtomPerKByte(1e4)
 )
 
-// defaultBtcChannelConstraints is the default set of channel constraints that are
-// meant to be used when initially funding a Bitcoin channel.
+// defaultDcrChannelConstraints is the default set of channel constraints that are
+// meant to be used when initially funding a Decred channel.
 //
 // TODO(halseth): make configurable at startup?
-var defaultBtcChannelConstraints = channeldb.ChannelConstraints{
+var defaultDcrChannelConstraints = channeldb.ChannelConstraints{
 	DustLimit:        lnwallet.DefaultDustLimit(),
 	MaxAcceptedHtlcs: lnwallet.MaxHTLCNumber / 2,
 }
@@ -220,7 +220,7 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 			}
 		}
 
-		// If the specified host for the btcd RPC server already
+		// If the specified host for the dcrd RPC server already
 		// has a port specified, then we use that directly. Otherwise,
 		// we assume the default port according to the selected chain
 		// parameters.
@@ -317,7 +317,7 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 	cc.wc = wc
 
 	// Select the default channel constraints for the primary chain.
-	channelConstraints := defaultBtcChannelConstraints
+	channelConstraints := defaultDcrChannelConstraints
 
 	keyRing := keychain.NewWalletKeyRing(
 		wc.InternalWallet(),

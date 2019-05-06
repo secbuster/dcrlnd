@@ -197,7 +197,7 @@ func (*mockChainIO) GetBlock(blockHash *chainhash.Hash) (*wire.MsgBlock, error) 
 }
 
 // mockWalletController is used by the LightningWallet, and let us mock the
-// interaction with the bitcoin network.
+// interaction with the Decred network.
 type mockWalletController struct {
 	rootKey               *secp256k1.PrivateKey
 	prevAddres            dcrutil.Address

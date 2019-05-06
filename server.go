@@ -744,8 +744,7 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB, cc *chainControl,
 		NetParams:          activeNetParams.Params,
 	})
 
-	// Select the configuration and furnding parameters for Bitcoin or
-	// Litecoin, depending on the primary registered chain.
+	// Select the configuration and funding parameters for Decred
 	chainCfg := cfg.Decred
 	minRemoteDelay := minDcrRemoteDelay
 	maxRemoteDelay := maxDcrRemoteDelay
@@ -807,8 +806,6 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB, cc *chainControl,
 			// in the case this gets re-orged out, and
 			// we will require more confirmations before
 			// we consider it open.
-			// TODO(halseth): Use Litecoin params in case
-			// of LTC channels.
 
 			// In case the user has explicitly specified
 			// a default value for the number of
@@ -841,7 +838,6 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB, cc *chainControl,
 			// close) linearly from minRemoteDelay blocks
 			// for small channels, to maxRemoteDelay blocks
 			// for channels of size maxFundingAmount.
-			// TODO(halseth): Litecoin parameter for LTC.
 
 			// In case the user has explicitly specified
 			// a default value for the remote delay, we
