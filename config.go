@@ -11,7 +11,6 @@ import (
 	"net"
 	"os"
 	"os/user"
-	"path"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -1014,127 +1013,6 @@ func extractDcrdRPCParams(dcrdConfigPath string) (string, string, error) {
 	}
 
 	return string(userSubmatches[1]), string(passSubmatches[1]), nil
-}
-
-// extractBitcoindParams attempts to extract the RPC credentials for an
-// existing bitcoind node instance. The passed path is expected to be the
-// location of bitcoind's bitcoin.conf on the target system. The routine looks
-// for a cookie first, optionally following the datadir configuration option in
-// the bitcoin.conf. If it doesn't find one, it looks for rpcuser/rpcpassword.
-func extractBitcoindRPCParams(bitcoindConfigPath string) (string, string, string, string, error) {
-	// First, we'll open up the bitcoind configuration file found at the
-	// target destination.
-	bitcoindConfigFile, err := os.Open(bitcoindConfigPath)
-	if err != nil {
-		return "", "", "", "", err
-	}
-	defer bitcoindConfigFile.Close()
-
-	// With the file open extract the contents of the configuration file so
-	// we can attempt to locate the RPC credentials.
-	configContents, err := ioutil.ReadAll(bitcoindConfigFile)
-	if err != nil {
-		return "", "", "", "", err
-	}
-
-	// First, we'll look for the ZMQ hosts providing raw block and raw
-	// transaction notifications.
-	zmqBlockHostRE, err := regexp.Compile(
-		`(?m)^\s*zmqpubrawblock\s*=\s*([^\s]+)`,
-	)
-	if err != nil {
-		return "", "", "", "", err
-	}
-	zmqBlockHostSubmatches := zmqBlockHostRE.FindSubmatch(configContents)
-	if len(zmqBlockHostSubmatches) < 2 {
-		return "", "", "", "", fmt.Errorf("unable to find " +
-			"zmqpubrawblock in config")
-	}
-	zmqTxHostRE, err := regexp.Compile(`(?m)^\s*zmqpubrawtx\s*=\s*([^\s]+)`)
-	if err != nil {
-		return "", "", "", "", err
-	}
-	zmqTxHostSubmatches := zmqTxHostRE.FindSubmatch(configContents)
-	if len(zmqTxHostSubmatches) < 2 {
-		return "", "", "", "", errors.New("unable to find zmqpubrawtx " +
-			"in config")
-	}
-	zmqBlockHost := string(zmqBlockHostSubmatches[1])
-	zmqTxHost := string(zmqTxHostSubmatches[1])
-	if err := checkZMQOptions(zmqBlockHost, zmqTxHost); err != nil {
-		return "", "", "", "", err
-	}
-
-	// Next, we'll try to find an auth cookie. We need to detect the chain
-	// by seeing if one is specified in the configuration file.
-	dataDir := path.Dir(bitcoindConfigPath)
-	dataDirRE, err := regexp.Compile(`(?m)^\s*datadir\s*=\s*([^\s]+)`)
-	if err != nil {
-		return "", "", "", "", err
-	}
-	dataDirSubmatches := dataDirRE.FindSubmatch(configContents)
-	if dataDirSubmatches != nil {
-		dataDir = string(dataDirSubmatches[1])
-	}
-
-	chainDir := "/"
-	switch activeNetParams.Params.Name {
-	case "testnet3":
-		chainDir = "/testnet3/"
-	case "testnet4":
-		chainDir = "/testnet4/"
-	case "regtest":
-		chainDir = "/regtest/"
-	}
-
-	cookie, err := ioutil.ReadFile(dataDir + chainDir + ".cookie")
-	if err == nil {
-		splitCookie := strings.Split(string(cookie), ":")
-		if len(splitCookie) == 2 {
-			return splitCookie[0], splitCookie[1], zmqBlockHost,
-				zmqTxHost, nil
-		}
-	}
-
-	// We didn't find a cookie, so we attempt to locate the RPC user using
-	// a regular expression. If we  don't have a match for our regular
-	// expression then we'll exit with an error.
-	rpcUserRegexp, err := regexp.Compile(`(?m)^\s*rpcuser\s*=\s*([^\s]+)`)
-	if err != nil {
-		return "", "", "", "", err
-	}
-	userSubmatches := rpcUserRegexp.FindSubmatch(configContents)
-	if userSubmatches == nil {
-		return "", "", "", "", fmt.Errorf("unable to find rpcuser in " +
-			"config")
-	}
-
-	// Similarly, we'll use another regular expression to find the set
-	// rpcpass (if any). If we can't find the pass, then we'll exit with an
-	// error.
-	rpcPassRegexp, err := regexp.Compile(`(?m)^\s*rpcpassword\s*=\s*([^\s]+)`)
-	if err != nil {
-		return "", "", "", "", err
-	}
-	passSubmatches := rpcPassRegexp.FindSubmatch(configContents)
-	if passSubmatches == nil {
-		return "", "", "", "", fmt.Errorf("unable to find rpcpassword " +
-			"in config")
-	}
-
-	return string(userSubmatches[1]), string(passSubmatches[1]),
-		zmqBlockHost, zmqTxHost, nil
-}
-
-// checkZMQOptions ensures that the provided addresses to use as the hosts for
-// ZMQ rawblock and rawtx notifications are different.
-func checkZMQOptions(zmqBlockHost, zmqTxHost string) error {
-	if zmqBlockHost == zmqTxHost {
-		return errors.New("zmqpubrawblock and zmqpubrawtx must be set" +
-			"to different addresses")
-	}
-
-	return nil
 }
 
 // normalizeNetwork returns the common name of a network type used to create
