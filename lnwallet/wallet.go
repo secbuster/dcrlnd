@@ -76,13 +76,13 @@ type InitFundingReserveMsg struct {
 	// amount of funds the remote party contributes (if any).
 	Capacity dcrutil.Amount
 
-	// CommitFeePerKB is the starting accepted atom/Kw fee for the set of
+	// CommitFeePerKB is the starting accepted atom/kB fee for the set of
 	// initial commitment transactions. In order to ensure timely
 	// confirmation, it is recommended that this fee should be generous,
 	// paying some multiple of the accepted base fee rate of the network.
 	CommitFeePerKB AtomPerKByte
 
-	// FundingFeePerKB is the fee rate in atom/kw to use for the initial
+	// FundingFeePerKB is the fee rate in atom/kB to use for the initial
 	// funding transaction.
 	FundingFeePerKB AtomPerKByte
 
@@ -468,7 +468,7 @@ func (l *LightningWallet) handleFundingReserveRequest(req *InitFundingReserveMsg
 	// don't need to perform any coin selection. Otherwise, attempt to
 	// obtain enough coins to meet the required funding amount.
 	if req.FundingAmount != 0 {
-		// Coin selection is done on the basis of atom/kw, so we'll use
+		// Coin selection is done on the basis of atom/kB, so we'll use
 		// the fee rate passed in to perform coin selection.
 		err := l.selectCoinsAndChange(
 			req.FundingFeePerKB, req.FundingAmount, req.MinConfs,
@@ -1259,7 +1259,7 @@ func (l *LightningWallet) selectCoinsAndChange(feeRate AtomPerKByte,
 	defer l.coinSelectMtx.Unlock()
 
 	walletLog.Infof("Performing funding tx coin selection using %v "+
-		"atom/kw as fee rate", int64(feeRate))
+		"atom/kB as fee rate", int64(feeRate))
 
 	// Find all unlocked unspent witness outputs that satisfy the minimum
 	// number of confirmations required.
@@ -1367,7 +1367,7 @@ func selectInputs(amt dcrutil.Amount, coins []*Utxo) (dcrutil.Amount, []*Utxo, e
 
 // coinSelect attempts to select a sufficient amount of coins, including a
 // change output to fund amt atoms, adhering to the specified fee rate. The
-// specified fee rate should be expressed in atom/kw for coin selection to
+// specified fee rate should be expressed in atom/kB for coin selection to
 // function properly.
 func coinSelect(feeRate AtomPerKByte, amt dcrutil.Amount,
 	coins []*Utxo) ([]*Utxo, dcrutil.Amount, error) {

@@ -303,7 +303,7 @@ func TestSuccess(t *testing.T) {
 func TestDust(t *testing.T) {
 	ctx := createSweeperTestContext(t)
 
-	// Calculate the dust limit for the test relay fee (1000 atoms/KB).
+	// Calculate the dust limit for the test relay fee (1000 atoms/kB).
 	dustLimit := int64(lnwallet.DustThresholdForRelayFee(1000))
 
 	// Estimate the size of a transaction that will sweep a
@@ -314,7 +314,7 @@ func TestDust(t *testing.T) {
 	txSize := se.Size()
 
 	// Calculate the fee to relay this tx, given the test relay fee of
-	// 10000 atoms/KB.
+	// 10000 atoms/kB.
 	txFee := int64(lnwallet.AtomPerKByte(10000).FeeForSize(txSize))
 
 	// Calculate the maximum value an output in this type of tx can have,

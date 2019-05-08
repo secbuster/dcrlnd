@@ -433,7 +433,7 @@ func TestCheckCommitTxSize(t *testing.T) {
 	}
 	defer cleanUp()
 
-	// Check that weight estimation of the commitment transaction without
+	// Check that size estimation of the commitment transaction without
 	// HTLCs is right.
 	checkSize(aliceChannel, 0)
 	checkSize(bobChannel, 0)

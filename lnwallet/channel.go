@@ -5938,7 +5938,7 @@ func (lc *LightningChannel) validateFeeRate(feePerKB AtomPerKByte) error {
 	// the fee from the last state), then we'll reject this update as it
 	// would mean we need to trim our entire output.
 	if newFee > baseBalance {
-		return fmt.Errorf("cannot apply fee_update=%v atom/kw, new fee "+
+		return fmt.Errorf("cannot apply fee_update=%v atom/kB, new fee "+
 			"of %v is greater than balance of %v", int64(feePerKB),
 			newFee, baseBalance)
 	}
@@ -5947,7 +5947,7 @@ func (lc *LightningChannel) validateFeeRate(feePerKB AtomPerKByte) error {
 	// the fee change, so we'll reject it.
 	balanceAfterFee := baseBalance - newFee
 	if balanceAfterFee.ToAtoms() < lc.channelState.LocalChanCfg.ChanReserve {
-		return fmt.Errorf("cannot apply fee_update=%v atom/kw, "+
+		return fmt.Errorf("cannot apply fee_update=%v atom/kB, "+
 			"new balance=%v would dip below channel reserve=%v",
 			int64(feePerKB),
 			balanceAfterFee.ToAtoms(),

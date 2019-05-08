@@ -14,7 +14,7 @@ import (
 
 // ChannelContribution is the primary constituent of the funding workflow
 // within lnwallet. Each side first exchanges their respective contributions
-// along with channel specific parameters like the min fee/KB. Once
+// along with channel specific parameters like the min fee/kB. Once
 // contributions have been exchanged, each side will then produce signatures
 // for all their inputs to the funding transactions, and finally a signature
 // for the other party's version of the commitment transaction.

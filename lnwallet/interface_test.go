@@ -619,7 +619,7 @@ func testFundingTransactionLockedOutputs(miner *rpctest.Harness,
 
 	// Create a single channel asking for 16 DCR total.
 	fundingAmount := dcrutil.Amount(8 * 1e8)
-	// TODO(decred) Switch to fee per KB
+
 	feePerKB, err := alice.Cfg.FeeEstimator.EstimateFeePerKB(1)
 	if err != nil {
 		t.Fatalf("unable to query fee estimator: %v", err)
@@ -2140,7 +2140,7 @@ func testChangeOutputSpendConfirmation(r *rpctest.Harness,
 	// spends an output created by SendOutputs, we'll start by emptying
 	// Alice's wallet so that no other UTXOs can be picked. To do so, we'll
 	// generate an address for Bob, who will receive all the coins.
-	// Assuming a balance of 80 DCR and a transaction fee of 2500 atom/kw,
+	// Assuming a balance of 80 DCR and a transaction fee of 2500 atom/kB,
 	// we'll craft the following transaction so that Alice doesn't have any
 	// UTXOs left.
 	aliceBalance, err := alice.ConfirmedBalance(0)

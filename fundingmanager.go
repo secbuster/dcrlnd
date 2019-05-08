@@ -2705,7 +2705,7 @@ func (f *fundingManager) handleInitFundingMsg(msg *initFundingMsg) {
 	// reservation throughout its lifetime.
 	chanID := f.nextPendingChanID()
 
-	fndgLog.Infof("Target commit tx atom/kw for pendingID(%x): %v", chanID,
+	fndgLog.Infof("Target commit tx atom/kB for pendingID(%x): %v", chanID,
 		int64(commitFeePerKB))
 
 	// If the remote CSV delay was not set in the open channel request,

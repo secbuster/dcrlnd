@@ -50,10 +50,10 @@ message PublishResponse {
 
 message SendOutputsRequest {
     /**
-    The number of atoms per kilo weight that should be used when crafting
+    The number of atoms per kilobyte that should be used when crafting
     this transaction.
     */
-    int64 atoms_per_kw = 1;
+    int64 atoms_per_kb = 1;
 
     /**
     A slice of the outputs that should be created in the transaction produced.
@@ -75,10 +75,10 @@ message EstimateFeeRequest {
 }
 message EstimateFeeResponse {
     /**
-    The amount of atoms per kw that should be used in order to reach the
+    The amount of atoms per kilobyte that should be used in order to reach the
     confirmation target in the request.
     */
-    int64 atoms_per_kw = 1;
+    int64 atoms_per_kb = 1;
 }
 
 service WalletKit {
@@ -117,7 +117,7 @@ service WalletKit {
 
     /**
     EstimateFee attempts to query the internal fee estimator of the wallet to
-    determine the fee (in atom/kw) to attach to a transaction in order to
+    determine the fee (in atom/kB) to attach to a transaction in order to
     achieve the confirmation target.
     */
     rpc EstimateFee(EstimateFeeRequest) returns (EstimateFeeResponse);

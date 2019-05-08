@@ -9,15 +9,15 @@ import (
 )
 
 const (
-	// FeePerKBFloor is the lowest fee rate in atom/KB that we should use
+	// FeePerKBFloor is the lowest fee rate in atom/kB that we should use
 	// for determining transaction fees. Originally, this was used due to
-	// the conversion from sats/KB => sats/KW causing a possible rounding
+	// the conversion from sats/kB => sats/KW causing a possible rounding
 	// error, but in Decred we use this to track the widely deployed
 	// minimum relay fee.
 	FeePerKBFloor AtomPerKByte = 1e4
 )
 
-// AtomPerKByte represents a fee rate in atom/kb.
+// AtomPerKByte represents a fee rate in atom/kB.
 type AtomPerKByte dcrutil.Amount
 
 // FeeForSize calculates the fee resulting from this fee rate and the given
@@ -26,9 +26,9 @@ func (s AtomPerKByte) FeeForSize(bytes int64) dcrutil.Amount {
 	return dcrutil.Amount(s) * dcrutil.Amount(bytes) / 1000
 }
 
-// String returns a pretty string representation for the rate in DCR/KB.
+// String returns a pretty string representation for the rate in DCR/kB.
 func (s AtomPerKByte) String() string {
-	return dcrutil.Amount(s).String() + "/KB"
+	return dcrutil.Amount(s).String() + "/kB"
 }
 
 // FeeEstimator provides the ability to estimate on-chain transaction fees for
@@ -59,7 +59,7 @@ type FeeEstimator interface {
 // implementation. The fees are not accessible directly, because changing them
 // would not be thread safe.
 type StaticFeeEstimator struct {
-	// feePerKB is the static fee rate in atoms-per-KB that will be
+	// feePerKB is the static fee rate in atoms-per-kB that will be
 	// returned by this fee estimator.
 	feePerKB AtomPerKByte
 
@@ -117,12 +117,12 @@ var _ FeeEstimator = (*StaticFeeEstimator)(nil)
 // by the RPC interface of an active dcrd node. This implementation will proxy
 // any fee estimation requests to dcrd's RPC interface.
 type DcrdFeeEstimator struct {
-	// fallbackFeePerKB is the fall back fee rate in atoms/KB that is returned
+	// fallbackFeePerKB is the fall back fee rate in atoms/kB that is returned
 	// if the fee estimator does not yet have enough data to actually
 	// produce fee estimates.
 	fallbackFeePerKB AtomPerKByte
 
-	// minFeePerKB is the minimum fee, in atoms/KB, that we should enforce.
+	// minFeePerKB is the minimum fee, in atoms/kB, that we should enforce.
 	// This will be used as the default fee rate for a transaction when the
 	// estimated fee rate is too low to allow the transaction to propagate
 	// through the network.
@@ -230,7 +230,7 @@ func (b *DcrdFeeEstimator) EstimateFeePerKB(numBlocks uint32) (AtomPerKByte, err
 }
 
 // fetchEstimate returns a fee estimate for a transaction to be confirmed in
-// confTarget blocks. The estimate is returned in atom/kw.
+// confTarget blocks. The estimate is returned in atom/kB.
 func (b *DcrdFeeEstimator) fetchEstimate(confTarget uint32) (AtomPerKByte, error) {
 	// First, we'll fetch the estimate for our confirmation target.
 	dcrPerKB, err := b.dcrdConn.EstimateSmartFee(int64(confTarget),

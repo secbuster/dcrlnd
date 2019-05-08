@@ -165,7 +165,7 @@ func createSweepTx(inputs []Input, outputPkScript []byte,
 	inputs, txSize, csvCount, cltvCount := getSizeEstimate(inputs)
 
 	log.Infof("Creating sweep transaction for %v inputs (%v CSV, %v CLTV) "+
-		"using %v atom/kb", len(inputs), csvCount, cltvCount,
+		"using %v atom/kB", len(inputs), csvCount, cltvCount,
 		int64(feePerKB))
 
 	txFee := feePerKB.FeeForSize(txSize)

@@ -317,7 +317,7 @@ func (w *WalletKit) SendOutputs(ctx context.Context,
 }
 
 // EstimateFee attempts to query the internal fee estimator of the wallet to
-// determine the fee (in atom/kw) to attach to a transaction in order to achieve
+// determine the fee (in atom/kB) to attach to a transaction in order to achieve
 // the confirmation target.
 func (w *WalletKit) EstimateFee(ctx context.Context,
 	req *EstimateFeeRequest) (*EstimateFeeResponse, error) {

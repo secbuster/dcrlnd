@@ -32,7 +32,7 @@ const (
 	defaultDecredFeeRate       = lnwire.MilliAtom(1)
 	defaultDecredTimeLockDelta = 144
 
-	// defaultDecredStaticFeePerKB is the fee rate of 10000 atom/KB
+	// defaultDecredStaticFeePerKB is the fee rate of 10000 atom/kB
 	defaultDecredStaticFeePerKB = lnwallet.AtomPerKByte(1e4)
 )
 

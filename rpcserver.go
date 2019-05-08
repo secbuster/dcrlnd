@@ -634,7 +634,7 @@ func (r *rpcServer) sendCoinsOnChain(paymentMap map[string]int64,
 	return &txHash, err
 }
 
-// determineFeePerKB will determine the fee in atom/kw that should be paid given
+// determineFeePerKB will determine the fee in atom/kB that should be paid given
 // an estimator, a confirmation target, and a manual value for atom/byte. A value
 // is chosen based on the two free parameters as one, or both of them can be
 // zero.
@@ -657,12 +657,12 @@ func determineFeePerKB(feeEstimator lnwallet.FeeEstimator, targetConf int32,
 		return feePerKB, nil
 
 	// If a manual atom/byte fee rate is set, then we'll use that directly.
-	// We'll need to convert it to atom/kw as this is what we use internally.
+	// We'll need to convert it to atom/kB as this is what we use internally.
 	case feePerByte != 0:
 		feePerKB := lnwallet.AtomPerKByte(feePerByte * 1000)
 		if feePerKB < lnwallet.FeePerKBFloor {
-			rpcsLog.Infof("Manual fee rate input of %d atom/KB is "+
-				"too low, using %d atom/KB instead", feePerKB,
+			rpcsLog.Infof("Manual fee rate input of %d atom/kB is "+
+				"too low, using %d atom/kB instead", feePerKB,
 				lnwallet.FeePerKBFloor)
 			feePerKB = lnwallet.FeePerKBFloor
 		}
@@ -1170,7 +1170,7 @@ func (r *rpcServer) OpenChannel(in *lnrpc.OpenChannelRequest,
 		return err
 	}
 
-	rpcsLog.Debugf("[openchannel]: using fee of %v atom/kw for funding tx",
+	rpcsLog.Debugf("[openchannel]: using fee of %v atom/kB for funding tx",
 		int64(feeRate))
 
 	// Instruct the server to trigger the necessary events to attempt to
@@ -1317,7 +1317,7 @@ func (r *rpcServer) OpenChannelSync(ctx context.Context,
 		return nil, err
 	}
 
-	rpcsLog.Tracef("[openchannel] target atom/kw for funding tx: %v",
+	rpcsLog.Tracef("[openchannel] target atom/kB for funding tx: %v",
 		int64(feeRate))
 
 	req := &openChanReq{
@@ -1506,7 +1506,7 @@ func (r *rpcServer) CloseChannel(in *lnrpc.CloseChannelRequest,
 			return err
 		}
 
-		rpcsLog.Debugf("Target atom/kw for closing transaction: %v",
+		rpcsLog.Debugf("Target atom/kB for closing transaction: %v",
 			int64(feeRate))
 
 		// Before we attempt the cooperative channel closure, we'll

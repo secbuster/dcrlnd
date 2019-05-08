@@ -165,7 +165,7 @@ type WalletController interface {
 	// SendOutputs funds, signs, and broadcasts a Decred transaction paying
 	// out to the specified outputs. In the case the wallet has insufficient
 	// funds, or the outputs are non-standard, an error should be returned.
-	// This method also takes the target fee expressed in atoms/kw that should
+	// This method also takes the target fee expressed in atoms/kB that should
 	// be used when crafting the transaction.
 	SendOutputs(outputs []*wire.TxOut,
 		feeRate AtomPerKByte) (*wire.MsgTx, error)

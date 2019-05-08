@@ -580,7 +580,7 @@ func txFromHex(txHex string) (*dcrutil.Tx, error) {
 // function provides a simple way to allow test balance assertions to take fee
 // calculations into account.
 //
-// This uses a fixed, hard-coded value of 6000 Atoms/KB as fee.
+// This uses a fixed, hard-coded value of 6000 Atoms/kB as fee.
 //
 // TODO(bvu): Refactor when dynamic fee estimation is added.
 func calcStaticFee(numHTLCs int) dcrutil.Amount {

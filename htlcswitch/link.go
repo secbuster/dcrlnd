@@ -467,11 +467,11 @@ func (l *channelLink) EligibleToForward() bool {
 }
 
 // sampleNetworkFee samples the current fee rate on the network to get into the
-// chain in a timely manner. The returned value is expressed in atoms-per-KB, as
+// chain in a timely manner. The returned value is expressed in atoms-per-kB, as
 // this is the native rate used when computing the fee for commitment
 // transactions, and the second-level HTLC transactions.
 func (l *channelLink) sampleNetworkFee() (lnwallet.AtomPerKByte, error) {
-	// We'll first query for the atoms/KB recommended to be confirmed within 3
+	// We'll first query for the atoms/kB recommended to be confirmed within 3
 	// blocks.
 	feePerKB, err := l.cfg.FeeEstimator.EstimateFeePerKB(3)
 	if err != nil {
