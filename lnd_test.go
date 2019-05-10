@@ -11123,7 +11123,8 @@ func testSwitchOfflineDelivery(net *lntest.NetworkHarness, t *harnessTest) {
 	// Next, we'll create Carol and establish a channel to from her to
 	// Dave. Carol is started in htlchodl mode so that we can disconnect the
 	// intermediary hops before starting the settle.
-	carol, err := net.NewNode("Carol", []string{"--debughtlc", "--hodl.exit-settle"})
+	carol, err := net.NewNode("Carol", []string{"--debughtlc",
+		"--hodl.exit-settle", "--nolisten"})
 	if err != nil {
 		t.Fatalf("unable to create new nodes: %v", err)
 	}
@@ -11322,6 +11323,13 @@ func testSwitchOfflineDelivery(net *lntest.NetworkHarness, t *harnessTest) {
 		aliceFundPoint, int64(0), amountPaid+((baseFee*numPayments)*2))
 	assertAmountPaid(t, "Bob(local) => Alice(remote)", net.Bob,
 		aliceFundPoint, amountPaid+(baseFee*numPayments)*2, int64(0))
+
+	// Ensure Carol and Dave are connected so the final payment will
+	// complete.
+	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	if err := net.EnsureConnected(ctxt, carol, dave); err != nil {
+		t.Fatalf("unable to reconnect carol to dave: %v", err)
+	}
 
 	// Lastly, we will send one more payment to ensure all channels are
 	// still functioning properly.
