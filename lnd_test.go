@@ -4615,7 +4615,7 @@ func testSendToRouteErrorPropagation(net *lntest.NetworkHarness, t *harnessTest)
 }
 
 // testUnannouncedChannels checks unannounced channels are not returned by
-// describeGraph RPC request unless explicity asked for.
+// describeGraph RPC request unless explicitly asked for.
 func testUnannouncedChannels(net *lntest.NetworkHarness, t *harnessTest) {
 	ctxb := context.Background()
 
@@ -5689,10 +5689,10 @@ func testInvoiceSubscriptions(net *lntest.NetworkHarness, t *harnessTest) {
 			t.Fatalf("should have only received add events")
 		}
 		originalInvoice := newInvoices[i]
-		rHash := chainhash.HashB(originalInvoice.RPreimage[:])
-		if !bytes.Equal(invoiceUpdate.RHash, rHash[:]) {
+		rHash := chainhash.HashB(originalInvoice.RPreimage)
+		if !bytes.Equal(invoiceUpdate.RHash, rHash) {
 			t.Fatalf("invoices have mismatched payment hashes: "+
-				"expected %x, got %x", rHash[:],
+				"expected %x, got %x", rHash,
 				invoiceUpdate.RHash)
 		}
 	}
@@ -5729,7 +5729,7 @@ func testInvoiceSubscriptions(net *lntest.NetworkHarness, t *harnessTest) {
 	// we'll use a map to assert that the proper set has been settled.
 	settledInvoices := make(map[[32]byte]struct{})
 	for _, invoice := range newInvoices {
-		rHash := chainhash.HashH(invoice.RPreimage[:])
+		rHash := chainhash.HashH(invoice.RPreimage)
 		settledInvoices[rHash] = struct{}{}
 	}
 	for i := 0; i < numInvoices; i++ {
@@ -7461,7 +7461,7 @@ func testDataLossProtection(net *lntest.NetworkHarness, t *harnessTest) {
 		// node that Carol will pay to in order to advance the state of
 		// the channel.
 		// TODO(halseth): have dangling HTLCs on the commitment, able to
-		// retrive funds?
+		// retrieve funds?
 		ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
 		payReqs, _, _, err := createPayReqs(
 			ctxt, node, paymentAmt, numInvoices,
@@ -13088,7 +13088,7 @@ func testSendPaymentMaxOutboundAmt(net *lntest.NetworkHarness, t *harnessTest) {
 	}
 
 	// Try to send a payment for exactly the maximum possible amount. It
-	// should suceed.
+	// should succeed.
 	err = sendPayment(maxPayAmt - int64(peerHtlcFee))
 	if err != nil {
 		t.Fatalf("payment should have suceeded, but failed with %v", err)
@@ -13325,7 +13325,7 @@ var testsCases = []*testCase{
 		name: "open channel reorg test",
 		test: testOpenChannelAfterReorg,
 	},
-	// TOOD(decred) review this test again.
+	// TODO(decred) review this test again.
 	// {
 	// 	name: "onchain fund recovery",
 	// 	test: testOnchainFundRecovery,

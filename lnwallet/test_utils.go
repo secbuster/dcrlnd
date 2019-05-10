@@ -330,8 +330,9 @@ func CreateTestChannels() (*LightningChannel, *LightningChannel, func(), error) 
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	alicePool.Start()
-
+	if err = alicePool.Start(); err != nil {
+		return nil, nil, nil, err
+	}
 	bobPool := NewSigPool(1, bobSigner)
 	channelBob, err := NewLightningChannel(
 		bobSigner, pCache, bobChannelState, bobPool,
@@ -339,8 +340,9 @@ func CreateTestChannels() (*LightningChannel, *LightningChannel, func(), error) 
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	bobPool.Start()
-
+	if err = bobPool.Start(); err != nil {
+		return nil, nil, nil, err
+	}
 	err = SetStateNumHint(
 		aliceCommitTx, 0, channelAlice.stateHintObfuscator,
 	)
@@ -547,15 +549,6 @@ func pubkeyToHex(key *secp256k1.PublicKey) string {
 // privkeyFromHex serializes a Decred private key to a hex encoded string.
 func privkeyToHex(key *secp256k1.PrivateKey) string {
 	return hex.EncodeToString(key.Serialize())
-}
-
-// signatureFromHex parses a Decred signature from a hex encoded string.
-func signatureFromHex(sigHex string) (*secp256k1.Signature, error) {
-	bytes, err := hex.DecodeString(sigHex)
-	if err != nil {
-		return nil, err
-	}
-	return secp256k1.ParseSignature(bytes)
 }
 
 // blockFromHex parses a full Decred block from a hex encoded string.
