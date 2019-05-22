@@ -393,19 +393,10 @@ var (
 	// TODO(roasbeef): extend and collapse these and chainparams.go into
 	// struct like chaincfg.Params
 	chainDNSSeeds = map[chainhash.Hash][][2]string{
-		decredMainnetGenesis: {
-			{
-				"dcr.nodes.lightning.directory",
-				"soa.nodes.lightning.directory",
-			},
-		},
-
-		decredTestnet3Genesis: {
-			{
-				"dcrtest.nodes.lightning.directory",
-				"soa.nodes.lightning.directory",
-			},
-		},
+		// TODO(decred): Add actual decred DNS seeder addresses once
+		// they're up.
+		decredMainnetGenesis:  nil,
+		decredTestnet3Genesis: nil,
 	}
 )
 

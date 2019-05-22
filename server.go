@@ -1377,6 +1377,10 @@ func (s *server) peerBootstrapper(numTargetPeers uint32,
 					backOff = backOffCeiling
 				}
 
+				// Reset the counters for the next epoch bump.
+				epochAttempts = 0
+				atomic.StoreUint32(&epochErrors, 0)
+
 				srvrLog.Debugf("Backing off peer bootstrapper to "+
 					"%v", backOff)
 				sampleTicker = time.NewTicker(backOff)
@@ -1407,6 +1411,13 @@ func (s *server) peerBootstrapper(numTargetPeers uint32,
 			peerAddrs, err := discovery.MultiSourceBootstrap(
 				ctx, ignoreList, numNeeded*2, bootstrappers...,
 			)
+			if err == discovery.ErrNoAddressesFound {
+				srvrLog.Errorf("No addresses returned by " +
+					"boostrappers. Bumping attempt count.")
+				epochAttempts++
+				atomic.AddUint32(&epochErrors, 1)
+				continue
+			}
 			if err != nil {
 				srvrLog.Errorf("Unable to retrieve bootstrap "+
 					"peers: %v", err)
@@ -1474,6 +1485,11 @@ func (s *server) initialPeerBootstrap(ctx context.Context,
 		bootstrapAddrs, err := discovery.MultiSourceBootstrap(
 			ctx, ignore, peersNeeded, bootstrappers...,
 		)
+		if err == discovery.ErrNoAddressesFound {
+			srvrLog.Errorf("No addresses returned by initial " +
+				"boostrappers. Disabling bootstrapping.")
+			return
+		}
 		if err != nil {
 			srvrLog.Errorf("Unable to retrieve initial bootstrap "+
 				"peers: %v", err)

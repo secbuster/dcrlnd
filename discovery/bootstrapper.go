@@ -23,6 +23,11 @@ import (
 	"github.com/decred/dcrlnd/tor"
 )
 
+// ErrNoAddressesFound is returned by the MultiSourceBootstrap to signal that
+// after attempting all available sub-bootstrappers, none returned a usable
+// address.
+var ErrNoAddressesFound = errors.New("no addresses found")
+
 func init() {
 	prand.Seed(time.Now().Unix())
 }
@@ -89,7 +94,7 @@ func MultiSourceBootstrap(ctx context.Context, ignore map[autopilot.NodeID]struc
 	}
 
 	if len(addrs) == 0 {
-		return nil, errors.New("no addresses found")
+		return nil, ErrNoAddressesFound
 	}
 
 	log.Infof("Obtained %v addrs to bootstrap network with", len(addrs))
@@ -378,6 +383,10 @@ func (d *DNSSeedBootstrapper) SampleNodeAddrs(ctx context.Context,
 	numAddrs uint32, ignore map[autopilot.NodeID]struct{}) ([]*lnwire.NetAddress, error) {
 
 	var netAddrs []*lnwire.NetAddress
+
+	if len(d.dnsSeeds) == 0 {
+		return nil, errors.New("empty dns seeder")
+	}
 
 	// We'll continue this loop until we reach our target address limit.
 	// Each SRV query to the seed will return 25 random nodes, so we can
