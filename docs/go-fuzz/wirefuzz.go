@@ -8,7 +8,7 @@ import (
 	"github.com/decred/dcrlnd/lnwire"
 )
 
-// Fuzz is used by go-fuzz to fuzz for potentially malicious input
+// FuzzReadMessage is used by go-fuzz to fuzz for potentially malicious input
 func Fuzz(data []byte) int {
 	// Because go-fuzz requires this function signature with a []byte parameter,
 	// and we want to emulate the behavior of mainScenario in lnwire_test.go,
